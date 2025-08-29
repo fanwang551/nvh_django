@@ -1,0 +1,444 @@
+<template>
+  <div class="modal-data-query">
+    <!-- 搜索卡片 -->
+    <el-card class="search-card" shadow="never">
+      <div class="search-form">
+        <div class="form-row">
+          <div class="form-group">
+            <span class="form-label">车型：</span>
+            <el-select
+              v-model="searchForm.vehicleModelId"
+              placeholder="请选择车型"
+              class="form-select"
+              clearable
+              :loading="vehicleModelsLoading"
+              @change="handleVehicleModelChange"
+            >
+              <el-option
+                v-for="item in vehicleModelOptions"
+                :key="item.id"
+                :label="item.vehicle_model_name"
+                :value="item.id"
+              />
+            </el-select>
+          </div>
+
+          <div class="form-group">
+            <span class="form-label">零件：</span>
+            <el-select
+              v-model="searchForm.componentIds"
+              placeholder="请选择零件（可多选）"
+              class="form-select"
+              multiple
+              collapse-tags
+              collapse-tags-tooltip
+              clearable
+              :loading="componentsLoading"
+            >
+              <el-option
+                v-for="item in componentOptions"
+                :key="item.id"
+                :label="item.component_name"
+                :value="item.id"
+              />
+            </el-select>
+          </div>
+
+          <div class="form-group">
+            <el-button
+              type="primary"
+              :icon="Search"
+              @click="handleSearch"
+              :loading="loading"
+              class="search-btn"
+            >
+              查询
+            </el-button>
+          </div>
+        </div>
+      </div>
+    </el-card>
+
+    <!-- 查询结果展示卡片 -->
+    <el-card class="result-card" shadow="never">
+      <template #header>
+        <div class="card-header">
+          <el-icon class="header-icon"><List /></el-icon>
+          <span>查询结果展示</span>
+          <div class="header-extra">
+            <span class="result-count">共 {{ modalDataResult.count || 0 }} 条数据</span>
+          </div>
+        </div>
+      </template>
+
+      <el-table
+        :data="modalDataResult.results || []"
+        v-loading="loading"
+        class="result-table"
+        stripe
+        :header-cell-style="{ backgroundColor: '#fafafa', color: '#606266' }"
+      >
+        <el-table-column prop="test_project_code" label="测试项目" width="150" />
+        <el-table-column prop="component_name" label="零件名称" width="150" />
+        <el-table-column prop="frequency" label="频率(Hz)" width="120" align="center">
+          <template #default="scope">
+            <span class="frequency-value">{{ scope.row.frequency }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="mode_shape_description" label="模态描述" width="200" />
+        <el-table-column prop="damping_ratio" label="阻尼比" width="100" align="center" />
+        <el-table-column label="操作" width="120" align="center">
+          <template #default="scope">
+            <el-button
+              type="primary"
+              size="small"
+              text
+              @click="viewModalShape(scope.row)"
+            >
+              查看振型
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <!-- 分页器 -->
+      <div class="pagination-wrapper">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :page-sizes="[10, 20, 50, 100]"
+          :total="modalDataResult.count || 0"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </div>
+    </el-card>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted, watch } from 'vue'
+import { ElMessage } from 'element-plus'
+import { Search, List } from '@element-plus/icons-vue'
+import modalApi from '@/api/modal'
+
+// 搜索表单
+const searchForm = ref({
+  vehicleModelId: null,
+  componentIds: []
+})
+
+// 加载状态
+const loading = ref(false)
+const vehicleModelsLoading = ref(false)
+const componentsLoading = ref(false)
+
+// 分页
+const currentPage = ref(1)
+const pageSize = ref(10)
+
+// 数据选项
+const vehicleModelOptions = ref([])
+const componentOptions = ref([])
+
+// 模态数据查询结果
+const modalDataResult = ref({
+  count: 0,
+  results: []
+})
+
+// API调用方法
+const loadVehicleModels = async () => {
+  try {
+    vehicleModelsLoading.value = true
+    const response = await modalApi.getVehicleModels()
+    vehicleModelOptions.value = response.data || []
+  } catch (error) {
+    console.error('加载车型列表失败:', error)
+    ElMessage.error('加载车型列表失败')
+  } finally {
+    vehicleModelsLoading.value = false
+  }
+}
+
+const loadComponents = async (vehicleModelId = null) => {
+  try {
+    componentsLoading.value = true
+    const params = vehicleModelId ? { vehicle_model_id: vehicleModelId } : {}
+    const response = await modalApi.getComponents(params)
+    componentOptions.value = response.data || []
+
+    // 如果有车型选择，默认选中所有零件
+    if (vehicleModelId && componentOptions.value.length > 0) {
+      searchForm.value.componentIds = componentOptions.value.map(item => item.id)
+    }
+  } catch (error) {
+    console.error('加载零件列表失败:', error)
+    ElMessage.error('加载零件列表失败')
+  } finally {
+    componentsLoading.value = false
+  }
+}
+
+// 车型变化处理
+const handleVehicleModelChange = (vehicleModelId) => {
+  if (vehicleModelId) {
+    loadComponents(vehicleModelId)
+  } else {
+    componentOptions.value = []
+    searchForm.value.componentIds = []
+  }
+  // 清空之前的查询结果
+  modalDataResult.value = { count: 0, results: [] }
+}
+
+// 搜索处理
+const handleSearch = async () => {
+  if (!searchForm.value.vehicleModelId) {
+    ElMessage.warning('请先选择车型')
+    return
+  }
+
+  loading.value = true
+  try {
+    const params = {
+      vehicle_model_id: searchForm.value.vehicleModelId,
+      page: currentPage.value,
+      page_size: pageSize.value
+    }
+
+    // 如果选择了零件，添加到查询参数
+    if (searchForm.value.componentIds.length > 0) {
+      params.component_ids = searchForm.value.componentIds.join(',')
+    }
+
+    const response = await modalApi.queryModalData(params)
+    modalDataResult.value = response
+    ElMessage.success('查询完成')
+  } catch (error) {
+    console.error('查询失败:', error)
+    ElMessage.error('查询失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+// 查看振型
+const viewModalShape = (row) => {
+  ElMessage.info(`查看 ${row.component_name} 的振型数据`)
+}
+
+// 分页处理
+const handleSizeChange = (val) => {
+  pageSize.value = val
+  currentPage.value = 1
+  if (searchForm.value.vehicleModelId) {
+    handleSearch()
+  }
+}
+
+const handleCurrentChange = (val) => {
+  currentPage.value = val
+  if (searchForm.value.vehicleModelId) {
+    handleSearch()
+  }
+}
+
+// 监听分页变化
+watch([currentPage, pageSize], () => {
+  if (searchForm.value.vehicleModelId && modalDataResult.value.results.length > 0) {
+    handleSearch()
+  }
+})
+
+onMounted(() => {
+  // 初始化加载车型列表
+  loadVehicleModels()
+})
+</script>
+
+<style scoped>
+.modal-data-query {
+  padding: 0;
+  background-color: #f5f7fa;
+}
+
+/* 卡片样式 */
+.search-card,
+.result-card {
+  margin-bottom: 16px;
+  border-radius: 6px;
+  border: 1px solid #e7e7e7;
+}
+
+.search-card {
+  background-color: #fff;
+}
+
+.result-card {
+  background-color: #fff;
+}
+
+/* 卡片头部 */
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.header-icon {
+  color: #0052d9;
+  font-size: 16px;
+}
+
+.header-extra {
+  margin-left: auto;
+}
+
+.result-count {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* 搜索表单 */
+.search-form {
+  padding: 0;
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.form-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-label {
+  font-size: 14px;
+  color: #374151;
+  font-weight: 500;
+  white-space: nowrap;
+  min-width: fit-content;
+}
+
+.form-select {
+  width: 180px;
+}
+
+.search-btn {
+  height: 32px;
+  padding: 0 20px;
+  border-radius: 3px;
+  font-size: 14px;
+  margin-left: 8px;
+}
+
+/* 表格样式 */
+.result-table {
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+:deep(.el-table) {
+  border: 1px solid #e7e7e7;
+}
+
+:deep(.el-table th) {
+  background-color: #f8f9fa !important;
+  border-bottom: 1px solid #e7e7e7;
+  font-weight: 500;
+  color: #374151;
+}
+
+:deep(.el-table td) {
+  border-bottom: 1px solid #f1f3f4;
+}
+
+:deep(.el-table .el-table__row:hover > td) {
+  background-color: #f8f9fa;
+}
+
+.frequency-value {
+  font-family: 'Monaco', 'Menlo', monospace;
+  font-weight: 500;
+  color: #0052d9;
+}
+
+/* 分页器 */
+.pagination-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #f1f3f4;
+}
+
+:deep(.el-pagination) {
+  --el-pagination-font-size: 14px;
+}
+
+:deep(.el-pagination .btn-prev),
+:deep(.el-pagination .btn-next) {
+  border-radius: 3px;
+}
+
+:deep(.el-pagination .el-pager li) {
+  border-radius: 3px;
+  margin: 0 2px;
+}
+
+:deep(.el-pagination .el-pager li.is-active) {
+  background-color: #0052d9;
+  color: white;
+}
+
+/* Element Plus 组件样式覆盖 */
+:deep(.search-card .el-card__body) {
+  padding: 20px;
+}
+
+:deep(.result-card .el-card__header) {
+  padding: 16px 20px;
+  border-bottom: 1px solid #f1f3f4;
+  background-color: #fafbfc;
+}
+
+:deep(.result-card .el-card__body) {
+  padding: 20px;
+}
+
+:deep(.el-select) {
+  --el-select-border-color-hover: #0052d9;
+}
+
+:deep(.el-select .el-input__wrapper) {
+  border-radius: 3px;
+}
+
+:deep(.el-button--primary) {
+  background-color: #0052d9;
+  border-color: #0052d9;
+}
+
+:deep(.el-button--primary:hover) {
+  background-color: #1890ff;
+  border-color: #1890ff;
+}
+
+:deep(.el-button--text) {
+  color: #0052d9;
+}
+
+:deep(.el-button--text:hover) {
+  color: #1890ff;
+  background-color: #f0f8ff;
+}
+</style>

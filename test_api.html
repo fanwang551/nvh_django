@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NVH API 测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .result { background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 3px; }
+        .error { background: #ffe6e6; color: #d00; }
+        .success { background: #e6ffe6; color: #080; }
+        button { padding: 8px 16px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>NVH 模态数据查询 API 测试</h1>
+    
+    <div class="test-section">
+        <h3>1. 测试车型列表 API（无分页）</h3>
+        <button onclick="testVehicleModels()">测试车型列表</button>
+        <div id="vehicleResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>2. 测试零件列表 API（无分页）</h3>
+        <button onclick="testComponents()">测试零件列表</button>
+        <button onclick="testComponentsByVehicle()">按车型筛选零件</button>
+        <div id="componentResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>3. 测试模态数据查询 API（有分页，支持多零件）</h3>
+        <button onclick="testModalData()">查询模态数据</button>
+        <button onclick="testModalDataMultiComponents()">多零件查询</button>
+        <div id="modalResult" class="result"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:8000/api/modal';
+        
+        // 模拟认证token（实际使用中应该从Keycloak获取）
+        const headers = {
+            'Content-Type': 'application/json',
+            // 'Authorization': 'Bearer your-token-here'
+        };
+
+        async function makeRequest(url, options = {}) {
+            try {
+                const response = await fetch(url, {
+                    ...options,
+                    headers: { ...headers, ...options.headers }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                throw error;
+            }
+        }
+
+        async function testVehicleModels() {
+            const resultDiv = document.getElementById('vehicleResult');
+            resultDiv.innerHTML = '测试中...';
+            
+            try {
+                const data = await makeRequest(`${API_BASE}/vehicle-models/`);
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `
+                    <strong>✅ 成功!</strong><br>
+                    车型数量: ${data.data ? data.data.length : 0}<br>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<strong>❌ 失败:</strong> ${error.message}`;
+            }
+        }
+
+        async function testComponents() {
+            const resultDiv = document.getElementById('componentResult');
+            resultDiv.innerHTML = '测试中...';
+            
+            try {
+                const data = await makeRequest(`${API_BASE}/components/`);
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `
+                    <strong>✅ 成功!</strong><br>
+                    零件数量: ${data.data ? data.data.length : 0}<br>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<strong>❌ 失败:</strong> ${error.message}`;
+            }
+        }
+
+        async function testComponentsByVehicle() {
+            const resultDiv = document.getElementById('componentResult');
+            resultDiv.innerHTML = '测试中...';
+            
+            try {
+                const data = await makeRequest(`${API_BASE}/components/?vehicle_model_id=1`);
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `
+                    <strong>✅ 成功!</strong><br>
+                    车型1的零件数量: ${data.data ? data.data.length : 0}<br>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<strong>❌ 失败:</strong> ${error.message}`;
+            }
+        }
+
+        async function testModalData() {
+            const resultDiv = document.getElementById('modalResult');
+            resultDiv.innerHTML = '测试中...';
+            
+            try {
+                const data = await makeRequest(`${API_BASE}/modal-data/?vehicle_model_id=1&page=1&page_size=5`);
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `
+                    <strong>✅ 成功!</strong><br>
+                    总数据量: ${data.count || 0}<br>
+                    当前页数据: ${data.results ? data.results.length : 0}<br>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<strong>❌ 失败:</strong> ${error.message}`;
+            }
+        }
+
+        async function testModalDataMultiComponents() {
+            const resultDiv = document.getElementById('modalResult');
+            resultDiv.innerHTML = '测试中...';
+            
+            try {
+                const data = await makeRequest(`${API_BASE}/modal-data/?vehicle_model_id=1&component_ids=1,2&page=1&page_size=10`);
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `
+                    <strong>✅ 成功!</strong><br>
+                    多零件查询结果: ${data.count || 0}<br>
+                    当前页数据: ${data.results ? data.results.length : 0}<br>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<strong>❌ 失败:</strong> ${error.message}`;
+            }
+        }
+
+        // 页面加载时显示说明
+        window.onload = function() {
+            console.log('NVH API 测试页面已加载');
+            console.log('注意: 由于API需要认证，某些测试可能会失败');
+        };
+    </script>
+</body>
+</html>

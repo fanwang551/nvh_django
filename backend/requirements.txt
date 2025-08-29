@@ -1,0 +1,9 @@
+Django==5.2.5
+django-cors-headers==4.7.0
+django-filter==25.1
+djangorestframework==3.14.0
+PyMySQL==1.1.0
+python-decouple==3.8
+requests==2.32.5
+cryptography==45.0.6
+mozilla-django-oidc==4.0.1
