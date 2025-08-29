@@ -4,40 +4,40 @@ from .models import VehicleModel, Component, TestProject, ModalData
 
 class VehicleModelSerializer(serializers.ModelSerializer):
     """车型序列化器"""
-    
+
     class Meta:
         model = VehicleModel
         fields = [
-            'id', 'cle_model_code', 'vehicle_model_name', 'vin', 
-            'drive_type', 'configuration', 'production_year', 
-            'status', 'created_at', 'updated_at'
+            'id', 'cle_model_code', 'vehicle_model_name', 'vin',
+            'drive_type', 'configuration', 'production_year',
+            'status'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id']
 
 
 class ComponentSerializer(serializers.ModelSerializer):
     """零件序列化器"""
-    
+
     class Meta:
         model = Component
         fields = [
-            'id', 'component_name', 'category', 'component_brand', 
-            'component_model', 'component_code', 'created_at', 'updated_at'
+            'id', 'component_name', 'category', 'component_brand',
+            'component_model', 'component_code'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id']
 
 
 class TestProjectSerializer(serializers.ModelSerializer):
     """测试项目序列化器"""
     vehicle_model_name = serializers.CharField(source='vehicle_model.vehicle_model_name', read_only=True)
     component_name = serializers.CharField(source='component.component_name', read_only=True)
-    
+
     class Meta:
         model = TestProject
         fields = [
-            'id', 'project_code', 'vehicle_model', 'vehicle_model_name',
+            'id', 'vehicle_model', 'vehicle_model_name',
             'component', 'component_name', 'test_type', 'test_date',
-            'test_location', 'test_engineer', 'test_status', 
+            'test_location', 'test_engineer', 'test_status',
             'excitation_method', 'notes', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
@@ -45,16 +45,17 @@ class TestProjectSerializer(serializers.ModelSerializer):
 
 class ModalDataSerializer(serializers.ModelSerializer):
     """模态数据序列化器"""
-    test_project_code = serializers.CharField(source='test_project.project_code', read_only=True)
+    test_project_id = serializers.IntegerField(source='test_project.id', read_only=True)
     vehicle_model_name = serializers.CharField(source='test_project.vehicle_model.vehicle_model_name', read_only=True)
     component_name = serializers.CharField(source='test_project.component.component_name', read_only=True)
-    
+    component_category = serializers.CharField(source='test_project.component.category', read_only=True)
+
     class Meta:
         model = ModalData
         fields = [
-            'id', 'test_project', 'test_project_code', 'vehicle_model_name', 'component_name',
-            'frequency', 'damping_ratio', 'mode_shape_description', 
-            'mode_shape_file', 'test_photo_file', 'notes', 
+            'id', 'test_project', 'test_project_id', 'vehicle_model_name', 'component_name', 'component_category',
+            'frequency', 'damping_ratio', 'mode_shape_description',
+            'mode_shape_file', 'test_photo_file', 'notes',
             'created_at', 'updated_at', 'updated_by'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']

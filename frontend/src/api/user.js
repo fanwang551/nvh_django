@@ -1,36 +1,24 @@
-import request from './request'
+import request from '@/utils/request'
 
 // User API
 export const userApi = {
   // Get user info
   getUserInfo() {
-    return request({
-      url: '/users/info/',
-      method: 'get'
-    })
+    return request.get('/users/info/')
   },
-  
+
   // Get user profile
   getUserProfile() {
-    return request({
-      url: '/users/profile/',
-      method: 'get'
-    })
+    return request.get('/users/profile/')
   },
-  
+
   // Health check
   healthCheck() {
-    return request({
-      url: '/users/health/',
-      method: 'get'
-    })
+    return request.get('/users/health/')
   },
 
   // Auth test
   authTest() {
-    return request({
-      url: '/users/auth-test/',
-      method: 'get'
-    })
+    return request.get('/users/auth-test/')
   }
 }

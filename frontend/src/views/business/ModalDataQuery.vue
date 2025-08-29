@@ -76,18 +76,18 @@
         v-loading="loading"
         class="result-table"
         stripe
-        :header-cell-style="{ backgroundColor: '#fafafa', color: '#606266' }"
+        :header-cell-style="{ backgroundColor: '#fafafa', color: '#606266', fontWeight: '600', fontSize: '14px' }"
       >
-        <el-table-column prop="test_project_code" label="测试项目" width="150" />
-        <el-table-column prop="component_name" label="零件名称" width="150" />
-        <el-table-column prop="frequency" label="频率(Hz)" width="120" align="center">
+        <el-table-column prop="component_category" label="零件分类" width="120" />
+        <el-table-column prop="component_name" label="零件名称" width="160" />
+        <el-table-column prop="mode_shape_description" label="模态振型描述" width="200" />
+        <el-table-column prop="frequency" label="频率(Hz)" width="130" align="center">
           <template #default="scope">
             <span class="frequency-value">{{ scope.row.frequency }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="mode_shape_description" label="模态描述" width="200" />
-        <el-table-column prop="damping_ratio" label="阻尼比" width="100" align="center" />
-        <el-table-column label="操作" width="120" align="center">
+        <el-table-column prop="damping_ratio" label="阻尼比" width="110" align="center" />
+        <el-table-column label="操作" width="130" align="center">
           <template #default="scope">
             <el-button
               type="primary"
@@ -354,16 +354,24 @@ onMounted(() => {
 :deep(.el-table th) {
   background-color: #f8f9fa !important;
   border-bottom: 1px solid #e7e7e7;
-  font-weight: 500;
-  color: #374151;
+  font-weight: 600 !important;
+  color: #374151 !important;
+  font-size: 14px !important;
+  padding: 12px 8px !important;
 }
 
 :deep(.el-table td) {
   border-bottom: 1px solid #f1f3f4;
+  padding: 10px 8px !important;
 }
 
 :deep(.el-table .el-table__row:hover > td) {
   background-color: #f8f9fa;
+}
+
+:deep(.el-table .cell) {
+  padding: 0 12px;
+  line-height: 1.5;
 }
 
 .frequency-value {

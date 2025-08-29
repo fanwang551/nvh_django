@@ -21,28 +21,36 @@ class Command(BaseCommand):
             # 创建车型数据
             vehicles = [
                 {
-                    'cle_model_code': 'BMW_X5_2023',
-                    'vehicle_model_name': 'BMW X5 2023款',
-                    'vin': 'WBAFR9C50DD123456',
-                    'drive_type': 'AWD',
-                    'configuration': 'xDrive40i 豪华套装',
-                    'production_year': 2023,
+                    'cle_model_code': 'WL_HONGGUANG_2024',
+                    'vehicle_model_name': '五菱宏光PLUS 2024款',
+                    'vin': 'LZWACAGA5MA123456',
+                    'drive_type': 'FWD',
+                    'configuration': '1.5L 手动舒适型',
+                    'production_year': 2024,
                 },
                 {
-                    'cle_model_code': 'AUDI_Q7_2023',
-                    'vehicle_model_name': 'Audi Q7 2023款',
-                    'vin': 'WA1LAAF70KD123457',
-                    'drive_type': 'AWD',
-                    'configuration': '55 TFSI quattro 豪华型',
-                    'production_year': 2023,
+                    'cle_model_code': 'WL_RONGGUANG_2024',
+                    'vehicle_model_name': '五菱荣光新卡 2024款',
+                    'vin': 'LZWACAGA5MA123457',
+                    'drive_type': 'RWD',
+                    'configuration': '1.5L 标准型',
+                    'production_year': 2024,
                 },
                 {
-                    'cle_model_code': 'BENZ_GLE_2023',
-                    'vehicle_model_name': 'Mercedes-Benz GLE 2023款',
-                    'vin': '4JGDF7CE5KA123458',
-                    'drive_type': 'AWD',
-                    'configuration': 'GLE 450 4MATIC 豪华型',
-                    'production_year': 2023,
+                    'cle_model_code': 'BJ_510_2024',
+                    'vehicle_model_name': '宝骏510 2024款',
+                    'vin': 'LZWACAGA5MA123458',
+                    'drive_type': 'FWD',
+                    'configuration': '1.5L CVT豪华型',
+                    'production_year': 2024,
+                },
+                {
+                    'cle_model_code': 'BJ_730_2024',
+                    'vehicle_model_name': '宝骏730 2024款',
+                    'vin': 'LZWACAGA5MA123459',
+                    'drive_type': 'FWD',
+                    'configuration': '1.5T 手动精英型',
+                    'production_year': 2024,
                 }
             ]
             
@@ -104,11 +112,10 @@ class Command(BaseCommand):
             for vehicle in vehicle_objects:
                 for component in component_objects[:3]:  # 每个车型测试前3个零件
                     project = TestProject.objects.create(
-                        project_code=f'TEST_{vehicle.cle_model_code}_{component.component_code}_{project_counter:03d}',
                         vehicle_model=vehicle,
                         component=component,
                         test_type='模态测试',
-                        test_date=date(2023, 8, 15 + project_counter),
+                        test_date=date(2024, 8, 15 + project_counter),
                         test_location='NVH实验室',
                         test_engineer='张工程师',
                         test_status='已完成',
@@ -117,7 +124,7 @@ class Command(BaseCommand):
                     )
                     test_projects.append(project)
                     project_counter += 1
-                    self.stdout.write(f'创建测试项目: {project.project_code}')
+                    self.stdout.write(f'创建测试项目: ID-{project.id}')
             
             # 创建模态数据
             modal_counter = 1
@@ -141,7 +148,7 @@ class Command(BaseCommand):
                         mode_shape_description=descriptions[i],
                         mode_shape_file=f'/media/modal_shapes/modal_{modal_counter:03d}.gif',
                         test_photo_file=f'/media/test_photos/test_{modal_counter:03d}.jpg',
-                        notes=f'{project.project_code} - {descriptions[i]}',
+                        notes=f'项目ID-{project.id} - {descriptions[i]}',
                         updated_by='系统初始化'
                     )
                     modal_counter += 1
