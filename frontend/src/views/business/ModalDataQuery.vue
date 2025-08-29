@@ -114,6 +114,70 @@
         />
       </div>
     </el-card>
+
+    <!-- 查看振型弹窗 -->
+    <el-dialog
+      v-model="modalShapeDialogVisible"
+      title="查看振型"
+      width="800px"
+      :before-close="handleCloseDialog"
+      class="modal-shape-dialog"
+    >
+      <div class="modal-shape-content">
+        <!-- Tab 切换按钮 -->
+        <div class="tab-header">
+          <div
+            class="tab-item"
+            :class="{ active: activeTab === 'shape' }"
+            @click="activeTab = 'shape'"
+          >
+            振型动画
+          </div>
+          <div
+            class="tab-item"
+            :class="{ active: activeTab === 'photo' }"
+            @click="activeTab = 'photo'"
+          >
+            测试图片
+          </div>
+        </div>
+
+        <!-- 图片展示区域 -->
+        <div class="image-display-area">
+          <!-- 振型动画 -->
+          <div v-if="activeTab === 'shape'" class="image-container">
+            <div v-if="currentModalData?.mode_shape_file" class="image-wrapper">
+              <img
+                :src="getImageUrl(currentModalData.mode_shape_file)"
+                alt="振型动画"
+                class="modal-image"
+                @error="handleImageError"
+              />
+              <p class="image-caption">振型动画 - {{ currentModalData.mode_shape_description || '无描述' }}</p>
+            </div>
+            <div v-else class="no-image">
+              <el-empty description="暂无振型动画数据" />
+            </div>
+          </div>
+
+          <!-- 测试图片 -->
+          <div v-if="activeTab === 'photo'" class="image-container">
+            <div v-if="currentModalData?.test_photo_file" class="image-wrapper">
+              <img
+                :src="getImageUrl(currentModalData.test_photo_file)"
+                alt="测试图片"
+                class="modal-image"
+                @error="handleImageError"
+              />
+              <p class="image-caption">测试图片 - {{ currentModalData.component_name || '无名称' }}</p>
+            </div>
+            <div v-else class="no-image">
+              <el-empty description="暂无测试图片数据" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -147,6 +211,11 @@ const modalDataResult = ref({
   count: 0,
   results: []
 })
+
+// 弹窗相关状态
+const modalShapeDialogVisible = ref(false)
+const activeTab = ref('shape') // 'shape' 或 'photo'
+const currentModalData = ref(null)
 
 // API调用方法
 const loadVehicleModels = async () => {
@@ -226,7 +295,32 @@ const handleSearch = async () => {
 
 // 查看振型
 const viewModalShape = (row) => {
-  ElMessage.info(`查看 ${row.component_name} 的振型数据`)
+  currentModalData.value = row
+  activeTab.value = 'shape' // 默认显示振型动画
+  modalShapeDialogVisible.value = true
+}
+
+// 关闭弹窗
+const handleCloseDialog = () => {
+  modalShapeDialogVisible.value = false
+  currentModalData.value = null
+  activeTab.value = 'shape'
+}
+
+// 获取图片URL
+const getImageUrl = (filePath) => {
+  if (!filePath) return ''
+  // 如果是相对路径，添加后端服务器地址
+  if (filePath.startsWith('/')) {
+    return `http://127.0.0.1:8000${filePath}`
+  }
+  return filePath
+}
+
+// 图片加载错误处理
+const handleImageError = (event) => {
+  console.error('图片加载失败:', event.target.src)
+  ElMessage.error('图片加载失败')
 }
 
 // 分页处理
@@ -448,5 +542,88 @@ onMounted(() => {
 :deep(.el-button--text:hover) {
   color: #1890ff;
   background-color: #f0f8ff;
+}
+
+/* 弹窗样式 */
+.modal-shape-dialog {
+  :deep(.el-dialog__body) {
+    padding: 0;
+  }
+}
+
+.modal-shape-content {
+  .tab-header {
+    display: flex;
+    border-bottom: 1px solid #e4e7ed;
+    background-color: #fafafa;
+  }
+
+  .tab-item {
+    flex: 1;
+    padding: 16px 20px;
+    text-align: center;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: #606266;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background-color: #f0f2f5;
+      color: #409eff;
+    }
+
+    &.active {
+      color: #409eff;
+      border-bottom-color: #409eff;
+      background-color: #fff;
+    }
+  }
+
+  .image-display-area {
+    padding: 20px;
+    min-height: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .image-container {
+    width: 100%;
+    text-align: center;
+  }
+
+  .image-wrapper {
+    display: inline-block;
+    max-width: 100%;
+  }
+
+  .modal-image {
+    max-width: 100%;
+    max-height: 500px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+
+    &:hover {
+      transform: scale(1.02);
+    }
+  }
+
+  .image-caption {
+    margin-top: 12px;
+    font-size: 14px;
+    color: #606266;
+    font-weight: 500;
+  }
+
+  .no-image {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 300px;
+    color: #909399;
+  }
 }
 </style>
