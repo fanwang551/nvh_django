@@ -73,6 +73,39 @@ class ModalDataQuerySerializer(serializers.Serializer):
             raise serializers.ValidationError("指定的车型不存在")
         return value
 
+
+class ModalDataCompareSerializer(serializers.Serializer):
+    """模态数据对比参数序列化器"""
+    component_id = serializers.IntegerField(required=True, help_text='零件ID')
+    vehicle_model_ids = serializers.CharField(required=True, help_text='车型ID列表（逗号分隔）')
+    test_statuses = serializers.CharField(required=False, allow_blank=True, help_text='测试状态列表（逗号分隔，可选）')
+    mode_types = serializers.CharField(required=False, allow_blank=True, help_text='振型类型列表（逗号分隔，可选）')
+
+    def validate_component_id(self, value):
+        """验证零件ID是否存在"""
+        if not Component.objects.filter(id=value).exists():
+            raise serializers.ValidationError("指定的零件不存在")
+        return value
+
+    def validate_vehicle_model_ids(self, value):
+        """验证车型ID列表"""
+        if not value:
+            raise serializers.ValidationError("车型ID列表不能为空")
+
+        try:
+            ids = [int(id.strip()) for id in value.split(',') if id.strip()]
+            if not ids:
+                raise serializers.ValidationError("车型ID列表不能为空")
+
+            # 验证所有车型ID是否存在
+            existing_count = VehicleModel.objects.filter(id__in=ids).count()
+            if existing_count != len(ids):
+                raise serializers.ValidationError("部分车型ID不存在")
+
+            return ids
+        except ValueError:
+            raise serializers.ValidationError("车型ID格式错误")
+
     def validate_component_ids(self, value):
         """验证零件ID列表格式和存在性"""
         if not value:

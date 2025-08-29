@@ -7,7 +7,7 @@ from utils.pagination import PageNumberPaginationUtil
 from .models import VehicleModel, Component, TestProject, ModalData
 from .serializers import (
     VehicleModelSerializer, ComponentSerializer,
-    ModalDataSerializer, ModalDataQuerySerializer
+    ModalDataSerializer, ModalDataQuerySerializer, ModalDataCompareSerializer
 )
 
 
@@ -167,3 +167,169 @@ def modal_data_statistics(request):
 
     except Exception as e:
         return Response.error(message=f"获取统计信息失败: {str(e)}")
+
+
+@api_view(['GET'])
+@permission_classes([])  # 临时允许匿名访问用于测试
+def get_related_vehicle_models(request):
+    """根据零件ID获取相关的车型列表"""
+    try:
+        component_id = request.GET.get('component_id')
+        if not component_id:
+            return Response.error(message="零件ID不能为空", status_code=status.HTTP_400_BAD_REQUEST)
+
+        # 验证零件是否存在
+        if not Component.objects.filter(id=component_id).exists():
+            return Response.error(message="指定的零件不存在", status_code=status.HTTP_400_BAD_REQUEST)
+
+        # 获取该零件相关的所有车型
+        vehicle_models = VehicleModel.objects.filter(
+            testproject__component_id=component_id,
+            status='active'
+        ).distinct().order_by('id')
+
+        serializer = VehicleModelSerializer(vehicle_models, many=True)
+        return Response.success(data=serializer.data)
+
+    except Exception as e:
+        return Response.error(message=f"获取相关车型失败: {str(e)}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([])  # 临时允许匿名访问用于测试
+def get_test_statuses(request):
+    """获取测试状态选项"""
+    try:
+        component_id = request.GET.get('component_id')
+        vehicle_model_ids = request.GET.get('vehicle_model_ids')
+
+        if not component_id:
+            return Response.error(message="零件ID不能为空", status_code=status.HTTP_400_BAD_REQUEST)
+
+        # 构建查询条件
+        queryset = TestProject.objects.filter(component_id=component_id)
+
+        if vehicle_model_ids:
+            try:
+                ids = [int(id.strip()) for id in vehicle_model_ids.split(',') if id.strip()]
+                queryset = queryset.filter(vehicle_model_id__in=ids)
+            except ValueError:
+                return Response.error(message="车型ID格式错误", status_code=status.HTTP_400_BAD_REQUEST)
+
+        # 获取不重复的测试状态
+        test_statuses = queryset.values_list('test_status', flat=True).distinct()
+        test_statuses = [status for status in test_statuses if status]  # 过滤空值
+
+        return Response.success(data=test_statuses)
+
+    except Exception as e:
+        return Response.error(message=f"获取测试状态失败: {str(e)}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([])  # 临时允许匿名访问用于测试
+def get_mode_types(request):
+    """获取振型类型选项"""
+    try:
+        component_id = request.GET.get('component_id')
+        vehicle_model_ids = request.GET.get('vehicle_model_ids')
+        test_statuses = request.GET.get('test_statuses')
+
+        if not component_id:
+            return Response.error(message="零件ID不能为空", status_code=status.HTTP_400_BAD_REQUEST)
+
+        # 构建查询条件
+        queryset = ModalData.objects.select_related('test_project').filter(
+            test_project__component_id=component_id
+        )
+
+        if vehicle_model_ids:
+            try:
+                ids = [int(id.strip()) for id in vehicle_model_ids.split(',') if id.strip()]
+                queryset = queryset.filter(test_project__vehicle_model_id__in=ids)
+            except ValueError:
+                return Response.error(message="车型ID格式错误", status_code=status.HTTP_400_BAD_REQUEST)
+
+        if test_statuses:
+            status_list = [status.strip() for status in test_statuses.split(',') if status.strip()]
+            queryset = queryset.filter(test_project__test_status__in=status_list)
+
+        # 获取不重复的振型类型（从mode_shape_description字段）
+        mode_types = queryset.values_list('mode_shape_description', flat=True).distinct()
+        mode_types = [mode_type for mode_type in mode_types if mode_type]  # 过滤空值
+
+        return Response.success(data=mode_types)
+
+    except Exception as e:
+        return Response.error(message=f"获取振型类型失败: {str(e)}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([])  # 临时允许匿名访问用于测试
+def modal_data_compare(request):
+    """模态数据对比"""
+    try:
+        serializer = ModalDataCompareSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response.error(message="参数验证失败", data=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+
+        validated_data = serializer.validated_data
+        component_id = validated_data['component_id']
+        vehicle_model_ids = validated_data['vehicle_model_ids']
+        test_statuses = validated_data.get('test_statuses', '').split(',') if validated_data.get('test_statuses') else []
+        mode_types = validated_data.get('mode_types', '').split(',') if validated_data.get('mode_types') else []
+
+        # 清理空值
+        test_statuses = [status.strip() for status in test_statuses if status.strip()]
+        mode_types = [mode_type.strip() for mode_type in mode_types if mode_type.strip()]
+
+        # 构建查询条件
+        queryset = ModalData.objects.select_related(
+            'test_project',
+            'test_project__vehicle_model',
+            'test_project__component'
+        ).filter(
+            test_project__component_id=component_id,
+            test_project__vehicle_model_id__in=vehicle_model_ids
+        )
+
+        if test_statuses:
+            queryset = queryset.filter(test_project__test_status__in=test_statuses)
+
+        if mode_types:
+            queryset = queryset.filter(mode_shape_description__in=mode_types)
+
+        # 获取对比数据
+        compare_data = []
+        for modal_data in queryset:
+            vehicle_name = modal_data.test_project.vehicle_model.vehicle_model_name
+            test_status = modal_data.test_project.test_status or '未知状态'
+
+            # 根据业务规则决定显示格式
+            if len(vehicle_model_ids) == 1 and len(test_statuses) > 1:
+                # 单车型多测试状态：显示为"车型名_测试状态"
+                display_name = f"{vehicle_name}_{test_status}"
+            else:
+                # 多车型或单测试状态：只显示车型名
+                display_name = vehicle_name
+
+            compare_data.append({
+                'id': modal_data.id,
+                'vehicle_model_id': modal_data.test_project.vehicle_model.id,
+                'vehicle_model_name': vehicle_name,
+                'test_status': test_status,
+                'display_name': display_name,
+                'mode_type': modal_data.mode_shape_description,
+                'mode_shape_description': modal_data.mode_shape_description,
+                'frequency': float(modal_data.frequency),
+                'damping_ratio': float(modal_data.damping_ratio) if modal_data.damping_ratio else None,
+                'mode_shape_file': modal_data.mode_shape_file,
+                'test_photo_file': modal_data.test_photo_file,
+                'notes': modal_data.notes,
+                'component_name': modal_data.test_project.component.component_name
+            })
+
+        return Response.success(data=compare_data, message="对比数据获取成功")
+
+    except Exception as e:
+        return Response.error(message=f"获取对比数据失败: {str(e)}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)

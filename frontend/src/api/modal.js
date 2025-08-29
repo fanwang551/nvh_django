@@ -46,6 +46,52 @@ export const modalApi = {
    */
   getModalDataStatistics(params = {}) {
     return request.get('/modal/modal-data/statistics/', params)
+  },
+
+  /**
+   * 根据零件ID获取相关的车型列表
+   * @param {Object} params - 查询参数
+   * @param {number} params.component_id - 零件ID（必需）
+   * @returns {Promise} 相关车型列表
+   */
+  getRelatedVehicleModels(params = {}) {
+    return request.get('/modal/modal-data/related-vehicles/', params)
+  },
+
+  /**
+   * 获取测试状态选项
+   * @param {Object} params - 查询参数
+   * @param {number} params.component_id - 零件ID（必需）
+   * @param {string} params.vehicle_model_ids - 车型ID列表，逗号分隔（可选）
+   * @returns {Promise} 测试状态列表
+   */
+  getTestStatuses(params = {}) {
+    return request.get('/modal/modal-data/test-statuses/', params)
+  },
+
+  /**
+   * 获取振型类型选项
+   * @param {Object} params - 查询参数
+   * @param {number} params.component_id - 零件ID（必需）
+   * @param {string} params.vehicle_model_ids - 车型ID列表，逗号分隔（可选）
+   * @param {string} params.test_statuses - 测试状态列表，逗号分隔（可选）
+   * @returns {Promise} 振型类型列表
+   */
+  getModeTypes(params = {}) {
+    return request.get('/modal/modal-data/mode-types/', params)
+  },
+
+  /**
+   * 模态数据对比
+   * @param {Object} data - 对比参数
+   * @param {number} data.component_id - 零件ID（必需）
+   * @param {string} data.vehicle_model_ids - 车型ID列表，逗号分隔（必需）
+   * @param {string} data.test_statuses - 测试状态列表，逗号分隔（可选）
+   * @param {string} data.mode_types - 振型类型列表，逗号分隔（可选）
+   * @returns {Promise} 对比数据
+   */
+  compareModalData(data = {}) {
+    return request.post('/modal/modal-data/compare/', data)
   }
 }
 
