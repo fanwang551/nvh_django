@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import VehicleModel, Component, TestProject, ModalData, AirtightnessTest
+from .models import VehicleModel, Component, TestProject, ModalData, AirtightnessTest, AirtightnessImage
 
 
 class VehicleModelSerializer(serializers.ModelSerializer):
@@ -140,6 +140,21 @@ class AirtightnessTestSerializer(serializers.ModelSerializer):
             'right_door_outer_opening', 'side_mirrors',
             'body_shell_leakage', 'other_area', 'notes',
             'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class AirtightnessImageSerializer(serializers.ModelSerializer):
+    """气密性测试图片序列化器"""
+    vehicle_model_name = serializers.CharField(source='vehicle_model.vehicle_model_name', read_only=True)
+    vehicle_model_code = serializers.CharField(source='vehicle_model.cle_model_code', read_only=True)
+
+    class Meta:
+        model = AirtightnessImage
+        fields = [
+            'id', 'vehicle_model', 'vehicle_model_name', 'vehicle_model_code',
+            'front_compartment_image', 'door_image', 'tailgate_image',
+            'upload_date', 'notes', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 

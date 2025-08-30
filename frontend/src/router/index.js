@@ -13,6 +13,7 @@ import ModalDataQuery from '@/views/business/ModalDataQuery.vue'
 import ModalDataCompare from '@/views/business/ModalDataCompare.vue'
 import AirtightLeakCompare from '@/views/business/AirtightLeakCompare.vue'
 import AirtightTestChart from '@/views/business/AirtightTestChart.vue'
+import AirtightnessImageQuery from '@/views/business/AirtightnessImageQuery.vue'
 
 const routes = [
   {
@@ -49,6 +50,12 @@ const routes = [
     path: '/business/airtight-test-chart',
     name: 'AirtightTestChart',
     component: AirtightTestChart,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/business/airtightness-image-query',
+    name: 'AirtightnessImageQuery',
+    component: AirtightnessImageQuery,
     meta: { requiresAuth: true }
   },
   {

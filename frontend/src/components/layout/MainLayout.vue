@@ -122,7 +122,8 @@ const handleTabClick = (tabName) => {
     'modal-data-query': '/business/modal-data-query',
     'modal-data-compare': '/business/modal-data-compare',
     'airtight-leak-compare': '/business/airtight-leak-compare',
-    'airtight-test-chart': '/business/airtight-test-chart'
+    'airtight-test-chart': '/business/airtight-test-chart',
+    'airtightness-image-query': '/business/airtightness-image-query'
   }
 
   if (allRoutes[tabName]) {

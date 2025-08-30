@@ -130,3 +130,28 @@ class AirtightnessTest(models.Model):
 
     def __str__(self):
         return f"{self.vehicle_model.vehicle_model_name} - {self.test_date}"
+
+
+class AirtightnessImage(models.Model):
+    """气密性测试图片表"""
+    vehicle_model = models.ForeignKey(VehicleModel, on_delete=models.CASCADE, verbose_name='车型')
+
+    # 三个位置的图片路径
+    front_compartment_image = models.CharField(max_length=255, null=True, blank=True, verbose_name='前舱图片路径')
+    door_image = models.CharField(max_length=255, null=True, blank=True, verbose_name='车门图片路径')
+    tailgate_image = models.CharField(max_length=255, null=True, blank=True, verbose_name='尾门图片路径')
+
+    # 辅助信息
+    upload_date = models.DateField(verbose_name='上传日期')
+    notes = models.TextField(null=True, blank=True, verbose_name='备注')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+
+    class Meta:
+        db_table = 'airtightness_images'
+        verbose_name = '气密性测试图片'
+        verbose_name_plural = '气密性测试图片'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.vehicle_model.vehicle_model_name} - 气密性图片"

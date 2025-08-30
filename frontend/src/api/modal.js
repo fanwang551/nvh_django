@@ -102,6 +102,16 @@ export const modalApi = {
    */
   compareAirtightnessData(data = {}) {
     return request.post('/modal/airtightness-data/compare/', data)
+  },
+
+  /**
+   * 获取气密性测试图片
+   * @param {Object} params - 查询参数
+   * @param {string} params.vehicle_model_ids - 车型ID列表，逗号分隔（可选）
+   * @returns {Promise} 气密性图片列表
+   */
+  getAirtightnessImages(params = {}) {
+    return request.get('/modal/airtightness-images/', params)
   }
 }
 

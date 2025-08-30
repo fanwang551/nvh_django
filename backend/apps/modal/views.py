@@ -4,11 +4,11 @@ from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
 from utils.response import Response
 from utils.pagination import PageNumberPaginationUtil
-from .models import VehicleModel, Component, TestProject, ModalData, AirtightnessTest
+from .models import VehicleModel, Component, TestProject, ModalData, AirtightnessTest, AirtightnessImage
 from .serializers import (
     VehicleModelSerializer, ComponentSerializer,
     ModalDataSerializer, ModalDataQuerySerializer, ModalDataCompareSerializer,
-    AirtightnessTestSerializer, AirtightnessCompareSerializer
+    AirtightnessTestSerializer, AirtightnessCompareSerializer, AirtightnessImageSerializer
 )
 
 
@@ -451,3 +451,38 @@ def airtightness_data_compare(request):
 
     except Exception as e:
         return Response.error(message=f"获取气密性对比数据失败: {str(e)}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([])  # 临时允许匿名访问用于测试
+def airtightness_images_query(request):
+    """气密性测试图片查询"""
+    try:
+        # 获取查询参数
+        vehicle_model_ids = request.GET.get('vehicle_model_ids', '')
+
+        # 构建查询条件
+        queryset = AirtightnessImage.objects.select_related('vehicle_model')
+
+        # 如果指定了车型ID，进行筛选
+        if vehicle_model_ids:
+            try:
+                ids = [int(id.strip()) for id in vehicle_model_ids.split(',') if id.strip()]
+                if ids:
+                    queryset = queryset.filter(vehicle_model_id__in=ids)
+            except ValueError:
+                return Response.error(message="车型ID格式错误", status_code=status.HTTP_400_BAD_REQUEST)
+
+        # 只查询激活状态的车型
+        queryset = queryset.filter(vehicle_model__status='active')
+
+        # 按车型ID和创建时间排序
+        queryset = queryset.order_by('vehicle_model__id', '-created_at')
+
+        # 序列化数据
+        serializer = AirtightnessImageSerializer(queryset, many=True)
+
+        return Response.success(data=serializer.data, message="获取气密性图片数据成功")
+
+    except Exception as e:
+        return Response.error(message=f"获取气密性图片数据失败: {str(e)}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -31,7 +31,8 @@ import {
   DataAnalysis,
   TrendCharts,
   Connection,
-  Monitor
+  Monitor,
+  Picture
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -61,6 +62,12 @@ const businessModules = ref([
     title: '气密性测试图查询',
     description: '查看气密性测试图表和报告',
     icon: Monitor
+  },
+  {
+    name: 'airtightness-image-query',
+    title: '气密性测试图片查询',
+    description: '查看各车型的气密性测试图片',
+    icon: Picture
   }
 ])
 

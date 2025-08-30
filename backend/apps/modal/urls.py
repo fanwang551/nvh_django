@@ -20,4 +20,5 @@ urlpatterns = [
 
     # 气密性测试相关接口
     path('airtightness-data/compare/', views.airtightness_data_compare, name='airtightness_data_compare'),
+    path('airtightness-images/', views.airtightness_images_query, name='airtightness_images_query'),
 ]
