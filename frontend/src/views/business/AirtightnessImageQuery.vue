@@ -460,12 +460,27 @@ onMounted(async () => {
 }
 
 :deep(.el-image-viewer__canvas) {
-  position: fixed !important;
-  top: 50% !important;
-  left: 50% !important;
-  transform: translate(-50%, -50%) scale(0.6) !important;
-  max-width: 50vw !important;
-  max-height: 50vh !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+
+/* 控制弹窗内的图片大小 - 使用更高优先级覆盖内联样式 */
+:deep(.el-image-viewer__img) {
+  max-width: 80vw !important;   /* 最大宽度为视窗宽度的80% */
+  max-height: 80vh !important;  /* 最大高度为视窗高度的80% */
+  width: auto !important;       /* 保持宽高比 */
+  height: auto !important;      /* 保持宽高比 */
+  object-fit: contain !important; /* 确保图片完整显示且不变形 */
+}
+
+/* 针对具体的内联样式进行覆盖 */
+:deep(.el-image-viewer__canvas .el-image-viewer__img[style*="max-height: 100%"]) {
+  max-height: 80vh !important;
+}
+
+:deep(.el-image-viewer__canvas .el-image-viewer__img[style*="max-width: 100%"]) {
+  max-width: 80vw !important;
 }
 
 :deep(.el-image-viewer__actions) {
@@ -500,5 +515,44 @@ onMounted(async () => {
 .image-grid,
 .image-item {
   overflow: visible !important;
+}
+
+/* 全局样式 - 更强力的图片预览样式覆盖 */
+</style>
+
+<!-- 全局样式，不使用scoped，确保能覆盖Element Plus的内联样式 -->
+<style>
+/* 气密性图片预览弹窗样式优化 */
+.el-image-viewer__wrapper .el-image-viewer__canvas .el-image-viewer__img {
+  max-width: 80vw !important;
+  max-height: 80vh !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain !important;
+}
+
+/* 使用属性选择器强制覆盖内联样式 */
+.el-image-viewer__img[style] {
+  max-width: 80vw !important;
+  max-height: 80vh !important;
+  width: auto !important;
+  height: auto !important;
+}
+
+/* 确保图片居中显示 */
+.el-image-viewer__canvas {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  padding: 20px !important;
+}
+
+/* 响应式设计 - 小屏幕上进一步限制大小 */
+@media (max-width: 768px) {
+  .el-image-viewer__wrapper .el-image-viewer__canvas .el-image-viewer__img,
+  .el-image-viewer__img[style] {
+    max-width: 90vw !important;
+    max-height: 70vh !important;
+  }
 }
 </style>
