@@ -1,0 +1,38 @@
+import request from '@/utils/request'
+
+// 隔声量相关API
+export const soundInsulationApi = {
+  /**
+   * 获取隔声区域列表
+   * @param {Object} params - 查询参数
+   * @param {string} params.search - 搜索关键词（可选）
+   * @returns {Promise} 区域列表
+   */
+  getSoundInsulationAreas(params = {}) {
+    return request.get('/sound-insulation/areas/', params)
+  },
+
+  /**
+   * 根据区域ID获取有数据的车型列表
+   * @param {Object} params - 查询参数
+   * @param {number} params.area_id - 区域ID（必需）
+   * @returns {Promise} 车型列表
+   */
+  getVehiclesByArea(params = {}) {
+    return request.get('/sound-insulation/vehicles/', params)
+  },
+
+  /**
+   * 隔声量数据对比
+   * @param {Object} data - 对比参数
+   * @param {number} data.area_id - 区域ID（必需）
+   * @param {string} data.vehicle_model_ids - 车型ID列表，逗号分隔（必需）
+   * @returns {Promise} 对比数据
+   */
+  compareSoundInsulationData(data = {}) {
+    return request.post('/sound-insulation/compare/', data)
+  }
+}
+
+// 导出默认对象
+export default soundInsulationApi

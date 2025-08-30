@@ -18,6 +18,7 @@ urlpatterns = [
     path('health/', health_check, name='health_check'),
     path('api/users/', include('apps.users.urls')),
     path('api/modal/', include('apps.modal.urls')),
+    path('api/sound-insulation/', include('apps.sound_module.urls')),
     path('oidc/', include('mozilla_django_oidc.urls')),
 ]
 

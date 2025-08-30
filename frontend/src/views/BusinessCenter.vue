@@ -68,6 +68,12 @@ const businessModules = ref([
     title: '气密性测试图片查询',
     description: '查看各车型的气密性测试图片',
     icon: Picture
+  },
+  {
+    name: 'sound-insulation-compare',
+    title: '区域隔声量（ATF）对比',
+    description: '对比不同车型在各区域的隔声量数据',
+    icon: TrendCharts
   }
 ])
 
