@@ -3,7 +3,7 @@ import request from '@/utils/request'
 // 模态数据相关API
 export const modalApi = {
   /**
-   * 获取车型列表（无分页）
+   * 获取车型列表
    * @param {Object} params - 查询参数
    * @param {string} params.search - 搜索关键词（可选）
    * @returns {Promise} 车型列表
@@ -13,7 +13,7 @@ export const modalApi = {
   },
 
   /**
-   * 获取零件列表（无分页）
+   * 获取零件列表
    * @param {Object} params - 查询参数
    * @param {number} params.vehicle_model_id - 车型ID（可选，用于筛选）
    * @param {string} params.search - 搜索关键词（可选）
@@ -24,7 +24,7 @@ export const modalApi = {
   },
 
   /**
-   * 查询模态数据（有分页）
+   * 查询模态数据（分页）
    * @param {Object} params - 查询参数
    * @param {number} params.vehicle_model_id - 车型ID（必需）
    * @param {string} params.component_ids - 零件ID列表，逗号分隔（可选）
@@ -92,6 +92,16 @@ export const modalApi = {
    */
   compareModalData(data = {}) {
     return request.post('/modal/modal-data/compare/', data)
+  },
+
+  /**
+   * 气密性数据对比
+   * @param {Object} data - 对比参数
+   * @param {string} data.vehicle_model_ids - 车型ID列表，逗号分隔（必需）
+   * @returns {Promise} 气密性对比数据
+   */
+  compareAirtightnessData(data = {}) {
+    return request.post('/modal/airtightness-data/compare/', data)
   }
 }
 

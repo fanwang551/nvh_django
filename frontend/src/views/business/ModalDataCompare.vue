@@ -552,16 +552,34 @@ const renderChart = () => {
       name: '车型/测试状态',
       nameLocation: 'middle',
       nameGap: 30,
+      nameTextStyle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#303133'
+      },
       axisLabel: {
         rotate: 45,
-        interval: 0
+        interval: 0,
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#606266'
       }
     },
     yAxis: {
       type: 'value',
       name: '频率 (Hz)',
       nameLocation: 'middle',
-      nameGap: 50
+      nameGap: 50,
+      nameTextStyle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#303133'
+      },
+      axisLabel: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#606266'
+      }
     },
     series: series
   }

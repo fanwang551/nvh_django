@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import VehicleModel, Component, TestProject, ModalData
+from .models import VehicleModel, Component, TestProject, ModalData, AirtightnessTest
 
 
 @admin.register(VehicleModel)
@@ -36,3 +36,36 @@ class ModalDataAdmin(admin.ModelAdmin):
     readonly_fields = ['created_at', 'updated_at']
     ordering = ['-created_at']
     raw_id_fields = ['test_project']
+
+
+@admin.register(AirtightnessTest)
+class AirtightnessTestAdmin(admin.ModelAdmin):
+    list_display = ['vehicle_model', 'test_date', 'test_engineer', 'uncontrolled_leakage', 'created_at']
+    list_filter = ['test_date', 'test_engineer', 'created_at']
+    search_fields = ['vehicle_model__vehicle_model_name', 'vehicle_model__cle_model_code', 'test_engineer']
+    readonly_fields = ['created_at', 'updated_at']
+    ordering = ['-created_at']
+    raw_id_fields = ['vehicle_model']
+
+    fieldsets = (
+        ('基本信息', {
+            'fields': ('vehicle_model', 'test_date', 'test_engineer', 'test_location', 'notes')
+        }),
+        ('整车泄漏量', {
+            'fields': ('uncontrolled_leakage',)
+        }),
+        ('阀系统', {
+            'fields': ('left_pressure_valve', 'right_pressure_valve', 'ac_circulation_valve')
+        }),
+        ('门系统', {
+            'fields': ('right_door_drain_hole', 'tailgate_drain_hole', 'right_door_outer_seal',
+                      'right_door_outer_opening', 'side_mirrors')
+        }),
+        ('其他区域', {
+            'fields': ('body_shell_leakage', 'other_area')
+        }),
+        ('时间信息', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        })
+    )

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import VehicleModel, Component, TestProject, ModalData
+from .models import VehicleModel, Component, TestProject, ModalData, AirtightnessTest
 
 
 class VehicleModelSerializer(serializers.ModelSerializer):
@@ -123,3 +123,46 @@ class ModalDataCompareSerializer(serializers.Serializer):
             raise serializers.ValidationError("零件ID格式错误，应为逗号分隔的数字")
 
         return value
+
+
+class AirtightnessTestSerializer(serializers.ModelSerializer):
+    """气密性测试序列化器"""
+    vehicle_model_name = serializers.CharField(source='vehicle_model.vehicle_model_name', read_only=True)
+    vehicle_model_code = serializers.CharField(source='vehicle_model.cle_model_code', read_only=True)
+
+    class Meta:
+        model = AirtightnessTest
+        fields = [
+            'id', 'vehicle_model', 'vehicle_model_name', 'vehicle_model_code',
+            'test_date', 'test_engineer', 'test_location',
+            'uncontrolled_leakage', 'left_pressure_valve', 'right_pressure_valve', 'ac_circulation_valve',
+            'right_door_drain_hole', 'tailgate_drain_hole', 'right_door_outer_seal',
+            'right_door_outer_opening', 'side_mirrors',
+            'body_shell_leakage', 'other_area', 'notes',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class AirtightnessCompareSerializer(serializers.Serializer):
+    """气密性数据对比参数序列化器"""
+    vehicle_model_ids = serializers.CharField(required=True, help_text='车型ID列表（逗号分隔）')
+
+    def validate_vehicle_model_ids(self, value):
+        """验证车型ID列表"""
+        if not value:
+            raise serializers.ValidationError("车型ID列表不能为空")
+
+        try:
+            ids = [int(id.strip()) for id in value.split(',') if id.strip()]
+            if not ids:
+                raise serializers.ValidationError("车型ID列表不能为空")
+
+            # 验证所有车型ID是否存在
+            existing_count = VehicleModel.objects.filter(id__in=ids).count()
+            if existing_count != len(ids):
+                raise serializers.ValidationError("部分车型ID不存在")
+
+            return ids
+        except ValueError:
+            raise serializers.ValidationError("车型ID格式错误")

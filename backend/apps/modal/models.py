@@ -88,4 +88,45 @@ class ModalData(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.test_project.project_code} - {self.frequency}Hz"
+        return f"{self.test_project.id} - {self.frequency}Hz"
+
+
+class AirtightnessTest(models.Model):
+    """气密性测试数据表"""
+    vehicle_model = models.ForeignKey(VehicleModel, on_delete=models.CASCADE, verbose_name='车型')
+    test_date = models.DateField(verbose_name='测试日期')
+    test_engineer = models.CharField(max_length=50, verbose_name='测试工程师')
+    test_location = models.CharField(max_length=100, null=True, blank=True, verbose_name='测试地点')
+
+    # 整车不可控泄漏量
+    uncontrolled_leakage = models.DecimalField(max_digits=8, decimal_places=1, null=True, blank=True, verbose_name='整车不可控泄漏量(SCFM)')
+
+    # 阀系统
+    left_pressure_valve = models.DecimalField(max_digits=8, decimal_places=1, null=True, blank=True, verbose_name='左侧泄压阀(SCFM)')
+    right_pressure_valve = models.DecimalField(max_digits=8, decimal_places=1, null=True, blank=True, verbose_name='右侧泄压阀(SCFM)')
+    ac_circulation_valve = models.DecimalField(max_digits=8, decimal_places=1, null=True, blank=True, verbose_name='空调内外循环阀(SCFM)')
+
+    # 门系统
+    right_door_drain_hole = models.DecimalField(max_digits=8, decimal_places=1, null=True, blank=True, verbose_name='右侧门漏液孔(SCFM)')
+    tailgate_drain_hole = models.DecimalField(max_digits=8, decimal_places=1, null=True, blank=True, verbose_name='尾门漏液孔(SCFM)')
+    right_door_outer_seal = models.DecimalField(max_digits=8, decimal_places=1, null=True, blank=True, verbose_name='右侧门外水切(SCFM)')
+    right_door_outer_opening = models.DecimalField(max_digits=8, decimal_places=1, null=True, blank=True, verbose_name='右侧门外开(SCFM)')
+    side_mirrors = models.DecimalField(max_digits=8, decimal_places=1, null=True, blank=True, verbose_name='两侧外后视镜(SCFM)')
+
+    # 白车身和其他区域
+    body_shell_leakage = models.DecimalField(max_digits=8, decimal_places=1, null=True, blank=True, verbose_name='白车身泄漏量(SCFM)')
+    other_area = models.DecimalField(max_digits=8, decimal_places=1, null=True, blank=True, verbose_name='其他区域(SCFM)')
+
+    # 备注信息
+    notes = models.TextField(null=True, blank=True, verbose_name='备注')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+
+    class Meta:
+        db_table = 'airtightness_tests'
+        verbose_name = '气密性测试'
+        verbose_name_plural = '气密性测试'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.vehicle_model.vehicle_model_name} - {self.test_date}"

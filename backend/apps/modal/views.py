@@ -4,10 +4,11 @@ from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
 from utils.response import Response
 from utils.pagination import PageNumberPaginationUtil
-from .models import VehicleModel, Component, TestProject, ModalData
+from .models import VehicleModel, Component, TestProject, ModalData, AirtightnessTest
 from .serializers import (
     VehicleModelSerializer, ComponentSerializer,
-    ModalDataSerializer, ModalDataQuerySerializer, ModalDataCompareSerializer
+    ModalDataSerializer, ModalDataQuerySerializer, ModalDataCompareSerializer,
+    AirtightnessTestSerializer, AirtightnessCompareSerializer
 )
 
 
@@ -333,3 +334,120 @@ def modal_data_compare(request):
 
     except Exception as e:
         return Response.error(message=f"获取对比数据失败: {str(e)}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([])  # 临时允许匿名访问用于测试
+def airtightness_data_compare(request):
+    """气密性数据对比"""
+    try:
+        serializer = AirtightnessCompareSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response.error(message="参数验证失败", data=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+
+        validated_data = serializer.validated_data
+        vehicle_model_ids = validated_data['vehicle_model_ids']
+
+        # 查询气密性测试数据
+        queryset = AirtightnessTest.objects.select_related('vehicle_model').filter(
+            vehicle_model_id__in=vehicle_model_ids
+        ).order_by('vehicle_model__id', '-test_date')
+
+        # 为每个车型获取最新的测试数据
+        vehicle_data = {}
+        for test in queryset:
+            vehicle_id = test.vehicle_model.id
+            if vehicle_id not in vehicle_data:
+                vehicle_data[vehicle_id] = test
+
+        # 构建对比数据结构
+        compare_data = {
+            'vehicle_models': [],
+            'leakage_data': []
+        }
+
+        # 获取车型信息
+        for vehicle_id in vehicle_model_ids:
+            if vehicle_id in vehicle_data:
+                test = vehicle_data[vehicle_id]
+                compare_data['vehicle_models'].append({
+                    'id': test.vehicle_model.id,
+                    'name': test.vehicle_model.vehicle_model_name,
+                    'code': test.vehicle_model.cle_model_code,
+                    'test_date': test.test_date.strftime('%Y-%m-%d') if test.test_date else None
+                })
+
+        # 定义泄漏量数据结构
+        leakage_categories = [
+            {
+                'category': '整车不可控泄漏量',
+                'items': [
+                    {'name': '整车不可控泄漏量', 'field': 'uncontrolled_leakage'}
+                ]
+            },
+            {
+                'category': '阀系统',
+                'items': [
+                    {'name': '左侧泄压阀', 'field': 'left_pressure_valve'},
+                    {'name': '右侧泄压阀', 'field': 'right_pressure_valve'},
+                    {'name': '空调内外循环阀', 'field': 'ac_circulation_valve'}
+                ]
+            },
+            {
+                'category': '门系统',
+                'items': [
+                    {'name': '右侧门漏液孔', 'field': 'right_door_drain_hole'},
+                    {'name': '尾门漏液孔', 'field': 'tailgate_drain_hole'},
+                    {'name': '右侧门外水切', 'field': 'right_door_outer_seal'},
+                    {'name': '右侧门外开', 'field': 'right_door_outer_opening'},
+                    {'name': '两侧外后视镜', 'field': 'side_mirrors'}
+                ]
+            },
+            {
+                'category': '白车身',
+                'items': [
+                    {'name': '白车身泄漏量', 'field': 'body_shell_leakage'}
+                ]
+            },
+            {
+                'category': '其他区域',
+                'items': [
+                    {'name': '其他区域', 'field': 'other_area'}
+                ]
+            }
+        ]
+
+        # 构建泄漏量对比数据
+        for category in leakage_categories:
+            category_data = {
+                'category': category['category'],
+                'items': []
+            }
+
+            for item in category['items']:
+                item_data = {
+                    'name': item['name'],
+                    'values': []
+                }
+
+                # 为每个车型获取对应的泄漏量数值
+                for vehicle_id in vehicle_model_ids:
+                    if vehicle_id in vehicle_data:
+                        test = vehicle_data[vehicle_id]
+                        value = getattr(test, item['field'], None)
+                        # 格式化数值：保留1位小数，空值显示为"-"
+                        if value is not None:
+                            item_data['values'].append(f"{float(value):.1f}")
+                        else:
+                            item_data['values'].append("-")
+                    else:
+                        item_data['values'].append("-")
+
+                category_data['items'].append(item_data)
+
+            compare_data['leakage_data'].append(category_data)
+
+        return Response.success(data=compare_data, message="气密性对比数据获取成功")
+
+    except Exception as e:
+        return Response.error(message=f"获取气密性对比数据失败: {str(e)}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
