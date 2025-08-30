@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import SoundInsulationArea, SoundInsulationData
+from .models import SoundInsulationArea, SoundInsulationData, VehicleSoundInsulationData
 from apps.modal.models import VehicleModel
 
 
@@ -65,8 +65,52 @@ class SoundInsulationCompareSerializer(serializers.Serializer):
 
 class VehicleModelSimpleSerializer(serializers.ModelSerializer):
     """车型简单序列化器（用于级联查询）"""
-    
+
     class Meta:
         model = VehicleModel
         fields = ['id', 'vehicle_model_name', 'cle_model_code']
         read_only_fields = ['id']
+
+
+class VehicleSoundInsulationDataSerializer(serializers.ModelSerializer):
+    """车型隔声量数据序列化器"""
+    vehicle_model_name = serializers.CharField(source='vehicle_model.vehicle_model_name', read_only=True)
+    vehicle_model_code = serializers.CharField(source='vehicle_model.cle_model_code', read_only=True)
+
+    class Meta:
+        model = VehicleSoundInsulationData
+        fields = [
+            'id', 'vehicle_model', 'vehicle_model_name', 'vehicle_model_code',
+            'freq_200', 'freq_250', 'freq_315', 'freq_400', 'freq_500', 'freq_630',
+            'freq_800', 'freq_1000', 'freq_1250', 'freq_1600', 'freq_2000', 'freq_2500',
+            'freq_3150', 'freq_4000', 'freq_5000', 'freq_6300', 'freq_8000', 'freq_10000',
+            'test_image_path', 'test_date', 'test_location', 'test_engineer', 'remarks',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class VehicleSoundInsulationCompareSerializer(serializers.Serializer):
+    """车型隔声量对比参数序列化器"""
+    vehicle_model_ids = serializers.CharField(required=True, help_text='车型ID列表（逗号分隔）')
+
+    def validate_vehicle_model_ids(self, value):
+        """验证车型ID列表"""
+        if not value.strip():
+            raise serializers.ValidationError("车型ID列表不能为空")
+
+        try:
+            ids = [int(id.strip()) for id in value.split(',') if id.strip()]
+            if not ids:
+                raise serializers.ValidationError("车型ID列表不能为空")
+
+            # 验证所有车型ID是否存在
+            existing_ids = set(VehicleModel.objects.filter(id__in=ids).values_list('id', flat=True))
+            invalid_ids = set(ids) - existing_ids
+            if invalid_ids:
+                raise serializers.ValidationError(f"以下车型ID不存在: {', '.join(map(str, invalid_ids))}")
+
+        except ValueError:
+            raise serializers.ValidationError("车型ID格式错误，请使用逗号分隔的数字")
+
+        return value

@@ -74,6 +74,12 @@ const businessModules = ref([
     title: '区域隔声量（ATF）对比',
     description: '对比不同车型在各区域的隔声量数据',
     icon: TrendCharts
+  },
+  {
+    name: 'vehicle-sound-insulation-query',
+    title: '车型隔声量查询',
+    description: '查询和对比不同车型的隔声量数据',
+    icon: TrendCharts
   }
 ])
 

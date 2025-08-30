@@ -91,7 +91,10 @@ const addBusinessTab = (routePath) => {
     '/business/modal-data-query': { name: 'modal-data-query', title: '模态数据查询' },
     '/business/modal-data-compare': { name: 'modal-data-compare', title: '模态数据对比' },
     '/business/airtight-leak-compare': { name: 'airtight-leak-compare', title: '气密性泄漏量对比' },
-    '/business/airtight-test-chart': { name: 'airtight-test-chart', title: '气密性测试图查询' }
+    '/business/airtight-test-chart': { name: 'airtight-test-chart', title: '气密性测试图查询' },
+    '/business/airtightness-image-query': { name: 'airtightness-image-query', title: '气密性测试图片查询' },
+    '/business/sound-insulation-compare': { name: 'sound-insulation-compare', title: '区域隔声量（ATF）对比' },
+    '/business/vehicle-sound-insulation-query': { name: 'vehicle-sound-insulation-query', title: '车型隔声量查询' }
   }
 
   const tabConfig = businessTabConfig[routePath]
