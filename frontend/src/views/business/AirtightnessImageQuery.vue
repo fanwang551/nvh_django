@@ -9,7 +9,7 @@
           <div class="form-group">
             <span class="form-label">车型：</span>
             <el-select
-              v-model="searchForm.vehicleModelIds"
+              v-model="store.searchForm.vehicleModelIds"
               placeholder="请选择车型（可多选，默认显示全部）"
               multiple
               collapse-tags
@@ -157,58 +157,42 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, onMounted, onActivated, onDeactivated } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search, Picture } from '@element-plus/icons-vue'
-import modalApi from '@/api/modal'
+import { useAirtightnessImageQueryStore } from '@/store/airtightnessImageQuery'
 
 // 组件名称，用于keep-alive缓存
 defineOptions({
   name: 'AirtightnessImageQuery'
 })
 
-// 搜索表单
-const searchForm = ref({
-  vehicleModelIds: []
-})
+// 使用 Pinia store
+const store = useAirtightnessImageQueryStore()
 
-// 数据状态
-const vehicleModelOptions = ref([])
-const vehicleModelsLoading = ref(false)
-const imageDataList = ref([])
-const loading = ref(false)
+// 计算属性
+const searchForm = computed(() => store.searchForm)
+const vehicleModelOptions = computed(() => store.vehicleModelOptions)
+const vehicleModelsLoading = computed(() => store.vehicleModelsLoading)
+const imageDataList = computed(() => store.imageDataList)
+const loading = computed(() => store.queryLoading)
 
 // API调用方法
 const loadVehicleModels = async () => {
   try {
-    vehicleModelsLoading.value = true
-    const response = await modalApi.getVehicleModels()
-    vehicleModelOptions.value = response.data || []
+    await store.loadVehicleModels()
   } catch (error) {
     console.error('加载车型列表失败:', error)
     ElMessage.error('加载车型列表失败')
-  } finally {
-    vehicleModelsLoading.value = false
   }
 }
 
 const loadAirtightnessImages = async (vehicleModelIds = []) => {
   try {
-    loading.value = true
-    const params = {}
-    
-    // 如果选择了车型，添加到查询参数
-    if (vehicleModelIds.length > 0) {
-      params.vehicle_model_ids = vehicleModelIds.join(',')
-    }
-
-    const response = await modalApi.getAirtightnessImages(params)
-    imageDataList.value = response.data || []
+    await store.queryImageData(vehicleModelIds)
   } catch (error) {
     console.error('加载气密性图片失败:', error)
     ElMessage.error('加载气密性图片失败')
-  } finally {
-    loading.value = false
   }
 }
 
@@ -219,11 +203,11 @@ const handleVehicleModelChange = () => {
 }
 
 const handleSearch = () => {
-  loadAirtightnessImages(searchForm.value.vehicleModelIds)
+  loadAirtightnessImages(store.searchForm.vehicleModelIds)
 }
 
 const handleReset = () => {
-  searchForm.value.vehicleModelIds = []
+  store.resetState()
   loadAirtightnessImages()
 }
 
@@ -244,9 +228,25 @@ const handleImageError = (event) => {
 
 // 生命周期
 onMounted(async () => {
-  // 初始化加载车型列表和所有图片
-  await loadVehicleModels()
-  await loadAirtightnessImages()
+  // 初始化页面数据
+  await store.initializePageData()
+  // 如果没有数据，加载所有图片
+  if (store.imageDataList.length === 0) {
+    await loadAirtightnessImages()
+  }
+})
+
+// 标签页激活时
+onActivated(async () => {
+  // 如果车型列表为空，重新加载
+  if (store.vehicleModelOptions.length === 0) {
+    await store.initializePageData()
+  }
+})
+
+// 标签页失活时保存状态（Pinia会自动保存）
+onDeactivated(() => {
+  // 状态会自动保存在store中
 })
 </script>
 

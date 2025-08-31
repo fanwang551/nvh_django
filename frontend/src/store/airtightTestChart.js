@@ -47,21 +47,10 @@ export const useAirtightTestChartStore = defineStore('airtightTestChart', {
     canQuery: (state) => {
       return state.searchForm.vehicleModelId && state.searchForm.testType
     },
-    
+
     // 是否有查询结果
     hasResults: (state) => {
       return state.chartDataList.length > 0
-    },
-    
-    // 分页信息
-    paginationInfo: (state) => {
-      const start = (state.pagination.currentPage - 1) * state.pagination.pageSize + 1
-      const end = Math.min(state.pagination.currentPage * state.pagination.pageSize, state.pagination.total)
-      return {
-        start,
-        end,
-        total: state.pagination.total
-      }
     }
   },
   
