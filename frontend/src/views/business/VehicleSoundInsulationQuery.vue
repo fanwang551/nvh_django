@@ -147,21 +147,9 @@
         <!-- 基本信息 -->
         <div class="info-section">
           <h4>基本信息</h4>
-          <el-descriptions :column="2" border>
+          <el-descriptions :column="1" border>
             <el-descriptions-item label="车型名称">
               {{ currentImageData.vehicle_model_name }}
-            </el-descriptions-item>
-            <el-descriptions-item label="车型代码">
-              {{ currentImageData.vehicle_model_code }}
-            </el-descriptions-item>
-            <el-descriptions-item label="测试日期">
-              {{ currentImageData.test_date || '未记录' }}
-            </el-descriptions-item>
-            <el-descriptions-item label="测试地点">
-              {{ currentImageData.test_location || '未记录' }}
-            </el-descriptions-item>
-            <el-descriptions-item label="测试工程师">
-              {{ currentImageData.test_engineer || '未记录' }}
             </el-descriptions-item>
             <el-descriptions-item label="备注">
               {{ currentImageData.remarks || '无' }}
