@@ -11,7 +11,7 @@ export const useUserStore = defineStore('user', {
     isAuthenticated: false,
     loading: false
   }),
-  
+
   getters: {
     username: (state) => state.userInfo?.user?.username || '',
     email: (state) => state.userInfo?.user?.email || '',
@@ -23,21 +23,21 @@ export const useUserStore = defineStore('user', {
       return user?.username || ''
     }
   },
-  
+
   actions: {
     setUserInfo(userInfo) {
       this.userInfo = userInfo
       this.isAuthenticated = true
     },
-    
+
     setUserProfile(userProfile) {
       this.userProfile = userProfile
     },
-    
+
     setLoading(loading) {
       this.loading = loading
     },
-    
+
     clearUser() {
       this.userInfo = null
       this.userProfile = null
@@ -45,3 +45,12 @@ export const useUserStore = defineStore('user', {
     }
   }
 })
+
+// Export all business stores
+export { useSoundInsulationCompareStore } from './soundInsulationCompare'
+export { useVehicleSoundInsulationQueryStore } from './vehicleSoundInsulationQuery'
+export { useModalDataQueryStore } from './modalDataQuery'
+export { useModalDataCompareStore } from './modalDataCompare'
+export { useAirtightLeakCompareStore } from './airtightLeakCompare'
+export { useAirtightTestChartStore } from './airtightTestChart'
+export { useAirtightnessImageQueryStore } from './airtightnessImageQuery'

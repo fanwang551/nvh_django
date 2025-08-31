@@ -10,20 +10,20 @@
         </div>
       </template>
 
-      <el-form :model="searchForm" label-width="120px" class="search-form">
+      <el-form :model="store.searchForm" label-width="120px" class="search-form">
         <el-row :gutter="24">
           <!-- 区域选择 -->
           <el-col :span="7">
             <el-form-item label="隔声区域" required>
               <el-select
-                v-model="searchForm.areaId"
+                v-model="store.searchForm.areaId"
                 placeholder="请选择区域"
-                :loading="areasLoading"
+                :loading="store.areasLoading"
                 @change="handleAreaChange"
                 style="width: 100%"
               >
                 <el-option
-                  v-for="area in areaOptions"
+                  v-for="area in store.areaOptions"
                   :key="area.id"
                   :label="area.area_name"
                   :value="area.id"
@@ -36,18 +36,19 @@
           <el-col :span="11">
             <el-form-item label="对比车型" required>
               <el-select
-                v-model="searchForm.vehicleModelIds"
+                v-model="store.searchForm.vehicleModelIds"
                 placeholder="请先选择区域，然后选择车型"
-                :loading="vehicleModelsLoading"
-                :disabled="!searchForm.areaId"
+                :loading="store.vehicleModelsLoading"
+                :disabled="!store.searchForm.areaId"
                 multiple
                 collapse-tags
                 collapse-tags-tooltip
+                @change="handleVehicleModelChange"
                 style="width: 100%"
               >
                 <template #header>
                   <el-checkbox
-                    v-model="selectAllVehicles"
+                    v-model="store.selectAllVehicles"
                     @change="handleSelectAllVehicles"
                     style="margin-left: 12px"
                   >
@@ -55,7 +56,7 @@
                   </el-checkbox>
                 </template>
                 <el-option
-                  v-for="vehicle in vehicleModelOptions"
+                  v-for="vehicle in store.vehicleModelOptions"
                   :key="vehicle.id"
                   :label="vehicle.vehicle_model_name"
                   :value="vehicle.id"
@@ -70,8 +71,8 @@
               <el-button
                 type="primary"
                 :icon="TrendCharts"
-                :loading="compareLoading"
-                :disabled="!canQuery"
+                :loading="store.compareLoading"
+                :disabled="!store.canQuery"
                 @click="handleCompare"
                 style="width: 100%; min-width: 120px;"
               >
@@ -84,7 +85,7 @@
     </el-card>
 
     <!-- 对比结果 -->
-    <div v-if="compareResult.length > 0" class="result-section">
+    <div v-if="store.hasResults" class="result-section">
       <!-- 对比表格 -->
       <el-card class="table-card" shadow="never">
         <template #header>
@@ -96,8 +97,8 @@
 
         <div class="table-container">
           <el-table
-            :data="compareResult"
-            v-loading="compareLoading"
+            :data="store.compareResult"
+            v-loading="store.compareLoading"
             class="result-table"
             stripe
             border
@@ -215,33 +216,33 @@
     </div>
 
     <!-- 空状态 -->
-    <div v-else-if="!compareLoading" class="empty-state">
+    <div v-else-if="!store.compareLoading" class="empty-state">
       <el-empty description="请选择条件并生成对比数据" />
     </div>
 
     <!-- 测试图片弹窗 -->
     <el-dialog
-      v-model="imageDialogVisible"
+      v-model="store.imageDialogVisible"
       title="测试图片"
       width="600px"
       :before-close="handleCloseImageDialog"
       class="image-dialog"
     >
-      <div v-if="currentImageData" class="image-content">
+      <div v-if="store.currentImageData" class="image-content">
         <div class="image-info">
-          <h4>{{ currentImageData.vehicle_model_name }} - {{ currentImageData.area_name }}</h4>
+          <h4>{{ store.currentImageData.vehicle_model_name }} - {{ store.currentImageData.area_name }}</h4>
           <div class="test-details">
-            <p><strong>测试日期：</strong>{{ currentImageData.test_date || '未知' }}</p>
-            <p><strong>测试地点：</strong>{{ currentImageData.test_location || '未知' }}</p>
-            <p><strong>测试工程师：</strong>{{ currentImageData.test_engineer || '未知' }}</p>
+            <p><strong>测试日期：</strong>{{ store.currentImageData.test_date || '未知' }}</p>
+            <p><strong>测试地点：</strong>{{ store.currentImageData.test_location || '未知' }}</p>
+            <p><strong>测试工程师：</strong>{{ store.currentImageData.test_engineer || '未知' }}</p>
           </div>
         </div>
-        
+
         <div class="image-wrapper">
-          <div v-if="currentImageData.test_image_path" class="image-container">
+          <div v-if="store.currentImageData.test_image_path" class="image-container">
             <img
-              :src="getImageUrl(currentImageData.test_image_path)"
-              :alt="`${currentImageData.vehicle_model_name}测试图片`"
+              :src="getImageUrl(store.currentImageData.test_image_path)"
+              :alt="`${store.currentImageData.vehicle_model_name}测试图片`"
               class="test-image"
               @error="handleImageError"
             />
@@ -250,9 +251,9 @@
             <el-empty description="暂无测试图片" />
           </div>
         </div>
-        
-        <div v-if="currentImageData.remarks" class="remarks">
-          <p><strong>备注：</strong>{{ currentImageData.remarks }}</p>
+
+        <div v-if="store.currentImageData.remarks" class="remarks">
+          <p><strong>备注：</strong>{{ store.currentImageData.remarks }}</p>
         </div>
       </div>
     </el-dialog>
@@ -260,50 +261,22 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onActivated, onDeactivated, nextTick, watch } from 'vue'
+import { ref, onMounted, onActivated, onDeactivated, nextTick, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { TrendCharts } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
-import soundInsulationApi from '@/api/soundInsulation'
+import { useSoundInsulationCompareStore } from '@/store'
 
 // 组件名称，用于keep-alive缓存
 defineOptions({
   name: 'SoundInsulationCompare'
 })
 
-// 搜索表单
-const searchForm = ref({
-  areaId: null,
-  vehicleModelIds: []
-})
-
-// 选项数据
-const areaOptions = ref([])
-const vehicleModelOptions = ref([])
-
-// 加载状态
-const areasLoading = ref(false)
-const vehicleModelsLoading = ref(false)
-const compareLoading = ref(false)
-
-// 对比结果
-const compareResult = ref([])
+// 使用Pinia store
+const store = useSoundInsulationCompareStore()
 
 // 图表引用
 const chartRef = ref(null)
-let chartInstance = null
-
-// 弹窗相关状态
-const imageDialogVisible = ref(false)
-const currentImageData = ref(null)
-
-// 全选状态
-const selectAllVehicles = ref(false)
-
-// 计算属性
-const canQuery = computed(() => {
-  return searchForm.value.areaId && searchForm.value.vehicleModelIds.length > 0
-})
 
 // 频率标签映射
 const frequencyLabels = {
@@ -330,79 +303,29 @@ const frequencyLabels = {
 // 频率数组（用于图表横轴）
 const frequencies = [200, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000]
 
-// 加载区域列表
-const loadAreas = async () => {
-  try {
-    areasLoading.value = true
-    const response = await soundInsulationApi.getSoundInsulationAreas()
-    areaOptions.value = response.data || []
-  } catch (error) {
-    console.error('加载区域列表失败:', error)
-    ElMessage.error('加载区域列表失败')
-  } finally {
-    areasLoading.value = false
-  }
-}
-
-// 根据区域加载车型列表
-const loadVehiclesByArea = async (areaId) => {
-  try {
-    vehicleModelsLoading.value = true
-    const response = await soundInsulationApi.getVehiclesByArea({ area_id: areaId })
-    vehicleModelOptions.value = response.data || []
-
-    // 重置车型选择
-    searchForm.value.vehicleModelIds = []
-    selectAllVehicles.value = false
-
-    if (vehicleModelOptions.value.length === 0) {
-      ElMessage.warning('该区域暂无车型数据')
-    }
-  } catch (error) {
-    console.error('加载车型列表失败:', error)
-    ElMessage.error('加载车型列表失败')
-    vehicleModelOptions.value = []
-  } finally {
-    vehicleModelsLoading.value = false
-  }
-}
-
 // 区域变化处理
 const handleAreaChange = (areaId) => {
-  if (areaId) {
-    loadVehiclesByArea(areaId)
-  } else {
-    vehicleModelOptions.value = []
-    searchForm.value.vehicleModelIds = []
-    selectAllVehicles.value = false
-  }
-
-  // 清空对比结果
-  compareResult.value = []
-  if (chartInstance) {
-    chartInstance.dispose()
-    chartInstance = null
+  store.setArea(areaId)
+  // 清空图表
+  if (store.chartInstance) {
+    store.chartInstance.dispose()
+    store.setChartInstance(null)
   }
 }
 
 // 全选/反选车型
 const handleSelectAllVehicles = (checked) => {
-  if (checked) {
-    searchForm.value.vehicleModelIds = vehicleModelOptions.value.map(v => v.id)
-  } else {
-    searchForm.value.vehicleModelIds = []
-  }
+  store.toggleSelectAllVehicles(checked)
+}
+
+// 车型选择变化处理
+const handleVehicleModelChange = (vehicleIds) => {
+  store.setVehicleModels(vehicleIds)
 }
 
 // 监听车型选择变化，更新全选状态
-watch(() => searchForm.value.vehicleModelIds, (newIds) => {
-  if (newIds.length === 0) {
-    selectAllVehicles.value = false
-  } else if (newIds.length === vehicleModelOptions.value.length) {
-    selectAllVehicles.value = true
-  } else {
-    selectAllVehicles.value = false
-  }
+watch(() => store.searchForm.vehicleModelIds, () => {
+  store.updateSelectAllState()
 })
 
 // 格式化频率值
@@ -415,23 +338,15 @@ const formatFrequencyValue = (value) => {
 
 // 生成对比数据
 const handleCompare = async () => {
-  if (!canQuery.value) {
+  if (!store.canQuery) {
     ElMessage.warning('请选择区域和车型')
     return
   }
 
   try {
-    compareLoading.value = true
+    const result = await store.generateCompareData()
 
-    const data = {
-      area_id: searchForm.value.areaId,
-      vehicle_model_ids: searchForm.value.vehicleModelIds.join(',')
-    }
-
-    const response = await soundInsulationApi.compareSoundInsulationData(data)
-    compareResult.value = response.data || []
-
-    if (compareResult.value.length > 0) {
+    if (result.length > 0) {
       ElMessage.success('对比数据生成成功')
       // 等待DOM更新后渲染图表
       await nextTick()
@@ -442,28 +357,35 @@ const handleCompare = async () => {
   } catch (error) {
     console.error('生成对比数据失败:', error)
     ElMessage.error('生成对比数据失败')
-  } finally {
-    compareLoading.value = false
   }
 }
 
 // 图表渲染
 const renderChart = () => {
-  if (!chartRef.value || !compareResult.value.length) return
+  console.log('开始渲染隔声量对比图表，容器存在:', !!chartRef.value, '数据长度:', store.compareResult.length)
+
+  if (!chartRef.value || !store.compareResult.length) {
+    console.warn('隔声量对比图表渲染条件不满足')
+    return
+  }
 
   // 销毁现有图表实例
-  if (chartInstance) {
-    chartInstance.dispose()
+  if (store.chartInstance) {
+    console.log('销毁现有隔声量对比图表实例')
+    store.chartInstance.dispose()
+    store.setChartInstance(null)
   }
 
   // 创建新的图表实例
-  chartInstance = echarts.init(chartRef.value)
+  console.log('创建新的隔声量对比图表实例')
+  const chartInstance = echarts.init(chartRef.value)
+  store.setChartInstance(chartInstance)
 
   // 准备图表数据
   const series = []
   const colors = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc']
 
-  compareResult.value.forEach((item, index) => {
+  store.compareResult.forEach((item, index) => {
     const seriesData = []
 
     // 构建每个车型的数据点
@@ -616,19 +538,19 @@ const renderChart = () => {
     ]
   }
 
-  chartInstance.setOption(option)
+  store.chartInstance.setOption(option)
 
   // 添加点击事件
-  chartInstance.on('click', function(params) {
+  store.chartInstance.on('click', function(params) {
     if (params.data && params.data.itemData) {
-      showImageDialog(params.data.itemData)
+      store.showImageDialog(params.data.itemData)
     }
   })
 
   // 响应式处理
   const resizeHandler = () => {
-    if (chartInstance) {
-      chartInstance.resize()
+    if (store.chartInstance) {
+      store.chartInstance.resize()
     }
   }
 
@@ -637,16 +559,9 @@ const renderChart = () => {
   window.addEventListener('resize', resizeHandler)
 }
 
-// 显示图片弹窗
-const showImageDialog = (data) => {
-  currentImageData.value = data
-  imageDialogVisible.value = true
-}
-
 // 关闭图片弹窗
 const handleCloseImageDialog = () => {
-  imageDialogVisible.value = false
-  currentImageData.value = null
+  store.closeImageDialog()
 }
 
 // 获取图片URL
@@ -666,33 +581,72 @@ const handleImageError = (event) => {
 }
 
 // 生命周期
-onMounted(() => {
-  loadAreas()
+onMounted(async () => {
+  console.log('SoundInsulationCompare mounted - 初始化页面数据')
+  await store.initializePageData()
 })
 
 // keep-alive 激活时
-onActivated(() => {
-  // 如果有对比结果且图表容器存在，重新渲染图表
-  if (compareResult.value.length > 0 && chartRef.value) {
-    nextTick(() => {
+onActivated(async () => {
+  console.log('SoundInsulationCompare activated - 恢复组件状态')
+
+  // 初始化页面数据
+  await store.initializePageData()
+
+  // 强制重新渲染图表（如果有数据）
+  if (store.hasResults) {
+    // 等待DOM完全更新
+    await nextTick()
+
+    // 确保图表容器存在
+    if (chartRef.value) {
+      console.log('重新渲染隔声量对比图表，数据条数:', store.compareResult.length)
+
+      // 清除之前的图表实例
+      if (store.chartInstance) {
+        store.chartInstance.dispose()
+        store.setChartInstance(null)
+      }
+
+      // 重新渲染图表
       renderChart()
-    })
+    } else {
+      console.warn('图表容器不存在，延迟渲染')
+      // 如果容器还没准备好，再等一下
+      setTimeout(() => {
+        if (chartRef.value) {
+          renderChart()
+        }
+      }, 100)
+    }
   }
+
+  console.log('隔声量对比组件状态恢复完成:', {
+    areaId: store.searchForm.areaId,
+    vehicleCount: store.searchForm.vehicleModelIds.length,
+    resultCount: store.compareResult.length,
+    hasChartContainer: !!chartRef.value
+  })
 })
 
 // keep-alive 停用时
 onDeactivated(() => {
+  console.log('SoundInsulationCompare deactivated - 保存组件状态')
+
   // 移除窗口resize监听器，避免内存泄漏
-  window.removeEventListener('resize', () => {
-    if (chartInstance) {
-      chartInstance.resize()
-    }
-  })
+  if (store.chartInstance) {
+    window.removeEventListener('resize', store.chartInstance.resize)
+  }
+
+  // 关闭可能打开的弹窗
+  if (store.imageDialogVisible) {
+    store.closeImageDialog()
+  }
 })
 
-// 监听窗口大小变化
-watch(() => compareResult.value, () => {
-  if (compareResult.value.length > 0) {
+// 监听对比结果变化，自动渲染图表
+watch(() => store.compareResult, () => {
+  if (store.hasResults && chartRef.value) {
     nextTick(() => {
       renderChart()
     })
