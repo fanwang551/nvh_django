@@ -9,6 +9,11 @@
 </template>
 
 <script setup>
+// 组件名称，用于keep-alive缓存
+defineOptions({
+  name: 'AirtightTestChart'
+})
+
 // 气密性测试图查询页面
 </script>
 

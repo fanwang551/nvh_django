@@ -260,11 +260,16 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onActivated, onDeactivated, nextTick, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { TrendCharts } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import soundInsulationApi from '@/api/soundInsulation'
+
+// 组件名称，用于keep-alive缓存
+defineOptions({
+  name: 'SoundInsulationCompare'
+})
 
 // 搜索表单
 const searchForm = ref({
@@ -663,6 +668,26 @@ const handleImageError = (event) => {
 // 生命周期
 onMounted(() => {
   loadAreas()
+})
+
+// keep-alive 激活时
+onActivated(() => {
+  // 如果有对比结果且图表容器存在，重新渲染图表
+  if (compareResult.value.length > 0 && chartRef.value) {
+    nextTick(() => {
+      renderChart()
+    })
+  }
+})
+
+// keep-alive 停用时
+onDeactivated(() => {
+  // 移除窗口resize监听器，避免内存泄漏
+  window.removeEventListener('resize', () => {
+    if (chartInstance) {
+      chartInstance.resize()
+    }
+  })
 })
 
 // 监听窗口大小变化

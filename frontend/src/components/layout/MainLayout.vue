@@ -29,7 +29,9 @@
           
           <!-- 内容区域 -->
           <div class="content-area">
-            <router-view />
+            <keep-alive :include="cachedComponents">
+              <router-view />
+            </keep-alive>
           </div>
         </el-main>
       </el-container>
@@ -57,6 +59,17 @@ const openTabs = reactive([
 
 // 侧边菜单宽度
 const sideMenuWidth = ref('200px')
+
+// 需要缓存的组件列表
+const cachedComponents = ref([
+  'ModalDataQuery',
+  'ModalDataCompare',
+  'AirtightLeakCompare',
+  'AirtightTestChart',
+  'AirtightnessImageQuery',
+  'SoundInsulationCompare',
+  'VehicleSoundInsulationQuery'
+])
 
 // 菜单选择处理
 const handleMenuSelect = (menuKey) => {
@@ -126,7 +139,9 @@ const handleTabClick = (tabName) => {
     'modal-data-compare': '/business/modal-data-compare',
     'airtight-leak-compare': '/business/airtight-leak-compare',
     'airtight-test-chart': '/business/airtight-test-chart',
-    'airtightness-image-query': '/business/airtightness-image-query'
+    'airtightness-image-query': '/business/airtightness-image-query',
+    'sound-insulation-compare': '/business/sound-insulation-compare',
+    'vehicle-sound-insulation-query': '/business/vehicle-sound-insulation-query'
   }
 
   if (allRoutes[tabName]) {

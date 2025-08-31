@@ -107,6 +107,11 @@ import { ElMessage } from 'element-plus'
 import { Search, List } from '@element-plus/icons-vue'
 import { modalApi } from '@/api/modal'
 
+// 组件名称，用于keep-alive缓存
+defineOptions({
+  name: 'AirtightLeakCompare'
+})
+
 // 响应式数据
 const loading = ref(false)
 const vehicleModelsLoading = ref(false)

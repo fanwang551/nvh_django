@@ -243,6 +243,11 @@ import { TrendCharts } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import modalApi from '@/api/modal'
 
+// 组件名称，用于keep-alive缓存
+defineOptions({
+  name: 'ModalDataCompare'
+})
+
 // 表单数据
 const compareForm = ref({
   componentId: null,

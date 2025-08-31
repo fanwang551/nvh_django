@@ -162,6 +162,11 @@ import { ElMessage } from 'element-plus'
 import { Search, Picture } from '@element-plus/icons-vue'
 import modalApi from '@/api/modal'
 
+// 组件名称，用于keep-alive缓存
+defineOptions({
+  name: 'AirtightnessImageQuery'
+})
+
 // 搜索表单
 const searchForm = ref({
   vehicleModelIds: []

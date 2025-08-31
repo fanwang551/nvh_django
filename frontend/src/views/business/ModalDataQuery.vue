@@ -187,6 +187,11 @@ import { ElMessage } from 'element-plus'
 import { Search, List } from '@element-plus/icons-vue'
 import modalApi from '@/api/modal'
 
+// 组件名称，用于keep-alive缓存
+defineOptions({
+  name: 'ModalDataQuery'
+})
+
 // 搜索表单
 const searchForm = ref({
   vehicleModelId: null,
