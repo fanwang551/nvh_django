@@ -1,9 +1,6 @@
 <template>
   <div class="airtight-test-chart">
-    <div class="page-header">
-      <h2>气密性测试图查询</h2>
-      <p class="page-description">查看气密性测试图表和报告</p>
-    </div>
+
     
     <div class="content-placeholder">
       <el-empty description="功能开发中..." />

@@ -1,10 +1,6 @@
 <template>
   <div class="sound-insulation-compare">
-    <!-- 页面标题 -->
-    <div class="page-header">
-      <h2>区域隔声量（ATF）对比查询</h2>
-      <p class="page-description">选择区域和车型进行隔声量数据对比分析</p>
-    </div>
+
 
     <!-- 查询条件卡片 -->
     <el-card class="search-card" shadow="never">

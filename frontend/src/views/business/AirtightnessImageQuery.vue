@@ -1,10 +1,6 @@
 <template>
   <div class="airtightness-image-query">
-    <!-- 页面标题 -->
-    <div class="page-header">
-      <h2>气密性测试图片查询</h2>
-      <p class="page-description">查看各车型的气密性测试图片</p>
-    </div>
+
 
     <!-- 搜索卡片 -->
     <el-card class="search-card" shadow="never">

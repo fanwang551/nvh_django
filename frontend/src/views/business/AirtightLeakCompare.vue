@@ -1,9 +1,6 @@
 <template>
   <div class="airtight-leak-compare">
-    <div class="page-header">
-      <h2>气密性泄漏量对比</h2>
-      <p class="page-description">对比不同车型的气密性测试泄漏量数据</p>
-    </div>
+
 
     <!-- 车型选择卡片 -->
     <el-card class="search-card" shadow="never">

@@ -1,10 +1,6 @@
 <template>
   <div class="vehicle-sound-insulation-query">
-    <!-- 页面标题 -->
-    <div class="page-header">
-      <h2>车型隔声量查询</h2>
-      <p class="page-description">选择车型进行隔声量数据对比分析</p>
-    </div>
+
 
     <!-- 查询条件卡片 -->
     <el-card class="search-card" shadow="never">
