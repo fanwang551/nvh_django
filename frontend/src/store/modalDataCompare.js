@@ -3,32 +3,34 @@ import modalApi from '@/api/modal'
 
 export const useModalDataCompareStore = defineStore('modalDataCompare', {
   state: () => ({
-    // 查询表单状态
-    searchForm: {
+    // 对比表单状态 - 需要保持的状态
+    compareForm: {
+      componentId: null,
       vehicleModelIds: [],
-      partId: null,
-      orderNumber: null
+      testStatuses: [],
+      modeTypes: []
     },
     
-    // 选项数据
+    // 选项数据 - 需要保持的状态
+    componentOptions: [],
     vehicleModelOptions: [],
-    partOptions: [],
+    testStatusOptions: [],
+    modeTypeOptions: [],
     
     // 加载状态
+    componentsLoading: false,
     vehicleModelsLoading: false,
-    partsLoading: false,
+    testStatusesLoading: false,
+    modeTypesLoading: false,
     compareLoading: false,
     
-    // 对比结果
+    // 对比结果 - 需要保持的状态
     compareResult: [],
     
-    // UI状态
-    selectAllVehicles: false,
-    
-    // 弹窗状态
-    modeShapeDialogVisible: false,
-    currentModeShapeData: null,
-    activeTab: 'animation', // 'animation' 或 'photo'
+    // 弹窗状态 - 切换时需要清除
+    modalShapeDialogVisible: false,
+    currentModalData: null,
+    activeTab: 'shape', // 'shape' 或 'photo'
     
     // 图表状态
     chartInstance: null,
@@ -36,72 +38,143 @@ export const useModalDataCompareStore = defineStore('modalDataCompare', {
   }),
   
   getters: {
-    // 是否可以查询
-    canQuery: (state) => {
-      return state.searchForm.vehicleModelIds.length > 0 && 
-             state.searchForm.partId && 
-             state.searchForm.orderNumber
+    // 是否可以执行对比
+    canCompare: (state) => {
+      return state.compareForm.componentId &&
+             state.compareForm.vehicleModelIds.length > 0 &&
+             state.compareForm.testStatuses.length > 0 &&
+             state.compareForm.modeTypes.length > 0
     },
     
-    // 是否有查询结果
+    // 是否有对比结果
     hasResults: (state) => {
       return state.compareResult.length > 0
     },
     
-    // 选中的车型数量
-    selectedVehicleCount: (state) => {
-      return state.searchForm.vehicleModelIds.length
+    // 测试状态是否为多选模式（单车型时可多选，多车型时单选）
+    isTestStatusMultiple: (state) => {
+      return state.compareForm.vehicleModelIds.length === 1
     },
     
-    // 全选状态
-    isAllVehiclesSelected: (state) => {
-      return state.vehicleModelOptions.length > 0 && 
-             state.searchForm.vehicleModelIds.length === state.vehicleModelOptions.length
+    // 表格数据处理
+    tableData: (state) => {
+      if (!state.compareResult.length) return []
+      
+      // 按振型类型分组
+      const groupedData = {}
+      state.compareResult.forEach(item => {
+        if (!groupedData[item.mode_type]) {
+          groupedData[item.mode_type] = { modeType: item.mode_type }
+        }
+        groupedData[item.mode_type][item.display_name] = item.frequency
+      })
+      
+      return Object.values(groupedData)
+    },
+    
+    // 车型列数据
+    vehicleColumns: (state) => {
+      if (!state.compareResult.length) return []
+      
+      const uniqueVehicles = [...new Set(state.compareResult.map(item => item.display_name))]
+      return uniqueVehicles.map(name => ({
+        key: name,
+        label: name
+      }))
     }
   },
   
   actions: {
-    // 加载车型列表
-    async loadVehicleModels() {
+    // 加载零件列表
+    async loadComponents() {
+      try {
+        this.componentsLoading = true
+        const response = await modalApi.getComponents()
+        this.componentOptions = response.data || []
+      } catch (error) {
+        console.error('加载零件列表失败:', error)
+        throw error
+      } finally {
+        this.componentsLoading = false
+      }
+    },
+    
+    // 加载相关车型列表
+    async loadRelatedVehicleModels(componentId) {
       try {
         this.vehicleModelsLoading = true
-        const response = await modalApi.getVehicleModels()
+        const response = await modalApi.getRelatedVehicleModels({ component_id: componentId })
         this.vehicleModelOptions = response.data || []
       } catch (error) {
-        console.error('加载车型列表失败:', error)
+        console.error('加载相关车型失败:', error)
         throw error
       } finally {
         this.vehicleModelsLoading = false
       }
     },
     
-    // 加载零件列表
-    async loadParts() {
+    // 加载测试状态列表
+    async loadTestStatuses() {
       try {
-        this.partsLoading = true
-        const response = await modalApi.getParts()
-        this.partOptions = response.data || []
+        this.testStatusesLoading = true
+        const params = {
+          component_id: this.compareForm.componentId,
+          vehicle_model_ids: this.compareForm.vehicleModelIds.join(',')
+        }
+        const response = await modalApi.getTestStatuses(params)
+        this.testStatusOptions = response.data || []
       } catch (error) {
-        console.error('加载零件列表失败:', error)
+        console.error('加载测试状态失败:', error)
         throw error
       } finally {
-        this.partsLoading = false
+        this.testStatusesLoading = false
+      }
+    },
+    
+    // 加载振型类型列表
+    async loadModeTypes() {
+      try {
+        this.modeTypesLoading = true
+        
+        // 处理testStatuses，确保它是数组格式
+        const testStatusesArray = Array.isArray(this.compareForm.testStatuses)
+          ? this.compareForm.testStatuses
+          : [this.compareForm.testStatuses]
+        
+        const params = {
+          component_id: this.compareForm.componentId,
+          vehicle_model_ids: this.compareForm.vehicleModelIds.join(','),
+          test_statuses: testStatusesArray.join(',')
+        }
+        const response = await modalApi.getModeTypes(params)
+        this.modeTypeOptions = response.data || []
+      } catch (error) {
+        console.error('加载振型类型失败:', error)
+        throw error
+      } finally {
+        this.modeTypesLoading = false
       }
     },
     
     // 生成对比数据
     async generateCompareData() {
-      if (!this.canQuery) {
-        throw new Error('请选择车型、零件和阶次')
+      if (!this.canCompare) {
+        throw new Error('请完善选择条件')
       }
       
       try {
         this.compareLoading = true
         
+        // 处理testStatuses，确保它是数组格式
+        const testStatusesArray = Array.isArray(this.compareForm.testStatuses)
+          ? this.compareForm.testStatuses
+          : [this.compareForm.testStatuses]
+        
         const data = {
-          vehicle_model_ids: this.searchForm.vehicleModelIds.join(','),
-          part_id: this.searchForm.partId,
-          order_number: this.searchForm.orderNumber
+          component_id: this.compareForm.componentId,
+          vehicle_model_ids: this.compareForm.vehicleModelIds.join(','),
+          test_statuses: testStatusesArray.join(','),
+          mode_types: this.compareForm.modeTypes.join(',')
         }
         
         const response = await modalApi.compareModalData(data)
@@ -116,71 +189,80 @@ export const useModalDataCompareStore = defineStore('modalDataCompare', {
       }
     },
     
-    // 设置车型选择
-    setVehicleModels(vehicleIds) {
-      this.searchForm.vehicleModelIds = vehicleIds
-      this.updateSelectAllState()
-      // 清空对比结果
+    // 处理零件选择变化
+    handleComponentChange(componentId) {
+      this.compareForm.componentId = componentId
+      // 重置后续选择
+      this.compareForm.vehicleModelIds = []
+      this.compareForm.testStatuses = []
+      this.compareForm.modeTypes = []
+      this.vehicleModelOptions = []
+      this.testStatusOptions = []
+      this.modeTypeOptions = []
       this.compareResult = []
-      this.chartInitialized = false
-    },
-    
-    // 设置零件
-    setPart(partId) {
-      this.searchForm.partId = partId
-      // 清空对比结果
-      this.compareResult = []
-      this.chartInitialized = false
-    },
-    
-    // 设置阶次
-    setOrderNumber(orderNumber) {
-      this.searchForm.orderNumber = orderNumber
-      // 清空对比结果
-      this.compareResult = []
-      this.chartInitialized = false
-    },
-    
-    // 全选/反选车型
-    toggleSelectAllVehicles(checked) {
-      if (checked) {
-        this.searchForm.vehicleModelIds = this.vehicleModelOptions.map(v => v.id)
-      } else {
-        this.searchForm.vehicleModelIds = []
+      
+      if (componentId) {
+        this.loadRelatedVehicleModels(componentId)
       }
-      this.selectAllVehicles = checked
-      // 清空对比结果
-      this.compareResult = []
-      this.chartInitialized = false
     },
     
-    // 更新全选状态
-    updateSelectAllState() {
-      if (this.searchForm.vehicleModelIds.length === 0) {
-        this.selectAllVehicles = false
-      } else if (this.searchForm.vehicleModelIds.length === this.vehicleModelOptions.length) {
-        this.selectAllVehicles = true
-      } else {
-        this.selectAllVehicles = false
+    // 处理车型选择变化
+    handleVehicleModelChange(vehicleModelIds) {
+      this.compareForm.vehicleModelIds = vehicleModelIds
+      // 重置后续选择
+      this.compareForm.testStatuses = []
+      this.compareForm.modeTypes = []
+      this.testStatusOptions = []
+      this.modeTypeOptions = []
+      this.compareResult = []
+      
+      if (vehicleModelIds.length > 0) {
+        this.loadTestStatuses()
       }
+      
+      // 根据业务规则调整测试状态选择模式
+      if (!this.isTestStatusMultiple && this.compareForm.testStatuses.length > 1) {
+        // 从多选变为单选时，只保留第一个选项
+        this.compareForm.testStatuses = [this.compareForm.testStatuses[0]]
+      }
+    },
+    
+    // 处理测试状态选择变化
+    handleTestStatusChange(testStatuses) {
+      this.compareForm.testStatuses = testStatuses
+      // 重置后续选择
+      this.compareForm.modeTypes = []
+      this.modeTypeOptions = []
+      this.compareResult = []
+      
+      if (testStatuses.length > 0) {
+        this.loadModeTypes()
+      }
+    },
+    
+    // 处理振型类型选择变化
+    handleModeTypeChange(modeTypes) {
+      this.compareForm.modeTypes = modeTypes
+      // 清空对比结果
+      this.compareResult = []
     },
     
     // 显示模态振型弹窗
-    showModeShapeDialog(data) {
-      this.currentModeShapeData = data
-      this.modeShapeDialogVisible = true
-      this.activeTab = 'animation'
+    showModalShapeDialog(modalData) {
+      this.currentModalData = modalData
+      this.modalShapeDialogVisible = true
+      this.activeTab = 'shape'
     },
     
     // 关闭模态振型弹窗
-    closeModeShapeDialog() {
-      this.modeShapeDialogVisible = false
-      this.currentModeShapeData = null
-      this.activeTab = 'animation'
+    closeModalShapeDialog() {
+      this.modalShapeDialogVisible = false
+      this.currentModalData = null
+      this.activeTab = 'shape'
     },
     
     // 切换弹窗标签页
-    switchTab(tab) {
+    switchDialogTab(tab) {
       this.activeTab = tab
     },
     
@@ -190,30 +272,18 @@ export const useModalDataCompareStore = defineStore('modalDataCompare', {
       this.chartInitialized = !!instance
     },
     
-    // 清空所有状态
-    resetState() {
-      this.searchForm = {
-        vehicleModelIds: [],
-        partId: null,
-        orderNumber: null
-      }
-      this.compareResult = []
-      this.selectAllVehicles = false
-      this.modeShapeDialogVisible = false
-      this.currentModeShapeData = null
-      this.activeTab = 'animation'
-      this.chartInitialized = false
-      this.chartInstance = null
+    // 清理弹窗状态（在onDeactivated时调用）
+    clearDialogState() {
+      this.modalShapeDialogVisible = false
+      this.currentModalData = null
+      this.activeTab = 'shape'
     },
     
-    // 初始化页面数据
+    // 初始化页面数据（在onMounted或onActivated时调用）
     async initializePageData() {
-      if (this.vehicleModelOptions.length === 0) {
-        await this.loadVehicleModels()
-      }
-      
-      if (this.partOptions.length === 0) {
-        await this.loadParts()
+      // 如果没有零件选项，加载零件列表
+      if (this.componentOptions.length === 0) {
+        await this.loadComponents()
       }
     }
   }

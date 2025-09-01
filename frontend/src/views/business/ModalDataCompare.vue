@@ -160,7 +160,7 @@
         </template>
 
         <div class="chart-container">
-          <div ref="chartRef" class="echarts-container"></div>
+          <div ref="chartContainer" class="echarts-container"></div>
         </div>
       </el-card>
     </div>
@@ -237,207 +237,73 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onActivated, onDeactivated, nextTick, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { TrendCharts } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
-import modalApi from '@/api/modal'
+import { useModalDataCompareStore } from '@/store/modalDataCompare'
 
 // 组件名称，用于keep-alive缓存
 defineOptions({
   name: 'ModalDataCompare'
 })
 
-// 表单数据
-const compareForm = ref({
-  componentId: null,
-  vehicleModelIds: [],
-  testStatuses: [],
-  modeTypes: []
+// 使用Pinia store
+const store = useModalDataCompareStore()
+
+// 从store中获取响应式状态
+const compareForm = computed({
+  get: () => store.compareForm,
+  set: (value) => store.compareForm = value
 })
 
-// 选项数据
-const componentOptions = ref([])
-const vehicleModelOptions = ref([])
-const testStatusOptions = ref([])
-const modeTypeOptions = ref([])
+const componentOptions = computed(() => store.componentOptions)
+const vehicleModelOptions = computed(() => store.vehicleModelOptions)
+const testStatusOptions = computed(() => store.testStatusOptions)
+const modeTypeOptions = computed(() => store.modeTypeOptions)
 
-// 加载状态
-const componentsLoading = ref(false)
-const vehicleModelsLoading = ref(false)
-const testStatusesLoading = ref(false)
-const modeTypesLoading = ref(false)
-const compareLoading = ref(false)
+const componentsLoading = computed(() => store.componentsLoading)
+const vehicleModelsLoading = computed(() => store.vehicleModelsLoading)
+const testStatusesLoading = computed(() => store.testStatusesLoading)
+const modeTypesLoading = computed(() => store.modeTypesLoading)
+const compareLoading = computed(() => store.compareLoading)
 
-// 对比结果
-const compareResult = ref([])
+const compareResult = computed(() => store.compareResult)
+const tableData = computed(() => store.tableData)
+const vehicleColumns = computed(() => store.vehicleColumns)
+const canCompare = computed(() => store.canCompare)
+const isTestStatusMultiple = computed(() => store.isTestStatusMultiple)
+
+const modalShapeDialogVisible = computed({
+  get: () => store.modalShapeDialogVisible,
+  set: (value) => store.modalShapeDialogVisible = value
+})
+
+const currentModalData = computed(() => store.currentModalData)
+const activeTab = computed({
+  get: () => store.activeTab,
+  set: (value) => store.activeTab = value
+})
 
 // 图表引用
-const chartRef = ref(null)
+const chartContainer = ref(null)
 let chartInstance = null
-
-// 弹窗相关状态
-const modalShapeDialogVisible = ref(false)
-const activeTab = ref('shape') // 'shape' 或 'photo'
-const currentModalData = ref(null)
-
-// 计算属性
-const isTestStatusMultiple = computed(() => {
-  // 业务规则：多车型时测试状态单选，单车型时可多选
-  return compareForm.value.vehicleModelIds.length === 1
-})
-
-const canCompare = computed(() => {
-  return compareForm.value.componentId &&
-         compareForm.value.vehicleModelIds.length > 0 &&
-         compareForm.value.testStatuses.length > 0 &&
-         compareForm.value.modeTypes.length > 0
-})
-
-// 表格数据处理
-const tableData = computed(() => {
-  if (!compareResult.value.length) return []
-
-  // 按振型类型分组
-  const groupedData = {}
-  compareResult.value.forEach(item => {
-    if (!groupedData[item.mode_type]) {
-      groupedData[item.mode_type] = { modeType: item.mode_type }
-    }
-    groupedData[item.mode_type][item.display_name] = item.frequency
-  })
-
-  return Object.values(groupedData)
-})
-
-// 车型列数据
-const vehicleColumns = computed(() => {
-  if (!compareResult.value.length) return []
-
-  const uniqueVehicles = [...new Set(compareResult.value.map(item => item.display_name))]
-  return uniqueVehicles.map(name => ({
-    key: name,
-    label: name
-  }))
-})
-
-// API调用方法
-const loadComponents = async () => {
-  try {
-    componentsLoading.value = true
-    const response = await modalApi.getComponents()
-    componentOptions.value = response.data || []
-  } catch (error) {
-    console.error('加载零件列表失败:', error)
-    ElMessage.error('加载零件列表失败')
-  } finally {
-    componentsLoading.value = false
-  }
-}
-
-const loadRelatedVehicleModels = async (componentId) => {
-  try {
-    vehicleModelsLoading.value = true
-    const response = await modalApi.getRelatedVehicleModels({ component_id: componentId })
-    vehicleModelOptions.value = response.data || []
-  } catch (error) {
-    console.error('加载相关车型失败:', error)
-    ElMessage.error('加载相关车型失败')
-  } finally {
-    vehicleModelsLoading.value = false
-  }
-}
-
-const loadTestStatuses = async () => {
-  try {
-    testStatusesLoading.value = true
-    const params = {
-      component_id: compareForm.value.componentId,
-      vehicle_model_ids: compareForm.value.vehicleModelIds.join(',')
-    }
-    const response = await modalApi.getTestStatuses(params)
-    testStatusOptions.value = response.data || []
-  } catch (error) {
-    console.error('加载测试状态失败:', error)
-    ElMessage.error('加载测试状态失败')
-  } finally {
-    testStatusesLoading.value = false
-  }
-}
-
-const loadModeTypes = async () => {
-  try {
-    modeTypesLoading.value = true
-
-    // 处理testStatuses，确保它是数组格式
-    const testStatusesArray = Array.isArray(compareForm.value.testStatuses)
-      ? compareForm.value.testStatuses
-      : [compareForm.value.testStatuses]
-
-    const params = {
-      component_id: compareForm.value.componentId,
-      vehicle_model_ids: compareForm.value.vehicleModelIds.join(','),
-      test_statuses: testStatusesArray.join(',')
-    }
-    const response = await modalApi.getModeTypes(params)
-    modeTypeOptions.value = response.data || []
-  } catch (error) {
-    console.error('加载振型类型失败:', error)
-    ElMessage.error('加载振型类型失败')
-  } finally {
-    modeTypesLoading.value = false
-  }
-}
 
 // 事件处理方法
 const handleComponentChange = (componentId) => {
-  // 重置后续选择
-  compareForm.value.vehicleModelIds = []
-  compareForm.value.testStatuses = []
-  compareForm.value.modeTypes = []
-  vehicleModelOptions.value = []
-  testStatusOptions.value = []
-  modeTypeOptions.value = []
-  compareResult.value = []
-
-  if (componentId) {
-    loadRelatedVehicleModels(componentId)
-  }
+  store.handleComponentChange(componentId)
 }
 
 const handleVehicleModelChange = (vehicleModelIds) => {
-  // 重置后续选择
-  compareForm.value.testStatuses = []
-  compareForm.value.modeTypes = []
-  testStatusOptions.value = []
-  modeTypeOptions.value = []
-  compareResult.value = []
-
-  if (vehicleModelIds.length > 0) {
-    loadTestStatuses()
-  }
-
-  // 根据业务规则调整测试状态选择模式
-  if (!isTestStatusMultiple.value && compareForm.value.testStatuses.length > 1) {
-    // 从多选变为单选时，只保留第一个选项
-    compareForm.value.testStatuses = [compareForm.value.testStatuses[0]]
-  }
+  store.handleVehicleModelChange(vehicleModelIds)
 }
 
 const handleTestStatusChange = (testStatuses) => {
-  // 重置后续选择
-  compareForm.value.modeTypes = []
-  modeTypeOptions.value = []
-  compareResult.value = []
-
-  if (testStatuses.length > 0) {
-    loadModeTypes()
-  }
+  store.handleTestStatusChange(testStatuses)
 }
 
-const handleModeTypeChange = () => {
-  // 清空对比结果
-  compareResult.value = []
+const handleModeTypeChange = (modeTypes) => {
+  store.handleModeTypeChange(modeTypes)
 }
 
 // 生成对比数据
@@ -448,24 +314,9 @@ const handleCompare = async () => {
   }
 
   try {
-    compareLoading.value = true
-
-    // 处理testStatuses，确保它是数组格式
-    const testStatusesArray = Array.isArray(compareForm.value.testStatuses)
-      ? compareForm.value.testStatuses
-      : [compareForm.value.testStatuses]
-
-    const data = {
-      component_id: compareForm.value.componentId,
-      vehicle_model_ids: compareForm.value.vehicleModelIds.join(','),
-      test_statuses: testStatusesArray.join(','),
-      mode_types: compareForm.value.modeTypes.join(',')
-    }
-
-    const response = await modalApi.compareModalData(data)
-    compareResult.value = response.data || []
-
-    if (compareResult.value.length > 0) {
+    const result = await store.generateCompareData()
+    
+    if (result.length > 0) {
       ElMessage.success('对比数据生成成功')
       // 等待DOM更新后渲染图表
       await nextTick()
@@ -476,14 +327,23 @@ const handleCompare = async () => {
   } catch (error) {
     console.error('生成对比数据失败:', error)
     ElMessage.error('生成对比数据失败')
-  } finally {
-    compareLoading.value = false
   }
 }
 
 // 图表渲染
 const renderChart = () => {
-  if (!chartRef.value || !compareResult.value.length) return
+  if (!chartContainer.value || !compareResult.value.length) return
+
+  // 检查容器是否可见和有尺寸
+  const containerRect = chartContainer.value.getBoundingClientRect()
+  if (containerRect.width === 0 || containerRect.height === 0) {
+    // 容器尺寸为0，延迟渲染
+    console.warn('图表容器尺寸为0，延迟渲染')
+    setTimeout(() => {
+      renderChart()
+    }, 100)
+    return
+  }
 
   // 销毁现有图表实例
   if (chartInstance) {
@@ -491,13 +351,14 @@ const renderChart = () => {
   }
 
   // 创建新的图表实例
-  chartInstance = echarts.init(chartRef.value)
+  chartInstance = echarts.init(chartContainer.value)
+  store.setChartInstance(chartInstance)
 
   // 准备图表数据
   const seriesData = {}
   const xAxisData = [...new Set(compareResult.value.map(item => item.display_name))]
 
-  // 按振型类型分组数据，同时保存完整的模态数据信息
+  // 按振型类型分组数据，使用正确的数据格式
   compareResult.value.forEach(item => {
     if (!seriesData[item.mode_type]) {
       seriesData[item.mode_type] = []
@@ -505,8 +366,11 @@ const renderChart = () => {
 
     const xIndex = xAxisData.indexOf(item.display_name)
     seriesData[item.mode_type].push({
-      value: [xIndex, item.frequency],
-      modalData: item // 保存完整的模态数据，用于点击事件
+      value: item.frequency, // 对于category类型的xAxis，使用简单数值格式
+      modalData: item, // 保存完整的模态数据，用于点击事件
+      itemStyle: {
+        shadowBlur: 0
+      }
     })
   })
 
@@ -517,7 +381,16 @@ const renderChart = () => {
     data: seriesData[modeType],
     symbolSize: 8,
     itemStyle: {
-      color: `hsl(${index * 60}, 70%, 50%)`
+      color: `hsl(${index * 60}, 70%, 50%)`,
+      shadowBlur: 3,
+      shadowColor: 'rgba(0, 0, 0, 0.2)'
+    },
+    emphasis: {
+      itemStyle: {
+        shadowBlur: 10,
+        shadowColor: 'rgba(0, 0, 0, 0.3)'
+      },
+      symbolSize: 14
     }
   }))
 
@@ -533,10 +406,40 @@ const renderChart = () => {
     },
     tooltip: {
       trigger: 'item',
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      borderColor: '#e4e7ed',
+      borderWidth: 1,
+      borderRadius: 8,
+      textStyle: {
+        color: '#303133',
+        fontSize: 13
+      },
+      padding: [12, 16],
+      extraCssText: 'box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);',
       formatter: (params) => {
-        const vehicleName = xAxisData[params.data.value[0]]
-        const frequency = params.data.value[1]
-        return `${params.seriesName}<br/>${vehicleName}: ${frequency} Hz<br/>点击查看振型图`
+        const vehicleName = xAxisData[params.dataIndex]
+        const frequency = params.data.value
+        const seriesColor = params.color
+        
+        if (!frequency) {
+          return `<div style="color: #909399;">无数据</div>`
+        }
+        
+        return `
+          <div style="margin-bottom: 8px; font-weight: 600; color: #303133;">
+            <span style="display: inline-block; width: 8px; height: 8px; background: ${seriesColor}; border-radius: 50%; margin-right: 6px;"></span>
+            ${params.seriesName}
+          </div>
+          <div style="margin-bottom: 4px; color: #606266;">
+            <strong>车型：</strong>${vehicleName}
+          </div>
+          <div style="margin-bottom: 8px; color: #606266;">
+            <strong>频率：</strong><span style="color: #409eff; font-weight: 600;">${frequency.toFixed(1)} Hz</span>
+          </div>
+          <div style="color: #909399; font-size: 12px;">
+            💡 点击数据点查看振型图
+          </div>
+        `
       }
     },
     legend: {
@@ -583,13 +486,21 @@ const renderChart = () => {
       axisLabel: {
         fontSize: 14,
         fontWeight: 'bold',
-        color: '#606266'
+        color: '#606266',
+        formatter: (value) => `${value.toFixed(1)}`
       }
     },
     series: series
   }
 
   chartInstance.setOption(option)
+
+  // 渲染完成后强制调用resize()方法确保图表大小正确
+  setTimeout(() => {
+    if (chartInstance) {
+      chartInstance.resize()
+    }
+  }, 100)
 
   // 添加点击事件
   chartInstance.on('click', (params) => {
@@ -598,25 +509,26 @@ const renderChart = () => {
     }
   })
 
-  // 响应式调整
-  window.addEventListener('resize', () => {
+  // 响应式调整监听器
+  const resizeListener = () => {
     if (chartInstance) {
       chartInstance.resize()
     }
-  })
+  }
+  
+  window.addEventListener('resize', resizeListener)
+  
+  // 保存监听器引用，用于清理
+  chartInstance._resizeListener = resizeListener
 }
 
 // 弹窗相关方法
 const viewModalShape = (modalData) => {
-  currentModalData.value = modalData
-  activeTab.value = 'shape' // 默认显示振型动画
-  modalShapeDialogVisible.value = true
+  store.showModalShapeDialog(modalData)
 }
 
 const handleCloseDialog = () => {
-  modalShapeDialogVisible.value = false
-  currentModalData.value = null
-  activeTab.value = 'shape'
+  store.closeModalShapeDialog()
 }
 
 const getImageUrl = (filePath) => {
@@ -633,19 +545,56 @@ const handleImageError = (event) => {
   ElMessage.error('图片加载失败')
 }
 
-// 生命周期
-onMounted(() => {
-  loadComponents()
+// 生命周期钩子 - 按照Vue组件生命周期处理模式
+onMounted(async () => {
+  // 初始化基础数据
+  await store.initializePageData()
 })
 
-// 监听窗口大小变化
-watch(() => compareResult.value, () => {
-  if (compareResult.value.length > 0) {
-    nextTick(() => {
-      renderChart()
-    })
+// 保持活跃时 - 确保基础数据最新，但保持用户状态不变
+onActivated(async () => {
+  // 如果没有零件选项，重新加载
+  if (store.componentOptions.length === 0) {
+    await store.initializePageData()
+  }
+  
+  // 如果有对比结果，重新渲染图表
+  if (store.compareResult.length > 0) {
+    await nextTick()
+    // 等待容器完成渲染
+    setTimeout(() => {
+      if (chartContainer.value) {
+        renderChart()
+      }
+    }, 200)
   }
 })
+
+// 失活时 - 清理弹窗等UI状态，避免状态残留
+onDeactivated(() => {
+  // 清理弹窗状态
+  store.clearDialogState()
+  
+  // 清理图表监听器，避免内存泄漏
+  if (chartInstance && chartInstance._resizeListener) {
+    window.removeEventListener('resize', chartInstance._resizeListener)
+    chartInstance._resizeListener = null
+  }
+})
+
+// 监听对比结果变化
+watch(() => store.compareResult, (newResult) => {
+  if (newResult && newResult.length > 0) {
+    nextTick(() => {
+      // 等待DOM更新完成后再渲染
+      setTimeout(() => {
+        if (chartContainer.value) {
+          renderChart()
+        }
+      }, 100)
+    })
+  }
+}, { immediate: true })
 </script>
 
 <style scoped>
