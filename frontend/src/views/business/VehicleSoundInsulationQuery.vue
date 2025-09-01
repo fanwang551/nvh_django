@@ -193,8 +193,9 @@ defineOptions({
 // 使用Pinia store
 const store = useVehicleSoundInsulationQueryStore()
 
-// 图表相关
+// 图表相关 - 改为组件内管理
 const chartRef = ref(null)
+const chartInstance = ref(null) // ECharts 实例由组件管理
 
 // 频率数组（用于图表横轴）
 const frequencies = [200, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000]
@@ -237,9 +238,10 @@ const handleCompare = async () => {
 const handleReset = () => {
   store.resetState()
 
-  if (store.chartInstance) {
-    store.chartInstance.dispose()
-    store.setChartInstance(null)
+  // 销毁图表实例（组件内管理）
+  if (chartInstance.value) {
+    chartInstance.value.dispose()
+    chartInstance.value = null
   }
 }
 
@@ -267,17 +269,28 @@ const renderChart = () => {
     return
   }
 
-  // 销毁现有图表实例
-  if (store.chartInstance) {
-    console.log('销毁现有图表实例')
-    store.chartInstance.dispose()
-    store.setChartInstance(null)
+  // 检查容器是否可见和有尺寸
+  const containerRect = chartRef.value.getBoundingClientRect()
+  if (containerRect.width === 0 || containerRect.height === 0) {
+    console.warn('图表容器尺寸为0，延迟渲染')
+    setTimeout(() => {
+      if (chartRef.value && store.compareResult.length > 0) {
+        renderChart()
+      }
+    }, 100)
+    return
   }
 
-  // 创建新的图表实例
-  console.log('创建新的图表实例')
-  const chartInstance = echarts.init(chartRef.value)
-  store.setChartInstance(chartInstance)
+  // 销毁现有图表实例（组件内管理）
+  if (chartInstance.value) {
+    console.log('销毁现有图表实例')
+    chartInstance.value.dispose()
+    chartInstance.value = null
+  }
+
+  // 创建新的图表实例（组件内管理）
+  console.log('创建新的图表实例，容器尺寸:', containerRect.width, 'x', containerRect.height)
+  chartInstance.value = echarts.init(chartRef.value)
 
   // 准备图表数据
   const series = []
@@ -406,19 +419,27 @@ const renderChart = () => {
     ]
   }
 
-  store.chartInstance.setOption(option)
+  chartInstance.value.setOption(option)
+  
+  // 强制调整图表大小（解决标签切换后尺寸问题）
+  setTimeout(() => {
+    if (chartInstance.value) {
+      chartInstance.value.resize()
+      console.log('图表大小已调整')
+    }
+  }, 100)
 
-  // 添加点击事件
-  store.chartInstance.on('click', function(params) {
+  // 添加点击事件（组件内管理）
+  chartInstance.value.on('click', function(params) {
     if (params.data && params.data.itemData) {
       store.showImageDialog(params.data.itemData)
     }
   })
 
-  // 响应式处理
+  // 响应式处理（组件内管理）
   const resizeHandler = () => {
-    if (store.chartInstance) {
-      store.chartInstance.resize()
+    if (chartInstance.value) {
+      chartInstance.value.resize()
     }
   }
 
@@ -435,6 +456,24 @@ const handleCloseImageDialog = () => {
 onMounted(async () => {
   console.log('VehicleSoundInsulationQuery mounted - 初始化页面数据')
   await store.initializePageData()
+  
+  // 如果已有数据，重新渲染图表（处理组件重新挂载的情况）
+  if (store.hasResults) {
+    console.log('检测到已有数据，准备渲染图表')
+    await nextTick()
+    
+    if (chartRef.value) {
+      console.log('重新渲染已有的对比图表，数据条数:', store.compareResult.length)
+      renderChart()
+    } else {
+      console.warn('图表容器未准备好，延迟渲染')
+      setTimeout(() => {
+        if (chartRef.value && store.hasResults) {
+          renderChart()
+        }
+      }, 100)
+    }
+  }
 })
 
 // keep-alive 激活时
@@ -451,12 +490,12 @@ onActivated(async () => {
 
     // 确保图表容器存在
     if (chartRef.value) {
-      console.log('重新渲染车型对比图表，数据条数:', store.compareResult.length)
+      console.log('标签切换回来，重新渲染车型对比图表，数据条数:', store.compareResult.length)
 
-      // 清除之前的图表实例
-      if (store.chartInstance) {
-        store.chartInstance.dispose()
-        store.setChartInstance(null)
+      // 清除之前的图表实例（组件内管理）
+      if (chartInstance.value) {
+        chartInstance.value.dispose()
+        chartInstance.value = null
       }
 
       // 重新渲染图表
@@ -465,7 +504,7 @@ onActivated(async () => {
       console.warn('图表容器不存在，延迟渲染')
       // 如果容器还没准备好，再等一下
       setTimeout(() => {
-        if (chartRef.value) {
+        if (chartRef.value && store.hasResults) {
           renderChart()
         }
       }, 100)
@@ -476,7 +515,8 @@ onActivated(async () => {
     vehicleCount: store.searchForm.vehicleModelIds.length,
     resultCount: store.compareResult.length,
     selectAll: store.selectAllVehicles,
-    hasChartContainer: !!chartRef.value
+    hasChartContainer: !!chartRef.value,
+    hasChartInstance: !!chartInstance.value
   })
 })
 
@@ -484,9 +524,9 @@ onActivated(async () => {
 onDeactivated(() => {
   console.log('VehicleSoundInsulationQuery deactivated - 保存组件状态')
 
-  // 移除窗口resize监听器，避免内存泄漏
-  if (store.chartInstance) {
-    window.removeEventListener('resize', store.chartInstance.resize)
+  // 移除窗口resize监听器，避免内存泄漏（组件内管理）
+  if (chartInstance.value) {
+    window.removeEventListener('resize', chartInstance.value.resize)
   }
 
   // 关闭可能打开的弹窗
