@@ -12,7 +12,6 @@ import Others from '@/views/Others.vue'
 import ModalDataQuery from '@/views/business/ModalDataQuery.vue'
 import ModalDataCompare from '@/views/business/ModalDataCompare.vue'
 import AirtightLeakCompare from '@/views/business/AirtightLeakCompare.vue'
-import AirtightTestChart from '@/views/business/AirtightTestChart.vue'
 import AirtightnessImageQuery from '@/views/business/AirtightnessImageQuery.vue'
 import SoundInsulationCompare from '@/views/business/SoundInsulationCompare.vue'
 import VehicleSoundInsulationQuery from '@/views/business/VehicleSoundInsulationQuery.vue'
@@ -46,12 +45,6 @@ const routes = [
     path: '/business/airtight-leak-compare',
     name: 'AirtightLeakCompare',
     component: AirtightLeakCompare,
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/business/airtight-test-chart',
-    name: 'AirtightTestChart',
-    component: AirtightTestChart,
     meta: { requiresAuth: true }
   },
   {

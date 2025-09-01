@@ -52,5 +52,4 @@ export { useVehicleSoundInsulationQueryStore } from './vehicleSoundInsulationQue
 export { useModalDataQueryStore } from './modalDataQuery'
 export { useModalDataCompareStore } from './modalDataCompare'
 export { useAirtightLeakCompareStore } from './airtightLeakCompare'
-export { useAirtightTestChartStore } from './airtightTestChart'
 export { useAirtightnessImageQueryStore } from './airtightnessImageQuery'
