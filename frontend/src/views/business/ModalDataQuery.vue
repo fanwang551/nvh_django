@@ -101,18 +101,18 @@
         </el-table-column>
       </el-table>
 
-      <!-- 分页器 -->
-      <div class="pagination-wrapper">
-        <el-pagination
-          v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
-          :page-sizes="[10, 20, 50, 100]"
-          :total="modalDataResult.count || 0"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-        />
-      </div>
+        <!-- 分页器 -->
+        <div class="pagination-wrapper">
+          <el-pagination
+            v-model:current-page="currentPage"
+            v-model:page-size="pageSize"
+            :page-sizes="[10, 20, 50, 100]"
+            :total="modalDataResult.count || 0"
+            layout="total, sizes, prev, pager, next, jumper"
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+          />
+        </div>
     </el-card>
 
     <!-- 查看振型弹窗 -->
@@ -129,14 +129,14 @@
           <div
             class="tab-item"
             :class="{ active: activeTab === 'shape' }"
-            @click="activeTab = 'shape'"
+            @click="store.switchDialogTab('shape')"
           >
             振型动画
           </div>
           <div
             class="tab-item"
             :class="{ active: activeTab === 'photo' }"
-            @click="activeTab = 'photo'"
+            @click="store.switchDialogTab('photo')"
           >
             测试图片
           </div>
@@ -182,134 +182,79 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { computed, onMounted, onActivated, onDeactivated } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search, List } from '@element-plus/icons-vue'
-import modalApi from '@/api/modal'
+import { useModalDataQueryStore } from '@/store/modalDataQuery'
 
 // 组件名称，用于keep-alive缓存
 defineOptions({
   name: 'ModalDataQuery'
 })
 
-// 搜索表单
-const searchForm = ref({
-  vehicleModelId: null,
-  componentIds: []
+// 使用Pinia store
+const store = useModalDataQueryStore()
+
+// 从store中获取响应式状态
+const searchForm = computed(() => store.searchForm)
+const loading = computed(() => store.loading)
+const vehicleModelsLoading = computed(() => store.vehicleModelsLoading)
+const componentsLoading = computed(() => store.componentsLoading)
+const currentPage = computed({
+  get: () => store.currentPage,
+  set: (value) => { store.currentPage = value }
 })
-
-// 加载状态
-const loading = ref(false)
-const vehicleModelsLoading = ref(false)
-const componentsLoading = ref(false)
-
-// 分页
-const currentPage = ref(1)
-const pageSize = ref(10)
-
-// 数据选项
-const vehicleModelOptions = ref([])
-const componentOptions = ref([])
-
-// 模态数据查询结果
-const modalDataResult = ref({
-  count: 0,
-  results: []
+const pageSize = computed({
+  get: () => store.pageSize,
+  set: (value) => { store.pageSize = value }
 })
-
-// 弹窗相关状态
-const modalShapeDialogVisible = ref(false)
-const activeTab = ref('shape') // 'shape' 或 'photo'
-const currentModalData = ref(null)
-
-// API调用方法
-const loadVehicleModels = async () => {
-  try {
-    vehicleModelsLoading.value = true
-    const response = await modalApi.getVehicleModels()
-    vehicleModelOptions.value = response.data || []
-  } catch (error) {
-    console.error('加载车型列表失败:', error)
-    ElMessage.error('加载车型列表失败')
-  } finally {
-    vehicleModelsLoading.value = false
-  }
-}
-
-const loadComponents = async (vehicleModelId = null) => {
-  try {
-    componentsLoading.value = true
-    const params = vehicleModelId ? { vehicle_model_id: vehicleModelId } : {}
-    const response = await modalApi.getComponents(params)
-    componentOptions.value = response.data || []
-
-    // 如果有车型选择，默认选中所有零件
-    if (vehicleModelId && componentOptions.value.length > 0) {
-      searchForm.value.componentIds = componentOptions.value.map(item => item.id)
-    }
-  } catch (error) {
-    console.error('加载零件列表失败:', error)
-    ElMessage.error('加载零件列表失败')
-  } finally {
-    componentsLoading.value = false
-  }
-}
+const vehicleModelOptions = computed(() => store.vehicleModelOptions)
+const componentOptions = computed(() => store.componentOptions)
+const modalDataResult = computed(() => store.modalDataResult)
+const modalShapeDialogVisible = computed({
+  get: () => store.modalShapeDialogVisible,
+  set: (value) => { store.modalShapeDialogVisible = value }
+})
+const activeTab = computed({
+  get: () => store.activeTab,
+  set: (value) => { store.activeTab = value }
+})
+const currentModalData = computed(() => store.currentModalData)
 
 // 车型变化处理
-const handleVehicleModelChange = (vehicleModelId) => {
-  if (vehicleModelId) {
-    loadComponents(vehicleModelId)
-  } else {
-    componentOptions.value = []
-    searchForm.value.componentIds = []
+const handleVehicleModelChange = async (vehicleModelId) => {
+  try {
+    await store.handleVehicleModelChange(vehicleModelId)
+  } catch (error) {
+    console.error('车型变化处理失败:', error)
+    ElMessage.error('加载零件列表失败')
   }
-  // 清空之前的查询结果
-  modalDataResult.value = { count: 0, results: [] }
 }
 
 // 搜索处理
 const handleSearch = async () => {
-  if (!searchForm.value.vehicleModelId) {
+  if (!store.canQuery) {
     ElMessage.warning('请先选择车型')
     return
   }
 
-  loading.value = true
   try {
-    const params = {
-      vehicle_model_id: searchForm.value.vehicleModelId,
-      page: currentPage.value,
-      page_size: pageSize.value
-    }
-
-    // 如果选择了零件，添加到查询参数
-    if (searchForm.value.componentIds.length > 0) {
-      params.component_ids = searchForm.value.componentIds.join(',')
-    }
-
-    const response = await modalApi.queryModalData(params)
-    modalDataResult.value = response
+    await store.queryModalData()
     ElMessage.success('查询完成')
   } catch (error) {
     console.error('查询失败:', error)
     ElMessage.error('查询失败')
-  } finally {
-    loading.value = false
   }
 }
 
 // 查看振型
 const viewModalShape = (row) => {
-  currentModalData.value = row
-  activeTab.value = 'shape' // 默认显示振型动画
-  modalShapeDialogVisible.value = true
+  store.viewModalShape(row)
 }
 
 // 关闭弹窗
 const handleCloseDialog = () => {
-  modalShapeDialogVisible.value = false
-  currentModalData.value = null
-  activeTab.value = 'shape'
+  store.closeModalShapeDialog()
 }
 
 // 获取图片URL
@@ -329,31 +274,58 @@ const handleImageError = (event) => {
 }
 
 // 分页处理
-const handleSizeChange = (val) => {
-  pageSize.value = val
-  currentPage.value = 1
-  if (searchForm.value.vehicleModelId) {
-    handleSearch()
+const handleSizeChange = async (val) => {
+  try {
+    await store.handlePageSizeChange(val)
+  } catch (error) {
+    console.error('页面大小变化失败:', error)
+    ElMessage.error('操作失败')
   }
 }
 
-const handleCurrentChange = (val) => {
-  currentPage.value = val
-  if (searchForm.value.vehicleModelId) {
-    handleSearch()
+const handleCurrentChange = async (val) => {
+  try {
+    await store.handlePageChange(val)
+  } catch (error) {
+    console.error('页面切换失败:', error)
+    ElMessage.error('操作失败')
   }
 }
 
-// 监听分页变化
-watch([currentPage, pageSize], () => {
-  if (searchForm.value.vehicleModelId && modalDataResult.value.results.length > 0) {
-    handleSearch()
+// 组件生命周期处理
+onMounted(async () => {
+  try {
+    await store.initializePageData()
+    // 如果已有数据且有查询条件，重新查询以确保数据最新
+    if (store.hasResults && store.canQuery) {
+      await store.queryModalData()
+    }
+  } catch (error) {
+    console.error('组件初始化失败:', error)
+    ElMessage.error('页面初始化失败')
   }
 })
 
-onMounted(() => {
-  // 初始化加载车型列表
-  loadVehicleModels()
+// 组件被激活时（从keep-alive缓存中恢复）
+onActivated(async () => {
+  try {
+    await store.initializePageData()
+    // 如果已有数据且有查询条件，确保数据是最新的
+    if (store.hasResults && store.canQuery) {
+      // 可以选择是否重新查询，这里保持数据不变以保持用户状态
+      // await store.queryModalData()
+    }
+  } catch (error) {
+    console.error('组件激活失败:', error)
+  }
+})
+
+// 组件被停用时（被keep-alive缓存）
+onDeactivated(() => {
+  // 关闭弹窗，避免状态残留
+  if (store.modalShapeDialogVisible) {
+    store.closeModalShapeDialog()
+  }
 })
 </script>
 

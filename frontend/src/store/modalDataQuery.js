@@ -6,68 +6,53 @@ export const useModalDataQueryStore = defineStore('modalDataQuery', {
     // 查询表单状态
     searchForm: {
       vehicleModelId: null,
-      partIds: []
+      componentIds: [] // 与组件中使用的字段名保持一致
     },
     
     // 选项数据
     vehicleModelOptions: [],
-    partOptions: [],
+    componentOptions: [], // 与组件中的字段名保持一致
     
     // 加载状态
     vehicleModelsLoading: false,
-    partsLoading: false,
-    queryLoading: false,
+    componentsLoading: false, // 与组件中的字段名保持一致
+    loading: false, // 查询时的加载状态
     
     // 查询结果
-    modalDataList: [],
-    
-    // 分页状态
-    pagination: {
-      currentPage: 1,
-      pageSize: 10,
-      total: 0
+    modalDataResult: {
+      count: 0,
+      results: []
     },
     
-    // UI状态
-    selectAllParts: false,
+    // 分页状态
+    currentPage: 1,
+    pageSize: 10,
     
     // 弹窗状态
-    modeShapeDialogVisible: false,
-    currentModeShapeData: null,
-    activeTab: 'animation' // 'animation' 或 'photo'
+    modalShapeDialogVisible: false, // 与组件中的字段名保持一致
+    currentModalData: null, // 与组件中的字段名保持一致
+    activeTab: 'shape' // 'shape' 或 'photo'，与组件中保持一致
   }),
   
   getters: {
     // 是否可以查询
     canQuery: (state) => {
-      return state.searchForm.vehicleModelId && state.searchForm.partIds.length > 0
+      return state.searchForm.vehicleModelId !== null
     },
     
     // 是否有查询结果
     hasResults: (state) => {
-      return state.modalDataList.length > 0
+      return state.modalDataResult.results.length > 0
     },
     
     // 选中的零件数量
-    selectedPartCount: (state) => {
-      return state.searchForm.partIds.length
+    selectedComponentCount: (state) => {
+      return state.searchForm.componentIds.length
     },
     
-    // 全选状态
-    isAllPartsSelected: (state) => {
-      return state.partOptions.length > 0 && 
-             state.searchForm.partIds.length === state.partOptions.length
-    },
-    
-    // 分页信息
-    paginationInfo: (state) => {
-      const start = (state.pagination.currentPage - 1) * state.pagination.pageSize + 1
-      const end = Math.min(state.pagination.currentPage * state.pagination.pageSize, state.pagination.total)
-      return {
-        start,
-        end,
-        total: state.pagination.total
-      }
+    // 总结果数
+    totalCount: (state) => {
+      return state.modalDataResult.count || 0
     }
   },
   
@@ -86,151 +71,116 @@ export const useModalDataQueryStore = defineStore('modalDataQuery', {
       }
     },
     
-    // 根据车型加载零件
-    async loadPartsByVehicle(vehicleModelId) {
-      if (!vehicleModelId) {
-        this.partOptions = []
-        return
-      }
-      
+    // 加载零件列表
+    async loadComponents(vehicleModelId = null) {
       try {
-        this.partsLoading = true
-        const response = await modalApi.getPartsByVehicle(vehicleModelId)
-        this.partOptions = response.data || []
+        this.componentsLoading = true
+        const params = vehicleModelId ? { vehicle_model_id: vehicleModelId } : {}
+        const response = await modalApi.getComponents(params)
+        this.componentOptions = response.data || []
         
-        // 默认选择所有零件
-        this.searchForm.partIds = this.partOptions.map(part => part.id)
-        this.selectAllParts = true
+        // 如果有车型选择，默认选中所有零件
+        if (vehicleModelId && this.componentOptions.length > 0) {
+          this.searchForm.componentIds = this.componentOptions.map(item => item.id)
+        }
       } catch (error) {
         console.error('加载零件列表失败:', error)
         throw error
       } finally {
-        this.partsLoading = false
+        this.componentsLoading = false
       }
     },
     
+    // 车型变化处理
+    async handleVehicleModelChange(vehicleModelId) {
+      this.searchForm.vehicleModelId = vehicleModelId
+      if (vehicleModelId) {
+        await this.loadComponents(vehicleModelId)
+      } else {
+        this.componentOptions = []
+        this.searchForm.componentIds = []
+      }
+      // 清空之前的查询结果
+      this.modalDataResult = { count: 0, results: [] }
+    },
+    
     // 查询模态数据
-    async queryModalData(page = 1) {
+    async queryModalData(page = null) {
       if (!this.canQuery) {
-        throw new Error('请选择车型和零件')
+        throw new Error('请先选择车型')
       }
       
       try {
-        this.queryLoading = true
+        this.loading = true
+        
+        const currentPageToUse = page || this.currentPage
         
         const params = {
           vehicle_model_id: this.searchForm.vehicleModelId,
-          part_ids: this.searchForm.partIds.join(','),
-          page: page,
-          page_size: this.pagination.pageSize
+          page: currentPageToUse,
+          page_size: this.pageSize
+        }
+        
+        // 如果选择了零件，添加到查询参数
+        if (this.searchForm.componentIds.length > 0) {
+          params.component_ids = this.searchForm.componentIds.join(',')
         }
         
         const response = await modalApi.queryModalData(params)
-        this.modalDataList = response.data.results || []
-        this.pagination.total = response.data.count || 0
-        this.pagination.currentPage = page
+        this.modalDataResult = response
         
-        return this.modalDataList
+        if (page) {
+          this.currentPage = page
+        }
+        
+        return this.modalDataResult
       } catch (error) {
         console.error('查询模态数据失败:', error)
         throw error
       } finally {
-        this.queryLoading = false
+        this.loading = false
       }
     },
     
-    // 设置车型
-    setVehicleModel(vehicleModelId) {
-      this.searchForm.vehicleModelId = vehicleModelId
-      // 清空零件选择和结果
-      this.searchForm.partIds = []
-      this.selectAllParts = false
-      this.modalDataList = []
-      this.pagination.currentPage = 1
-      this.pagination.total = 0
-      
-      // 加载对应车型的零件
-      if (vehicleModelId) {
-        this.loadPartsByVehicle(vehicleModelId)
-      } else {
-        this.partOptions = []
+    // 分页处理
+    async handlePageChange(page) {
+      this.currentPage = page
+      if (this.searchForm.vehicleModelId) {
+        await this.queryModalData(page)
       }
     },
     
-    // 设置零件选择
-    setParts(partIds) {
-      this.searchForm.partIds = partIds
-      this.updateSelectAllState()
-    },
-    
-    // 全选/反选零件
-    toggleSelectAllParts(checked) {
-      if (checked) {
-        this.searchForm.partIds = this.partOptions.map(p => p.id)
-      } else {
-        this.searchForm.partIds = []
-      }
-      this.selectAllParts = checked
-    },
-    
-    // 更新全选状态
-    updateSelectAllState() {
-      if (this.searchForm.partIds.length === 0) {
-        this.selectAllParts = false
-      } else if (this.searchForm.partIds.length === this.partOptions.length) {
-        this.selectAllParts = true
-      } else {
-        this.selectAllParts = false
+    // 每页大小变化处理
+    async handlePageSizeChange(size) {
+      this.pageSize = size
+      this.currentPage = 1
+      if (this.searchForm.vehicleModelId) {
+        await this.queryModalData(1)
       }
     },
     
-    // 切换页码
-    changePage(page) {
-      this.queryModalData(page)
+    // 查看振型
+    viewModalShape(row) {
+      this.currentModalData = row
+      this.activeTab = 'shape' // 默认显示振型动画
+      this.modalShapeDialogVisible = true
     },
     
-    // 改变页面大小
-    changePageSize(pageSize) {
-      this.pagination.pageSize = pageSize
-      this.pagination.currentPage = 1
-      this.queryModalData(1)
-    },
-    
-    // 显示模态振型弹窗
-    showModeShapeDialog(data) {
-      this.currentModeShapeData = data
-      this.modeShapeDialogVisible = true
-      this.activeTab = 'animation'
-    },
-    
-    // 关闭模态振型弹窗
-    closeModeShapeDialog() {
-      this.modeShapeDialogVisible = false
-      this.currentModeShapeData = null
-      this.activeTab = 'animation'
+    // 关闭弹窗
+    closeModalShapeDialog() {
+      this.modalShapeDialogVisible = false
+      this.currentModalData = null
+      this.activeTab = 'shape'
     },
     
     // 切换弹窗标签页
-    switchTab(tab) {
+    switchDialogTab(tab) {
       this.activeTab = tab
     },
     
-    // 清空所有状态
-    resetState() {
-      this.searchForm = {
-        vehicleModelId: null,
-        partIds: []
-      }
-      this.modalDataList = []
-      this.pagination = {
-        currentPage: 1,
-        pageSize: 10,
-        total: 0
-      }
-      this.selectAllParts = false
-      this.modeShapeDialogVisible = false
-      this.currentModeShapeData = null
-      this.activeTab = 'animation'
+    // 设置零件选择
+    setComponentIds(componentIds) {
+      this.searchForm.componentIds = componentIds
     },
     
     // 初始化页面数据
@@ -240,9 +190,26 @@ export const useModalDataQueryStore = defineStore('modalDataQuery', {
       }
       
       // 如果已选择车型但零件列表为空，重新加载零件
-      if (this.searchForm.vehicleModelId && this.partOptions.length === 0) {
-        await this.loadPartsByVehicle(this.searchForm.vehicleModelId)
+      if (this.searchForm.vehicleModelId && this.componentOptions.length === 0) {
+        await this.loadComponents(this.searchForm.vehicleModelId)
       }
+    },
+    
+    // 清空所有状态
+    resetState() {
+      this.searchForm = {
+        vehicleModelId: null,
+        componentIds: []
+      }
+      this.modalDataResult = {
+        count: 0,
+        results: []
+      }
+      this.currentPage = 1
+      this.pageSize = 10
+      this.modalShapeDialogVisible = false
+      this.currentModalData = null
+      this.activeTab = 'shape'
     }
   }
 })
