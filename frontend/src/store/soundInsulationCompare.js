@@ -28,9 +28,7 @@ export const useSoundInsulationCompareStore = defineStore('soundInsulationCompar
     imageDialogVisible: false,
     currentImageData: null,
     
-    // 图表状态
-    chartInstance: null,
-    chartInitialized: false
+    // 移除图表实例相关状态 - 改为组件内管理
   }),
   
   getters: {
@@ -124,7 +122,7 @@ export const useSoundInsulationCompareStore = defineStore('soundInsulationCompar
       this.searchForm.vehicleModelIds = []
       this.selectAllVehicles = false
       this.compareResult = []
-      this.chartInitialized = false
+      // 图表实例由组件管理，不在此重置
       
       // 加载对应区域的车型
       if (areaId) {
@@ -173,11 +171,7 @@ export const useSoundInsulationCompareStore = defineStore('soundInsulationCompar
       this.currentImageData = null
     },
     
-    // 设置图表实例
-    setChartInstance(instance) {
-      this.chartInstance = instance
-      this.chartInitialized = !!instance
-    },
+    // 移除图表实例管理方法 - 改为组件内管理
     
     // 清空所有状态
     resetState() {
@@ -189,8 +183,7 @@ export const useSoundInsulationCompareStore = defineStore('soundInsulationCompar
       this.selectAllVehicles = false
       this.imageDialogVisible = false
       this.currentImageData = null
-      this.chartInitialized = false
-      this.chartInstance = null
+      // 图表实例由组件管理，不在此重置
     },
     
     // 初始化页面数据
