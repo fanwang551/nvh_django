@@ -102,85 +102,32 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, nextTick, onMounted } from 'vue'
+import { computed, nextTick, onMounted, onActivated, onDeactivated } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search, List } from '@element-plus/icons-vue'
-import { modalApi } from '@/api/modal'
+import { useAirtightLeakCompareStore } from '@/store/airtightLeakCompare'
 
 // 组件名称，用于keep-alive缓存
 defineOptions({
   name: 'AirtightLeakCompare'
 })
 
-// 响应式数据
-const loading = ref(false)
-const vehicleModelsLoading = ref(false)
-const selectedVehicleIds = ref([])
-const vehicleModelOptions = ref([])
-const compareResult = reactive({
-  vehicle_models: [],
-  leakage_data: []
+// 使用Pinia store
+const store = useAirtightLeakCompareStore()
+
+// 计算属性 - 建立与store的响应式连接
+const loading = computed(() => store.loading)
+const vehicleModelsLoading = computed(() => store.vehicleModelsLoading)
+const vehicleModelOptions = computed(() => store.vehicleModelOptions)
+const compareResult = computed(() => store.compareResult)
+const tableData = computed(() => store.tableData)
+const columnWidths = computed(() => store.columnWidths)
+
+// 双向绑定的计算属性
+const selectedVehicleIds = computed({
+  get: () => store.selectedVehicleIds,
+  set: (value) => store.setSelectedVehicleIds(value)
 })
-const tableData = ref([])
-
-// 动态列宽计算
-const columnWidths = computed(() => {
-  const vehicleCount = compareResult.vehicle_models.length
-
-  if (vehicleCount === 0) {
-    return {
-      category: 150,
-      itemName: 200,
-      vehicle: 150
-    }
-  }
-
-  // 基础列宽
-  const categoryWidth = 150
-  const itemNameWidth = 220
-
-  // 根据车型数量动态计算车型列宽
-  const minVehicleWidth = 140
-  const maxVehicleWidth = 200
-
-  // 计算可用宽度（假设容器最小宽度为800px）
-  const containerMinWidth = 800
-  const usedWidth = categoryWidth + itemNameWidth
-  const availableWidth = containerMinWidth - usedWidth
-
-  let vehicleWidth = Math.max(minVehicleWidth, Math.min(maxVehicleWidth, availableWidth / vehicleCount))
-
-  // 如果车型数量较少，可以给更多空间
-  if (vehicleCount <= 2) {
-    vehicleWidth = maxVehicleWidth
-  } else if (vehicleCount <= 4) {
-    vehicleWidth = Math.max(160, vehicleWidth)
-  }
-
-  return {
-    category: categoryWidth,
-    itemName: itemNameWidth,
-    vehicle: Math.round(vehicleWidth)
-  }
-})
-
-// 获取车型列表
-const loadVehicleModels = async () => {
-  try {
-    vehicleModelsLoading.value = true
-    const response = await modalApi.getVehicleModels()
-    if (response.success) {
-      vehicleModelOptions.value = response.data
-    } else {
-      ElMessage.error(response.message || '获取车型列表失败')
-    }
-  } catch (error) {
-    console.error('获取车型列表失败:', error)
-    ElMessage.error('获取车型列表失败')
-  } finally {
-    vehicleModelsLoading.value = false
-  }
-}
 
 // 处理对比操作
 const handleCompare = async () => {
@@ -190,55 +137,18 @@ const handleCompare = async () => {
   }
 
   try {
-    loading.value = true
-    const response = await modalApi.compareAirtightnessData({
-      vehicle_model_ids: selectedVehicleIds.value.join(',')
+    await store.handleCompare()
+    ElMessage.success('对比数据获取成功')
+    
+    // 强制重新渲染表格以确保对齐
+    nextTick(() => {
+      // 触发表格重新计算布局
+      window.dispatchEvent(new Event('resize'))
     })
-
-    if (response.success) {
-      compareResult.vehicle_models = response.data.vehicle_models
-      compareResult.leakage_data = response.data.leakage_data
-      buildTableData()
-      ElMessage.success('对比数据获取成功')
-    } else {
-      ElMessage.error(response.message || '获取对比数据失败')
-    }
   } catch (error) {
     console.error('获取对比数据失败:', error)
-    ElMessage.error('获取对比数据失败')
-  } finally {
-    loading.value = false
+    ElMessage.error(error.message || '获取对比数据失败')
   }
-}
-
-// 构建表格数据
-const buildTableData = () => {
-  const data = []
-
-  compareResult.leakage_data.forEach(category => {
-    category.items.forEach((item, itemIndex) => {
-      const row = {
-        category: itemIndex === 0 ? category.category : '',
-        item_name: item.name,
-        categoryRowspan: itemIndex === 0 ? category.items.length : 0
-      }
-
-      // 为每个车型添加对应的数值
-      compareResult.vehicle_models.forEach((vehicle, vehicleIndex) => {
-        row[`vehicle_${vehicle.id}`] = item.values[vehicleIndex] || '-'
-      })
-
-      data.push(row)
-    })
-  })
-
-  tableData.value = data
-
-  // 强制重新渲染表格以确保对齐
-  nextTick(() => {
-    // 触发表格重新计算布局
-    window.dispatchEvent(new Event('resize'))
-  })
 }
 
 // 表格合并单元格方法
@@ -283,9 +193,30 @@ const getCellStyle = ({ row, column, rowIndex, columnIndex }) => {
   return {}
 }
 
-// 组件挂载时加载数据
-onMounted(() => {
-  loadVehicleModels()
+// 生命周期钩子
+onMounted(async () => {
+  // 初始化基础数据
+  try {
+    await store.initializePageData()
+  } catch (error) {
+    console.error('初始化页面数据失败:', error)
+    ElMessage.error('初始化页面数据失败')
+  }
+})
+
+onActivated(() => {
+  // 确保基础数据最新，但保持用户状态不变
+  // 如果没有车型选项，重新加载
+  if (store.vehicleModelOptions.length === 0) {
+    store.initializePageData().catch(error => {
+      console.error('重新加载基础数据失败:', error)
+    })
+  }
+})
+
+onDeactivated(() => {
+  // 清理弹窗状态，避免状态残留
+  store.clearDialogState()
 })
 </script>
 

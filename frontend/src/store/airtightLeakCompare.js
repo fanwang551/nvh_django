@@ -1,37 +1,28 @@
 import { defineStore } from 'pinia'
-// 注意：这里暂时使用modal API，实际项目中需要创建对应的airtight API
-import modalApi from '@/api/modal'
+import { modalApi } from '@/api/modal'
 
 export const useAirtightLeakCompareStore = defineStore('airtightLeakCompare', {
   state: () => ({
     // 查询表单状态
-    searchForm: {
-      vehicleModelIds: [],
-      testCondition: null
-    },
+    selectedVehicleIds: [],
     
     // 选项数据
     vehicleModelOptions: [],
-    testConditionOptions: [
-      { value: 'normal', label: '常规测试' },
-      { value: 'extreme', label: '极限测试' }
-    ],
     
     // 加载状态
     vehicleModelsLoading: false,
-    compareLoading: false,
+    loading: false,
     
     // 对比结果
-    compareResult: [],
+    compareResult: {
+      vehicle_models: [],
+      leakage_data: []
+    },
     
-    // UI状态
-    selectAllVehicles: false,
+    // 表格数据
+    tableData: [],
     
-    // 图表状态
-    chartInstance: null,
-    chartInitialized: false,
-    
-    // 弹窗状态
+    // 弹窗状态（在切换标签时需要清理）
     detailDialogVisible: false,
     currentDetailData: null
   }),
@@ -39,23 +30,58 @@ export const useAirtightLeakCompareStore = defineStore('airtightLeakCompare', {
   getters: {
     // 是否可以查询
     canQuery: (state) => {
-      return state.searchForm.vehicleModelIds.length > 0 && state.searchForm.testCondition
+      return state.selectedVehicleIds.length > 0
     },
     
     // 是否有查询结果
     hasResults: (state) => {
-      return state.compareResult.length > 0
+      return state.compareResult.vehicle_models.length > 0
     },
     
     // 选中的车型数量
     selectedVehicleCount: (state) => {
-      return state.searchForm.vehicleModelIds.length
+      return state.selectedVehicleIds.length
     },
     
-    // 全选状态
-    isAllVehiclesSelected: (state) => {
-      return state.vehicleModelOptions.length > 0 && 
-             state.searchForm.vehicleModelIds.length === state.vehicleModelOptions.length
+    // 动态列宽计算
+    columnWidths: (state) => {
+      const vehicleCount = state.compareResult.vehicle_models.length
+
+      if (vehicleCount === 0) {
+        return {
+          category: 150,
+          itemName: 200,
+          vehicle: 150
+        }
+      }
+
+      // 基础列宽
+      const categoryWidth = 150
+      const itemNameWidth = 220
+
+      // 根据车型数量动态计算车型列宽
+      const minVehicleWidth = 140
+      const maxVehicleWidth = 200
+
+      // 计算可用宽度（假设容器最小宽度为800px）
+      const containerMinWidth = 800
+      const usedWidth = categoryWidth + itemNameWidth
+      const availableWidth = containerMinWidth - usedWidth
+
+      let vehicleWidth = Math.max(minVehicleWidth, Math.min(maxVehicleWidth, availableWidth / vehicleCount))
+
+      // 如果车型数量较少，可以给更多空间
+      if (vehicleCount <= 2) {
+        vehicleWidth = maxVehicleWidth
+      } else if (vehicleCount <= 4) {
+        vehicleWidth = Math.max(160, vehicleWidth)
+      }
+
+      return {
+        category: categoryWidth,
+        itemName: itemNameWidth,
+        vehicle: Math.round(vehicleWidth)
+      }
     }
   },
   
@@ -65,7 +91,11 @@ export const useAirtightLeakCompareStore = defineStore('airtightLeakCompare', {
       try {
         this.vehicleModelsLoading = true
         const response = await modalApi.getVehicleModels()
-        this.vehicleModelOptions = response.data || []
+        if (response.success) {
+          this.vehicleModelOptions = response.data || []
+        } else {
+          throw new Error(response.message || '获取车型列表失败')
+        }
       } catch (error) {
         console.error('加载车型列表失败:', error)
         throw error
@@ -74,72 +104,61 @@ export const useAirtightLeakCompareStore = defineStore('airtightLeakCompare', {
       }
     },
 
-    // 生成对比数据
-    async generateCompareData() {
+    // 执行气密性对比
+    async handleCompare() {
       if (!this.canQuery) {
-        throw new Error('请选择车型和测试条件')
+        throw new Error('请至少选择一个车型')
       }
 
       try {
-        this.compareLoading = true
+        this.loading = true
+        const response = await modalApi.compareAirtightnessData({
+          vehicle_model_ids: this.selectedVehicleIds.join(',')
+        })
 
-        const data = {
-          vehicle_model_ids: this.searchForm.vehicleModelIds.join(','),
-          test_condition: this.searchForm.testCondition
+        if (response.success) {
+          this.compareResult.vehicle_models = response.data.vehicle_models || []
+          this.compareResult.leakage_data = response.data.leakage_data || []
+          this.buildTableData()
+          return this.compareResult
+        } else {
+          throw new Error(response.message || '获取对比数据失败')
         }
-
-        // 注意：这里暂时使用modal API，实际项目中需要创建对应的方法
-        const response = await modalApi.compareModalData(data)
-        this.compareResult = response.data || []
-        
-        return this.compareResult
       } catch (error) {
-        console.error('生成对比数据失败:', error)
+        console.error('获取对比数据失败:', error)
         throw error
       } finally {
-        this.compareLoading = false
+        this.loading = false
       }
+    },
+    
+    // 构建表格数据
+    buildTableData() {
+      const data = []
+
+      this.compareResult.leakage_data.forEach(category => {
+        category.items.forEach((item, itemIndex) => {
+          const row = {
+            category: itemIndex === 0 ? category.category : '',
+            item_name: item.name,
+            categoryRowspan: itemIndex === 0 ? category.items.length : 0
+          }
+
+          // 为每个车型添加对应的数值
+          this.compareResult.vehicle_models.forEach((vehicle, vehicleIndex) => {
+            row[`vehicle_${vehicle.id}`] = item.values[vehicleIndex] || '-'
+          })
+
+          data.push(row)
+        })
+      })
+
+      this.tableData = data
     },
     
     // 设置车型选择
-    setVehicleModels(vehicleIds) {
-      this.searchForm.vehicleModelIds = vehicleIds
-      this.updateSelectAllState()
-      // 清空对比结果
-      this.compareResult = []
-      this.chartInitialized = false
-    },
-    
-    // 设置测试条件
-    setTestCondition(condition) {
-      this.searchForm.testCondition = condition
-      // 清空对比结果
-      this.compareResult = []
-      this.chartInitialized = false
-    },
-    
-    // 全选/反选车型
-    toggleSelectAllVehicles(checked) {
-      if (checked) {
-        this.searchForm.vehicleModelIds = this.vehicleModelOptions.map(v => v.id)
-      } else {
-        this.searchForm.vehicleModelIds = []
-      }
-      this.selectAllVehicles = checked
-      // 清空对比结果
-      this.compareResult = []
-      this.chartInitialized = false
-    },
-    
-    // 更新全选状态
-    updateSelectAllState() {
-      if (this.searchForm.vehicleModelIds.length === 0) {
-        this.selectAllVehicles = false
-      } else if (this.searchForm.vehicleModelIds.length === this.vehicleModelOptions.length) {
-        this.selectAllVehicles = true
-      } else {
-        this.selectAllVehicles = false
-      }
+    setSelectedVehicleIds(vehicleIds) {
+      this.selectedVehicleIds = vehicleIds
     },
     
     // 显示详情弹窗
@@ -154,28 +173,15 @@ export const useAirtightLeakCompareStore = defineStore('airtightLeakCompare', {
       this.currentDetailData = null
     },
     
-    // 设置图表实例
-    setChartInstance(instance) {
-      this.chartInstance = instance
-      this.chartInitialized = !!instance
-    },
-    
-    // 清空所有状态
-    resetState() {
-      this.searchForm = {
-        vehicleModelIds: [],
-        testCondition: null
-      }
-      this.compareResult = []
-      this.selectAllVehicles = false
+    // 清理弹窗状态（在标签切换时调用）
+    clearDialogState() {
       this.detailDialogVisible = false
       this.currentDetailData = null
-      this.chartInitialized = false
-      this.chartInstance = null
     },
     
     // 初始化页面数据
     async initializePageData() {
+      // 只在没有车型选项时加载，避免重复请求
       if (this.vehicleModelOptions.length === 0) {
         await this.loadVehicleModels()
       }
