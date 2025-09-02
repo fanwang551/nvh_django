@@ -1,7 +1,5 @@
 <template>
   <div class="sound-insulation-compare">
-
-
     <!-- 查询条件卡片 -->
     <el-card class="search-card" shadow="never">
       <template #header>
@@ -16,17 +14,17 @@
           <el-col :span="7">
             <el-form-item label="隔声区域" required>
               <el-select
-                v-model="store.searchForm.areaId"
-                placeholder="请选择区域"
-                :loading="store.areasLoading"
-                @change="handleAreaChange"
-                style="width: 100%"
+                  v-model="store.searchForm.areaId"
+                  placeholder="请选择区域"
+                  :loading="store.areasLoading"
+                  @change="handleAreaChange"
+                  style="width: 100%"
               >
                 <el-option
-                  v-for="area in store.areaOptions"
-                  :key="area.id"
-                  :label="area.area_name"
-                  :value="area.id"
+                    v-for="area in store.areaOptions"
+                    :key="area.id"
+                    :label="area.area_name"
+                    :value="area.id"
                 />
               </el-select>
             </el-form-item>
@@ -36,30 +34,30 @@
           <el-col :span="11">
             <el-form-item label="对比车型" required>
               <el-select
-                v-model="store.searchForm.vehicleModelIds"
-                placeholder="请先选择区域，然后选择车型"
-                :loading="store.vehicleModelsLoading"
-                :disabled="!store.searchForm.areaId"
-                multiple
-                collapse-tags
-                collapse-tags-tooltip
-                @change="handleVehicleModelChange"
-                style="width: 100%"
+                  v-model="store.searchForm.vehicleModelIds"
+                  placeholder="请先选择区域，然后选择车型"
+                  :loading="store.vehicleModelsLoading"
+                  :disabled="!store.searchForm.areaId"
+                  multiple
+                  collapse-tags
+                  collapse-tags-tooltip
+                  @change="handleVehicleModelChange"
+                  style="width: 100%"
               >
                 <template #header>
                   <el-checkbox
-                    v-model="store.selectAllVehicles"
-                    @change="handleSelectAllVehicles"
-                    style="margin-left: 12px"
+                      v-model="store.selectAllVehicles"
+                      @change="handleSelectAllVehicles"
+                      style="margin-left: 12px"
                   >
                     全选
                   </el-checkbox>
                 </template>
                 <el-option
-                  v-for="vehicle in store.vehicleModelOptions"
-                  :key="vehicle.id"
-                  :label="vehicle.vehicle_model_name"
-                  :value="vehicle.id"
+                    v-for="vehicle in store.vehicleModelOptions"
+                    :key="vehicle.id"
+                    :label="vehicle.vehicle_model_name"
+                    :value="vehicle.id"
                 />
               </el-select>
             </el-form-item>
@@ -69,12 +67,12 @@
           <el-col :span="6">
             <el-form-item>
               <el-button
-                type="primary"
-                :icon="TrendCharts"
-                :loading="store.compareLoading"
-                :disabled="!store.canQuery"
-                @click="handleCompare"
-                style="width: 100%; min-width: 120px;"
+                  type="primary"
+                  :icon="TrendCharts"
+                  :loading="store.compareLoading"
+                  :disabled="!store.canQuery"
+                  @click="handleCompare"
+                  style="width: 100%; min-width: 120px;"
               >
                 生成对比
               </el-button>
@@ -97,103 +95,26 @@
 
         <div class="table-container">
           <el-table
-            :data="store.compareResult"
-            v-loading="store.compareLoading"
-            class="result-table"
-            stripe
-            border
-            :header-cell-style="{ backgroundColor: '#fafafa', color: '#606266', fontWeight: '600', fontSize: '14px' }"
-            :scroll-x="true"
+              :data="store.compareResult"
+              v-loading="store.compareLoading"
+              class="result-table"
+              stripe
+              border
+              :header-cell-style="{ backgroundColor: '#fafafa', color: '#606266', fontWeight: '600', fontSize: '14px' }"
+              :scroll-x="true"
           >
             <el-table-column prop="vehicle_model_name" label="车型名称" width="180" fixed="left" />
-            <el-table-column label="200Hz" width="80" align="center">
+            <el-table-column
+                v-for="freq in frequencies"
+                :key="freq"
+                :label="`${freq}Hz`"
+                :width="freq >= 1000 ? '90' : '80'"
+                align="center"
+            >
               <template #default="scope">
-                <span class="frequency-value">{{ formatFrequencyValue(scope.row.frequency_data.freq_200) }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="250Hz" width="80" align="center">
-              <template #default="scope">
-                <span class="frequency-value">{{ formatFrequencyValue(scope.row.frequency_data.freq_250) }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="315Hz" width="80" align="center">
-              <template #default="scope">
-                <span class="frequency-value">{{ formatFrequencyValue(scope.row.frequency_data.freq_315) }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="400Hz" width="80" align="center">
-              <template #default="scope">
-                <span class="frequency-value">{{ formatFrequencyValue(scope.row.frequency_data.freq_400) }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="500Hz" width="80" align="center">
-              <template #default="scope">
-                <span class="frequency-value">{{ formatFrequencyValue(scope.row.frequency_data.freq_500) }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="630Hz" width="80" align="center">
-              <template #default="scope">
-                <span class="frequency-value">{{ formatFrequencyValue(scope.row.frequency_data.freq_630) }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="800Hz" width="80" align="center">
-              <template #default="scope">
-                <span class="frequency-value">{{ formatFrequencyValue(scope.row.frequency_data.freq_800) }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="1000Hz" width="90" align="center">
-              <template #default="scope">
-                <span class="frequency-value">{{ formatFrequencyValue(scope.row.frequency_data.freq_1000) }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="1250Hz" width="90" align="center">
-              <template #default="scope">
-                <span class="frequency-value">{{ formatFrequencyValue(scope.row.frequency_data.freq_1250) }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="1600Hz" width="90" align="center">
-              <template #default="scope">
-                <span class="frequency-value">{{ formatFrequencyValue(scope.row.frequency_data.freq_1600) }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="2000Hz" width="90" align="center">
-              <template #default="scope">
-                <span class="frequency-value">{{ formatFrequencyValue(scope.row.frequency_data.freq_2000) }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="2500Hz" width="90" align="center">
-              <template #default="scope">
-                <span class="frequency-value">{{ formatFrequencyValue(scope.row.frequency_data.freq_2500) }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="3150Hz" width="90" align="center">
-              <template #default="scope">
-                <span class="frequency-value">{{ formatFrequencyValue(scope.row.frequency_data.freq_3150) }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="4000Hz" width="90" align="center">
-              <template #default="scope">
-                <span class="frequency-value">{{ formatFrequencyValue(scope.row.frequency_data.freq_4000) }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="5000Hz" width="90" align="center">
-              <template #default="scope">
-                <span class="frequency-value">{{ formatFrequencyValue(scope.row.frequency_data.freq_5000) }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="6300Hz" width="90" align="center">
-              <template #default="scope">
-                <span class="frequency-value">{{ formatFrequencyValue(scope.row.frequency_data.freq_6300) }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="8000Hz" width="90" align="center">
-              <template #default="scope">
-                <span class="frequency-value">{{ formatFrequencyValue(scope.row.frequency_data.freq_8000) }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="10000Hz" width="100" align="center">
-              <template #default="scope">
-                <span class="frequency-value">{{ formatFrequencyValue(scope.row.frequency_data.freq_10000) }}</span>
+                <span class="frequency-value">
+                  {{ formatFrequencyValue(scope.row.frequency_data[`freq_${freq}`]) }}
+                </span>
               </template>
             </el-table-column>
           </el-table>
@@ -222,11 +143,11 @@
 
     <!-- 测试图片弹窗 -->
     <el-dialog
-      v-model="store.imageDialogVisible"
-      title="测试图片"
-      width="600px"
-      :before-close="handleCloseImageDialog"
-      class="image-dialog"
+        v-model="store.imageDialogVisible"
+        title="测试图片"
+        width="600px"
+        @close="handleCloseImageDialog"
+        class="image-dialog"
     >
       <div v-if="store.currentImageData" class="image-content">
         <div class="image-info">
@@ -241,10 +162,10 @@
         <div class="image-wrapper">
           <div v-if="store.currentImageData.test_image_path" class="image-container">
             <img
-              :src="getImageUrl(store.currentImageData.test_image_path)"
-              :alt="`${store.currentImageData.vehicle_model_name}测试图片`"
-              class="test-image"
-              @error="handleImageError"
+                :src="getImageUrl(store.currentImageData.test_image_path)"
+                :alt="`${store.currentImageData.vehicle_model_name}测试图片`"
+                class="test-image"
+                @error="handleImageError"
             />
           </div>
           <div v-else class="no-image">
@@ -261,7 +182,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onActivated, onDeactivated, nextTick, watch } from 'vue'
+import { ref, onMounted, onActivated, onDeactivated, nextTick, watch, onBeforeUnmount } from 'vue'
 import { ElMessage } from 'element-plus'
 import { TrendCharts } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
@@ -275,31 +196,10 @@ defineOptions({
 // 使用Pinia store
 const store = useSoundInsulationCompareStore()
 
-// 图表引用 - 改为组件内管理
+// 图表相关
 const chartRef = ref(null)
-const chartInstance = ref(null) // ECharts 实例由组件管理
-
-// 频率标签映射
-const frequencyLabels = {
-  freq_200: '200Hz',
-  freq_250: '250Hz',
-  freq_315: '315Hz',
-  freq_400: '400Hz',
-  freq_500: '500Hz',
-  freq_630: '630Hz',
-  freq_800: '800Hz',
-  freq_1000: '1000Hz',
-  freq_1250: '1250Hz',
-  freq_1600: '1600Hz',
-  freq_2000: '2000Hz',
-  freq_2500: '2500Hz',
-  freq_3150: '3150Hz',
-  freq_4000: '4000Hz',
-  freq_5000: '5000Hz',
-  freq_6300: '6300Hz',
-  freq_8000: '8000Hz',
-  freq_10000: '10000Hz'
-}
+let chartInstance = null
+let resizeHandler = null
 
 // 频率数组（用于图表横轴）
 const frequencies = [200, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000]
@@ -307,11 +207,7 @@ const frequencies = [200, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600, 2000, 
 // 区域变化处理
 const handleAreaChange = (areaId) => {
   store.setArea(areaId)
-  // 清空图表（组件内管理）
-  if (chartInstance.value) {
-    chartInstance.value.dispose()
-    chartInstance.value = null
-  }
+  destroyChart()
 }
 
 // 全选/反选车型
@@ -361,11 +257,23 @@ const handleCompare = async () => {
   }
 }
 
+// 销毁图表实例
+const destroyChart = () => {
+  if (chartInstance) {
+    chartInstance.dispose()
+    chartInstance = null
+  }
+  if (resizeHandler) {
+    window.removeEventListener('resize', resizeHandler)
+    resizeHandler = null
+  }
+}
+
 // 图表渲染
 const renderChart = () => {
-  console.log('开始渲染隔声量对比图表，容器存在:', !!chartRef.value, '数据长度:', store.compareResult.length)
+  console.log('开始渲染隔声量对比图表，容器存在:', !!chartRef.value, '数据长度:', store.chartData.length)
 
-  if (!chartRef.value || !store.compareResult.length) {
+  if (!chartRef.value || !store.chartData.length) {
     console.warn('隔声量对比图表渲染条件不满足')
     return
   }
@@ -375,207 +283,46 @@ const renderChart = () => {
   if (containerRect.width === 0 || containerRect.height === 0) {
     console.warn('图表容器尺寸为0，延迟渲染')
     setTimeout(() => {
-      if (chartRef.value && store.compareResult.length > 0) {
+      if (chartRef.value && store.chartData.length) {
         renderChart()
       }
     }, 100)
     return
   }
 
-  // 销毁现有图表实例（组件内管理）
-  if (chartInstance.value) {
-    console.log('销毁现有隔声量对比图表实例')
-    chartInstance.value.dispose()
-    chartInstance.value = null
-  }
+  // 销毁现有图表实例
+  destroyChart()
 
-  // 创建新的图表实例（组件内管理）
+  // 创建新的图表实例
   console.log('创建新的隔声量对比图表实例，容器尺寸:', containerRect.width, 'x', containerRect.height)
-  chartInstance.value = echarts.init(chartRef.value)
+  chartInstance = echarts.init(chartRef.value)
 
-  // 准备图表数据
-  const series = []
-  const colors = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc']
+  // 使用store中的图表配置
+  const option = store.getChartOption()
 
-  store.compareResult.forEach((item, index) => {
-    const seriesData = []
+  chartInstance.setOption(option)
 
-    // 构建每个车型的数据点
-    frequencies.forEach((freq, freqIndex) => {
-      const fieldName = `freq_${freq}`
-      const value = item.frequency_data[fieldName]
-
-      // 确保数值有效，过滤null和undefined
-      const numValue = value !== null && value !== undefined ? Number(value) : null
-
-      seriesData.push({
-        value: [freqIndex, numValue], // 使用频率索引和数值
-        freq: freq, // 保存实际频率值
-        freqLabel: `${freq}Hz`, // 保存频率标签
-        itemData: item // 保存完整数据用于点击事件
-      })
-    })
-
-    series.push({
-      name: item.vehicle_model_name,
-      type: 'line',
-      data: seriesData,
-      symbol: 'circle',
-      symbolSize: 8,
-      lineStyle: {
-        width: 3
-      },
-      itemStyle: {
-        color: colors[index % colors.length]
-      },
-      emphasis: {
-        focus: 'series',
-        symbolSize: 12
-      },
-      connectNulls: false // 不连接空值点
-    })
-  })
-
-  // 图表配置
-  const option = {
-    title: {
-      text: '隔声量对比曲线',
-      left: 'center',
-      textStyle: {
-        fontSize: 16,
-        fontWeight: 'normal'
-      }
-    },
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: {
-        type: 'cross',
-        label: {
-          backgroundColor: '#6a7985'
-        }
-      },
-      formatter: function(params) {
-        if (!params || params.length === 0) return ''
-
-        // 获取频率信息（从第一个数据点获取）
-        const firstParam = params[0]
-        const freqLabel = firstParam.data.freqLabel || `${frequencies[firstParam.dataIndex]}Hz`
-
-        let result = `<div style="font-weight: bold; margin-bottom: 5px;">频率: ${freqLabel}</div>`
-
-        // 遍历所有车型的数据
-        params.forEach(param => {
-          const value = param.value[1]
-          const seriesName = param.seriesName
-          const color = param.color
-
-          if (value !== null && value !== undefined) {
-            result += `<div style="margin: 2px 0;">
-              <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: ${color}; margin-right: 5px;"></span>
-              ${seriesName}: <strong>${Number(value).toFixed(1)} dB</strong>
-            </div>`
-          } else {
-            result += `<div style="margin: 2px 0; color: #999;">
-              <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: ${color}; margin-right: 5px;"></span>
-              ${seriesName}: <span style="color: #999;">无数据</span>
-            </div>`
-          }
-        })
-
-        return result
-      }
-    },
-    legend: {
-      top: 35,
-      type: 'scroll',
-      pageButtonItemGap: 5,
-      pageButtonGap: 30,
-      pageButtonPosition: 'end',
-      pageFormatter: '{current}/{total}',
-      pageIconColor: '#2f4554',
-      pageIconInactiveColor: '#aaa',
-      pageIconSize: 15,
-      pageTextStyle: {
-        color: '#666'
-      }
-    },
-    grid: {
-      left: '8%',
-      right: '5%',
-      bottom: '20%',
-      top: '18%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'category',
-      name: '频率 (Hz)',
-      nameLocation: 'middle',
-      nameGap: 30,
-      data: frequencies,
-      axisLabel: {
-        rotate: 45,
-        fontSize: 12
-      }
-    },
-    yAxis: {
-      type: 'value',
-      name: '隔声量 (dB)',
-      nameLocation: 'middle',
-      nameGap: 50,
-      min: 0,
-      max: 70,
-      interval: 10,
-      axisLabel: {
-        formatter: '{value} dB',
-        fontSize: 12
-      },
-      splitLine: {
-        show: true,
-        lineStyle: {
-          color: '#e6e6e6',
-          type: 'dashed'
-        }
-      }
-    },
-    series: series,
-    dataZoom: [
-      {
-        type: 'slider',
-        show: true,
-        xAxisIndex: [0],
-        start: 0,
-        end: 100,
-        bottom: '5%'
-      }
-    ]
-  }
-
-  chartInstance.value.setOption(option)
-  
-  // 强制调整图表大小（解决标签切换后尺寸问题）
+  // 强制调整图表大小
   setTimeout(() => {
-    if (chartInstance.value) {
-      chartInstance.value.resize()
+    if (chartInstance) {
+      chartInstance.resize()
       console.log('图表大小已调整')
     }
   }, 100)
 
-  // 添加点击事件（组件内管理）
-  chartInstance.value.on('click', function(params) {
+  // 添加点击事件
+  chartInstance.on('click', function(params) {
     if (params.data && params.data.itemData) {
       store.showImageDialog(params.data.itemData)
     }
   })
 
-  // 响应式处理（组件内管理）
-  const resizeHandler = () => {
-    if (chartInstance.value) {
-      chartInstance.value.resize()
+  // 响应式处理
+  resizeHandler = () => {
+    if (chartInstance) {
+      chartInstance.resize()
     }
   }
-
-  // 移除之前的监听器，避免重复绑定
-  window.removeEventListener('resize', resizeHandler)
   window.addEventListener('resize', resizeHandler)
 }
 
@@ -587,7 +334,6 @@ const handleCloseImageDialog = () => {
 // 获取图片URL
 const getImageUrl = (filePath) => {
   if (!filePath) return ''
-  // 如果是相对路径，添加后端服务器地址
   if (filePath.startsWith('/')) {
     return `http://127.0.0.1:8000${filePath}`
   }
@@ -604,23 +350,12 @@ const handleImageError = (event) => {
 onMounted(async () => {
   console.log('SoundInsulationCompare mounted - 初始化页面数据')
   await store.initializePageData()
-  
-  // 如果已有数据，重新渲染图表（处理组件重新挂载的情况）
+
+  // 如果已有数据，重新渲染图表
   if (store.hasResults) {
     console.log('检测到已有数据，准备渲染图表')
     await nextTick()
-    
-    if (chartRef.value) {
-      console.log('重新渲染已有的对比图表，数据条数:', store.compareResult.length)
-      renderChart()
-    } else {
-      console.warn('图表容器未准备好，延迟渲染')
-      setTimeout(() => {
-        if (chartRef.value && store.hasResults) {
-          renderChart()
-        }
-      }, 100)
-    }
+    renderChart()
   }
 })
 
@@ -633,54 +368,30 @@ onActivated(async () => {
 
   // 强制重新渲染图表（如果有数据）
   if (store.hasResults) {
-    // 等待DOM完全更新
     await nextTick()
-
-    // 确保图表容器存在
     if (chartRef.value) {
-      console.log('标签切换回来，重新渲染隔声量对比图表，数据条数:', store.compareResult.length)
-
-      // 清除之前的图表实例（组件内管理）
-      if (chartInstance.value) {
-        chartInstance.value.dispose()
-        chartInstance.value = null
-      }
-
-      // 重新渲染图表
+      console.log('标签切换回来，重新渲染隔声量对比图表')
       renderChart()
-    } else {
-      console.warn('图表容器不存在，延迟渲染')
-      // 如果容器还没准备好，再等一下
-      setTimeout(() => {
-        if (chartRef.value && store.hasResults) {
-          renderChart()
-        }
-      }, 100)
     }
   }
-
-  console.log('隔声量对比组件状态恢复完成:', {
-    areaId: store.searchForm.areaId,
-    vehicleCount: store.searchForm.vehicleModelIds.length,
-    resultCount: store.compareResult.length,
-    hasChartContainer: !!chartRef.value,
-    hasChartInstance: !!chartInstance.value
-  })
 })
 
 // keep-alive 停用时
 onDeactivated(() => {
   console.log('SoundInsulationCompare deactivated - 保存组件状态')
 
-  // 移除窗口resize监听器，避免内存泄漏（组件内管理）
-  if (chartInstance.value) {
-    window.removeEventListener('resize', chartInstance.value.resize)
-  }
+  // 销毁图表实例，避免内存泄漏
+  destroyChart()
 
   // 关闭可能打开的弹窗
   if (store.imageDialogVisible) {
     store.closeImageDialog()
   }
+})
+
+// 组件卸载时
+onBeforeUnmount(() => {
+  destroyChart()
 })
 
 // 监听对比结果变化，自动渲染图表
