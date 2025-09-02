@@ -2,61 +2,74 @@
   <div class="modal-data-query">
     <!-- 搜索卡片 -->
     <el-card class="search-card" shadow="never">
-      <div class="search-form">
-        <div class="form-row">
-          <div class="form-group">
-            <span class="form-label">车型：</span>
-            <el-select
-              v-model="searchForm.vehicleModelId"
-              placeholder="请选择车型"
-              class="form-select"
-              clearable
-              :loading="vehicleModelsLoading"
-              @change="handleVehicleModelChange"
-            >
-              <el-option
-                v-for="item in vehicleModelOptions"
-                :key="item.id"
-                :label="item.vehicle_model_name"
-                :value="item.id"
-              />
-            </el-select>
-          </div>
-
-          <div class="form-group">
-            <span class="form-label">零件：</span>
-            <el-select
-              v-model="searchForm.componentIds"
-              placeholder="请选择零件（可多选）"
-              class="form-select"
-              multiple
-              collapse-tags
-              collapse-tags-tooltip
-              clearable
-              :loading="componentsLoading"
-            >
-              <el-option
-                v-for="item in componentOptions"
-                :key="item.id"
-                :label="item.component_name"
-                :value="item.id"
-              />
-            </el-select>
-          </div>
-
-          <div class="form-group">
-            <el-button
-              type="primary"
-              :icon="Search"
-              @click="handleSearch"
-              :loading="loading"
-              class="search-btn"
-            >
-              查询
-            </el-button>
-          </div>
+      <template #header>
+        <div class="card-header">
+          <span class="card-title">查询条件</span>
         </div>
-      </div>
+      </template>
+
+      <el-form :model="searchForm" label-width="80px" class="search-form">
+        <el-row :gutter="24">
+          <!-- 车型选择 -->
+          <el-col :span="8">
+            <el-form-item label="车型" required>
+              <el-select
+                v-model="searchForm.vehicleModelId"
+                placeholder="请选择车型"
+                clearable
+                :loading="vehicleModelsLoading"
+                @change="handleVehicleModelChange"
+                style="width: 100%"
+              >
+                <el-option
+                  v-for="item in vehicleModelOptions"
+                  :key="item.id"
+                  :label="item.vehicle_model_name"
+                  :value="item.id"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+
+          <!-- 零件选择 -->
+          <el-col :span="10">
+            <el-form-item label="零件">
+              <el-select
+                v-model="searchForm.componentIds"
+                placeholder="请选择零件（可多选）"
+                multiple
+                collapse-tags
+                collapse-tags-tooltip
+                clearable
+                :loading="componentsLoading"
+                style="width: 100%"
+              >
+                <el-option
+                  v-for="item in componentOptions"
+                  :key="item.id"
+                  :label="item.component_name"
+                  :value="item.id"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+
+          <!-- 查询按钮 -->
+          <el-col :span="6">
+            <el-form-item>
+              <el-button
+                type="primary"
+                :icon="Search"
+                @click="handleSearch"
+                :loading="loading"
+                style="width: 100%; min-width: 120px;"
+              >
+                查询
+              </el-button>
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
     </el-card>
 
     <!-- 查询结果展示卡片 -->
@@ -360,6 +373,12 @@ onDeactivated(() => {
   color: #1f2937;
 }
 
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+}
+
 .header-icon {
   color: #0052d9;
   font-size: 16px;
@@ -376,42 +395,17 @@ onDeactivated(() => {
 
 /* 搜索表单 */
 .search-form {
-  padding: 0;
+  margin: 0;
 }
 
-.form-row {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  flex-wrap: wrap;
+:deep(.search-form .el-form-item) {
+  margin-bottom: 0;
 }
 
-.form-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.form-label {
-  font-size: 14px;
-  color: #374151;
+:deep(.search-form .el-form-item__label) {
   font-weight: 500;
-  white-space: nowrap;
-  min-width: fit-content;
+  color: #374151;
 }
-
-.form-select {
-  width: 180px;
-}
-
-.search-btn {
-  height: 32px;
-  padding: 0 20px;
-  border-radius: 3px;
-  font-size: 14px;
-  margin-left: 8px;
-}
-
 /* 表格样式 */
 .result-table {
   border-radius: 6px;

@@ -88,7 +88,7 @@
                 :key="freq"
                 :prop="`frequency_data.freq_${freq}`"
                 :label="`${freq}Hz`"
-                width="80"
+                width="85"
                 align="center"
             >
               <template #default="scope">
