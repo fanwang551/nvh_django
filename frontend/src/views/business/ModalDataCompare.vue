@@ -1,116 +1,128 @@
 <template>
   <div class="modal-data-compare">
-    <div class="page-header">
-      <h2>模态数据对比</h2>
-      <p class="page-description">对比不同模态测试结果</p>
-    </div>
-
     <!-- 选择控件区域 -->
     <el-card class="selection-card" shadow="never">
-      <div class="selection-form">
-        <div class="form-row">
-          <div class="form-group">
-            <span class="form-label">零件：</span>
-            <el-select
-              v-model="compareForm.componentId"
-              placeholder="请选择零件"
-              class="form-select"
-              clearable
-              :loading="componentsLoading"
-              @change="handleComponentChange"
-            >
-              <el-option
-                v-for="item in componentOptions"
-                :key="item.id"
-                :label="item.component_name"
-                :value="item.id"
-              />
-            </el-select>
-          </div>
-
-          <div class="form-group">
-            <span class="form-label">车型：</span>
-            <el-select
-              v-model="compareForm.vehicleModelIds"
-              placeholder="请选择车型（可多选）"
-              class="form-select"
-              multiple
-              collapse-tags
-              collapse-tags-tooltip
-              clearable
-              :loading="vehicleModelsLoading"
-              :disabled="!compareForm.componentId"
-              @change="handleVehicleModelChange"
-            >
-              <el-option
-                v-for="item in vehicleModelOptions"
-                :key="item.id"
-                :label="item.vehicle_model_name"
-                :value="item.id"
-              />
-            </el-select>
-          </div>
-
-          <div class="form-group">
-            <span class="form-label">测试状态：</span>
-            <el-select
-              v-model="compareForm.testStatuses"
-              placeholder="请选择测试状态"
-              class="form-select"
-              :multiple="isTestStatusMultiple"
-              collapse-tags
-              collapse-tags-tooltip
-              clearable
-              :loading="testStatusesLoading"
-              :disabled="!compareForm.vehicleModelIds.length"
-              @change="handleTestStatusChange"
-            >
-              <el-option
-                v-for="item in testStatusOptions"
-                :key="item"
-                :label="item"
-                :value="item"
-              />
-            </el-select>
-          </div>
-
-          <div class="form-group">
-            <span class="form-label">振型：</span>
-            <el-select
-              v-model="compareForm.modeTypes"
-              placeholder="请选择振型（可多选）"
-              class="form-select"
-              multiple
-              collapse-tags
-              collapse-tags-tooltip
-              clearable
-              :loading="modeTypesLoading"
-              :disabled="!compareForm.testStatuses.length"
-              @change="handleModeTypeChange"
-            >
-              <el-option
-                v-for="item in modeTypeOptions"
-                :key="item"
-                :label="item"
-                :value="item"
-              />
-            </el-select>
-          </div>
-
-          <div class="form-group">
-            <el-button
-              type="primary"
-              :icon="TrendCharts"
-              @click="handleCompare"
-              :loading="compareLoading"
-              :disabled="!canCompare"
-              class="compare-btn"
-            >
-              生成对比
-            </el-button>
-          </div>
+      <template #header>
+        <div class="card-header">
+          <span class="card-title">对比条件</span>
         </div>
-      </div>
+      </template>
+
+      <el-form :model="compareForm" label-width="80px" class="selection-form">
+        <el-row :gutter="4">
+          <!-- 零件选择 -->
+          <el-col :span="5">
+            <el-form-item label="零件" required>
+              <el-select
+                v-model="compareForm.componentId"
+                placeholder="请选择零件"
+                clearable
+                :loading="componentsLoading"
+                @change="handleComponentChange"
+                style="width: 100%"
+              >
+                <el-option
+                  v-for="item in componentOptions"
+                  :key="item.id"
+                  :label="item.component_name"
+                  :value="item.id"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+
+          <!-- 车型选择 -->
+          <el-col :span="5">
+            <el-form-item label="车型" required>
+              <el-select
+                v-model="compareForm.vehicleModelIds"
+                placeholder="请选择车型（可多选）"
+                multiple
+                collapse-tags
+                collapse-tags-tooltip
+                clearable
+                :loading="vehicleModelsLoading"
+                :disabled="!compareForm.componentId"
+                @change="handleVehicleModelChange"
+                style="width: 100%"
+              >
+                <el-option
+                  v-for="item in vehicleModelOptions"
+                  :key="item.id"
+                  :label="item.vehicle_model_name"
+                  :value="item.id"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+
+          <!-- 测试状态选择 -->
+          <el-col :span="5">
+            <el-form-item label="测试状态">
+              <el-select
+                v-model="compareForm.testStatuses"
+                placeholder="请选择测试状态"
+                :multiple="isTestStatusMultiple"
+                collapse-tags
+                collapse-tags-tooltip
+                clearable
+                :loading="testStatusesLoading"
+                :disabled="!compareForm.vehicleModelIds.length"
+                @change="handleTestStatusChange"
+                style="width: 100%"
+              >
+                <el-option
+                  v-for="item in testStatusOptions"
+                  :key="item"
+                  :label="item"
+                  :value="item"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+
+          <!-- 振型选择 -->
+          <el-col :span="5">
+            <el-form-item label="振型">
+              <el-select
+                v-model="compareForm.modeTypes"
+                placeholder="请选择振型（可多选）"
+                multiple
+                collapse-tags
+                collapse-tags-tooltip
+                clearable
+                :loading="modeTypesLoading"
+                :disabled="!compareForm.testStatuses.length"
+                @change="handleModeTypeChange"
+                style="width: 100%"
+              >
+                <el-option
+                  v-for="item in modeTypeOptions"
+                  :key="item"
+                  :label="item"
+                  :value="item"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+
+          <!-- 生成对比按钮 -->
+          <el-col :span="2">
+            <el-form-item>
+              <el-button
+                type="primary"
+                :icon="TrendCharts"
+                @click="handleCompare"
+                :loading="compareLoading"
+                :disabled="!canCompare"
+                style="width: 100%; min-width: 100px;"
+              >
+                生成对比
+              </el-button>
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
     </el-card>
 
     <!-- 对比结果展示区域 -->
@@ -602,24 +614,6 @@ watch(() => store.compareResult, (newResult) => {
   padding: 0;
 }
 
-.page-header {
-  margin-bottom: 24px;
-  text-align: center;
-}
-
-.page-header h2 {
-  margin: 0 0 8px 0;
-  color: #303133;
-  font-size: 24px;
-  font-weight: 600;
-}
-
-.page-description {
-  margin: 0;
-  color: #909399;
-  font-size: 14px;
-}
-
 /* 选择控件区域 */
 .selection-card {
   margin-bottom: 24px;
@@ -627,40 +621,29 @@ watch(() => store.compareResult, (newResult) => {
   border: 1px solid #e4e7ed;
 }
 
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+}
+
 .selection-form {
-  padding: 8px;
+  margin: 0;
 }
 
-.form-row {
-  display: flex;
-  gap: 16px;
+:deep(.selection-form .el-form-item) {
   margin-bottom: 0;
-  align-items: center;
-  flex-wrap: wrap;
 }
 
-.form-group {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.form-label {
-  font-size: 14px;
-  color: #606266;
+:deep(.selection-form .el-form-item__label) {
   font-weight: 500;
-  white-space: nowrap;
-  min-width: 60px;
-}
-
-.form-select {
-  min-width: 180px;
-}
-
-.compare-btn {
-  padding: 10px 24px;
-  font-size: 14px;
-  border-radius: 6px;
+  color: #374151;
 }
 
 /* 结果展示区域 */
@@ -748,37 +731,20 @@ watch(() => store.compareResult, (newResult) => {
 
 /* 响应式设计 */
 @media (max-width: 1200px) {
-  .form-row {
+  :deep(.selection-form .el-row) {
     flex-wrap: wrap;
-    gap: 16px;
   }
 
-  .form-select {
-    min-width: 180px;
+  :deep(.selection-form .el-col) {
+    margin-bottom: 16px;
   }
 }
 
 @media (max-width: 768px) {
-  .form-row {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-  }
-
-  .form-group {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 4px;
-  }
-
-  .form-label {
-    min-width: auto;
-    text-align: left;
-  }
-
-  .form-select {
-    min-width: auto;
-    width: 100%;
+  :deep(.selection-form .el-col) {
+    flex: 0 0 100%;
+    max-width: 100%;
+    margin-bottom: 12px;
   }
 
   .echarts-container {
