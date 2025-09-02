@@ -25,7 +25,7 @@
               >
                 <template #header>
                   <el-checkbox
-                      v-model="store.selectAllVehicles"
+                      v-model="selectAllVehicles"
                       @change="handleSelectAllVehicles"
                       style="margin-left: 12px"
                   >
@@ -105,7 +105,7 @@
                     type="primary"
                     size="small"
                     text
-                    @click="store.showImageDialog(scope.row)"
+                    @click="showImageDialog(scope.row)"
                 >
                   查看详情
                 </el-button>
@@ -137,31 +137,31 @@
 
     <!-- 测试图片弹窗 -->
     <el-dialog
-        v-model="store.imageDialogVisible"
+        v-model="imageDialogVisible"
         title="测试详情"
         width="600px"
         @close="handleCloseImageDialog"
     >
-      <div v-if="store.currentImageData" class="image-dialog-content">
+      <div v-if="currentImageData" class="image-dialog-content">
         <!-- 基本信息 -->
         <div class="info-section">
           <h4>基本信息</h4>
           <el-descriptions :column="1" border>
             <el-descriptions-item label="车型名称">
-              {{ store.currentImageData.vehicle_model_name }}
+              {{ currentImageData.vehicle_model_name }}
             </el-descriptions-item>
             <el-descriptions-item label="备注">
-              {{ store.currentImageData.remarks || '无' }}
+              {{ currentImageData.remarks || '无' }}
             </el-descriptions-item>
           </el-descriptions>
         </div>
 
         <!-- 测试图片 -->
-        <div v-if="store.currentImageData.test_image_path" class="image-section">
+        <div v-if="currentImageData.test_image_path" class="image-section">
           <h4>测试图片</h4>
           <div class="image-container">
             <img
-                :src="getImageUrl(store.currentImageData.test_image_path)"
+                :src="getImageUrl(currentImageData.test_image_path)"
                 alt="测试图片"
                 class="test-image"
                 @error="handleImageError"
@@ -177,7 +177,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onActivated, onDeactivated, nextTick, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onActivated, onDeactivated, nextTick, onBeforeUnmount } from 'vue'
 import { ElMessage } from 'element-plus'
 import { TrendCharts } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
@@ -191,6 +191,11 @@ defineOptions({
 // 使用Pinia store
 const store = useVehicleSoundInsulationQueryStore()
 
+// UI状态管理（组件负责）
+const selectAllVehicles = ref(false)
+const imageDialogVisible = ref(false)
+const currentImageData = ref(null)
+
 // 图表相关
 const chartRef = ref(null)
 let chartInstance = null
@@ -199,14 +204,38 @@ let resizeHandler = null
 // 频率数组（用于图表横轴）
 const frequencies = [200, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000]
 
-// 全选/反选车型
+// 计算属性 - 全选状态
+const isAllVehiclesSelected = computed(() => {
+  return store.vehicleModelOptions.length > 0 &&
+    store.searchForm.vehicleModelIds.length === store.vehicleModelOptions.length
+})
+
+// 全选/反选车型（UI逻辑在组件中处理）
 const handleSelectAllVehicles = (checked) => {
-  store.toggleSelectAllVehicles(checked)
+  if (checked) {
+    store.selectAllVehicles()
+  } else {
+    store.clearVehicleSelection()
+  }
+  selectAllVehicles.value = checked
 }
 
 // 车型选择变化处理
 const handleVehicleModelChange = (vehicleIds) => {
   store.setVehicleModels(vehicleIds)
+  // 更新全选状态
+  updateSelectAllState()
+}
+
+// 更新全选状态（UI逻辑）
+const updateSelectAllState = () => {
+  if (store.searchForm.vehicleModelIds.length === 0) {
+    selectAllVehicles.value = false
+  } else if (store.searchForm.vehicleModelIds.length === store.vehicleModelOptions.length) {
+    selectAllVehicles.value = true
+  } else {
+    selectAllVehicles.value = false
+  }
 }
 
 // 生成对比数据
@@ -233,19 +262,31 @@ const handleCompare = async () => {
   }
 }
 
-// 重置表单
+// 重置表单（包含UI状态重置）
 const handleReset = () => {
   store.resetState()
+  // 重置UI状态
+  selectAllVehicles.value = false
+  imageDialogVisible.value = false
+  currentImageData.value = null
   destroyChart()
 }
 
-// 获取图片URL
+// 显示图片弹窗（UI逻辑在组件中）
+const showImageDialog = (data) => {
+  currentImageData.value = data
+  imageDialogVisible.value = true
+}
+
+// 关闭图片弹窗（UI逻辑在组件中）
+const handleCloseImageDialog = () => {
+  imageDialogVisible.value = false
+  currentImageData.value = null
+}
+
+// 获取图片URL（使用store的getter）
 const getImageUrl = (imagePath) => {
-  if (!imagePath) return ''
-  if (imagePath.startsWith('/')) {
-    return `http://127.0.0.1:8000${imagePath}`
-  }
-  return imagePath
+  return store.getImageUrl(imagePath)
 }
 
 // 图片加载错误处理
@@ -262,6 +303,118 @@ const destroyChart = () => {
   if (resizeHandler) {
     window.removeEventListener('resize', resizeHandler)
     resizeHandler = null
+  }
+}
+
+// 获取图表配置（复杂UI逻辑在组件中处理）
+const getChartOption = () => {
+  const colors = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4']
+
+  const series = store.chartSeriesData.map((item, index) => ({
+    name: item.name,
+    type: 'line',
+    data: item.data.map((value, freqIndex) => ({
+      value: value,
+      freq: frequencies[freqIndex],
+      freqLabel: `${frequencies[freqIndex]}Hz`,
+      itemData: item.rawData
+    })),
+    symbol: 'circle',
+    symbolSize: 8,
+    lineStyle: {
+      width: 3,
+      color: colors[index % colors.length]
+    },
+    itemStyle: {
+      color: colors[index % colors.length]
+    },
+    emphasis: {
+      focus: 'series',
+      symbolSize: 12
+    },
+    connectNulls: false
+  }))
+
+  return {
+    title: {
+      text: '车型隔声量对比曲线',
+      left: 'center',
+      textStyle: {
+        fontSize: 16,
+        fontWeight: 'normal'
+      }
+    },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        type: 'cross'
+      },
+      formatter: function(params) {
+        if (params.length === 0) return ''
+
+        const dataIndex = params[0].dataIndex
+        const freq = frequencies[dataIndex]
+        let result = `频率: ${freq}Hz<br/>`
+
+        params.forEach(param => {
+          if (param.value !== null && param.value !== undefined) {
+            result += `${param.seriesName}: ${param.value}dB<br/>`
+          }
+        })
+        result += '<br/>点击数据点查看测试详情'
+        return result
+      }
+    },
+    legend: {
+      top: 30,
+      type: 'scroll'
+    },
+    grid: {
+      left: '8%',
+      right: '4%',
+      bottom: '15%',
+      top: '15%',
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+      name: '频率 (Hz)',
+      nameLocation: 'middle',
+      nameGap: 30,
+      data: frequencies.map(freq => freq.toString()),
+      axisLabel: {
+        rotate: 45,
+        fontSize: 12
+      }
+    },
+    yAxis: {
+      type: 'value',
+      name: '隔声量 (dB)',
+      nameLocation: 'middle',
+      nameGap: 50,
+      axisLabel: {
+        formatter: '{value}',
+        fontSize: 12
+      },
+      splitLine: {
+        show: true,
+        lineStyle: {
+          color: '#e6e6e6',
+          type: 'dashed'
+        }
+      }
+    },
+    series: series,
+    dataZoom: [
+      {
+        type: 'slider',
+        show: true,
+        xAxisIndex: [0],
+        start: 0,
+        end: 100,
+        bottom: '5%'
+      }
+    ]
   }
 }
 
@@ -293,8 +446,8 @@ const renderChart = () => {
   console.log('创建新的图表实例，容器尺寸:', containerRect.width, 'x', containerRect.height)
   chartInstance = echarts.init(chartRef.value)
 
-  // 使用store中的图表配置
-  const option = store.getChartOption()
+  // 使用组件中的图表配置
+  const option = getChartOption()
 
   chartInstance.setOption(option)
 
@@ -306,10 +459,10 @@ const renderChart = () => {
     }
   }, 100)
 
-  // 添加点击事件
+  // 添加点击事件（使用组件的弹窗方法）
   chartInstance.on('click', function(params) {
     if (params.data && params.data.itemData) {
-      store.showImageDialog(params.data.itemData)
+      showImageDialog(params.data.itemData)
     }
   })
 
@@ -322,10 +475,7 @@ const renderChart = () => {
   window.addEventListener('resize', resizeHandler)
 }
 
-// 关闭图片弹窗
-const handleCloseImageDialog = () => {
-  store.closeImageDialog()
-}
+
 
 onMounted(async () => {
   console.log('VehicleSoundInsulationQuery mounted - 初始化页面数据')
@@ -364,8 +514,8 @@ onDeactivated(() => {
   destroyChart()
 
   // 关闭可能打开的弹窗
-  if (store.imageDialogVisible) {
-    store.closeImageDialog()
+  if (imageDialogVisible.value) {
+    handleCloseImageDialog()
   }
 })
 
