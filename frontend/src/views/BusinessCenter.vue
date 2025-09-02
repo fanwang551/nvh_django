@@ -32,7 +32,8 @@ import {
   TrendCharts,
   Connection,
   Monitor,
-  Picture
+  Picture,
+  MagicStick
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -80,6 +81,12 @@ const businessModules = ref([
     title: '车辆混响时间查询',
     description: '查询和对比不同车型的混响时间数据',
     icon: Monitor
+  },
+  {
+    name: 'sound-absorption-query',
+    title: '吸声系数查询',
+    description: '查询和分析材料的吸声系数数据',
+    icon: MagicStick
   }
 ])
 

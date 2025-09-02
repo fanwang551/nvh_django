@@ -18,4 +18,10 @@ urlpatterns = [
     # 车辆混响时间相关接口
     path('vehicle-reverberation-data/', views.get_vehicles_with_reverberation_data, name='get_vehicles_with_reverberation_data'),
     path('vehicle-reverberation-compare/', views.vehicle_reverberation_compare, name='vehicle_reverberation_compare'),
+
+    # 吸声系数相关接口
+    path('sound-absorption/part-names/', views.get_part_name_options, name='get_part_name_options'),
+    path('sound-absorption/material-compositions/', views.get_material_composition_options, name='get_material_composition_options'),
+    path('sound-absorption/weights/', views.get_weight_options, name='get_weight_options'),
+    path('sound-absorption/query/', views.sound_absorption_query, name='sound_absorption_query'),
 ]

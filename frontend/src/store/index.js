@@ -50,6 +50,7 @@ export const useUserStore = defineStore('user', {
 export { useSoundInsulationCompareStore } from './soundInsulationCompare'
 export { useVehicleSoundInsulationQueryStore } from './vehicleSoundInsulationQuery'
 export { useVehicleReverberationQueryStore } from './vehicleReverberationQuery'
+export { useSoundAbsorptionQueryStore } from './soundAbsorptionQuery'
 export { useModalDataQueryStore } from './modalDataQuery'
 export { useModalDataCompareStore } from './modalDataCompare'
 export { useAirtightLeakCompareStore } from './airtightLeakCompare'

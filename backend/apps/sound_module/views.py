@@ -3,12 +3,14 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
 from utils.response import Response
-from .models import SoundInsulationArea, SoundInsulationData, VehicleSoundInsulationData, VehicleReverberationData
+from .models import SoundInsulationArea, SoundInsulationData, VehicleSoundInsulationData, VehicleReverberationData, SoundAbsorptionCoefficients
 from .serializers import (
     SoundInsulationAreaSerializer, SoundInsulationDataSerializer,
     SoundInsulationCompareSerializer, VehicleModelSimpleSerializer,
     VehicleSoundInsulationDataSerializer, VehicleSoundInsulationCompareSerializer,
-    VehicleReverberationDataSerializer, VehicleReverberationCompareSerializer
+    VehicleReverberationDataSerializer, VehicleReverberationCompareSerializer,
+    SoundAbsorptionCoefficientsSerializer, SoundAbsorptionQuerySerializer,
+    PartNameOptionSerializer, MaterialCompositionOptionSerializer, WeightOptionSerializer
 )
 from apps.modal.models import VehicleModel
 
@@ -281,3 +283,172 @@ def vehicle_reverberation_compare(request):
 
     except Exception as e:
         return Response.error(message=f"获取车辆混响时间对比数据失败: {str(e)}")
+
+
+@api_view(['GET'])
+@permission_classes([])  # 临时允许匿名访问用于测试
+def get_part_name_options(request):
+    """获取零件名称选项列表"""
+    try:
+        # 获取所有不重复的零件名称
+        part_names = SoundAbsorptionCoefficients.objects.values_list('part_name', flat=True).distinct().order_by('part_name')
+        
+        options = []
+        for part_name in part_names:
+            options.append({
+                'value': part_name,
+                'label': part_name  # 直接使用实际名称
+            })
+        
+        serializer = PartNameOptionSerializer(options, many=True)
+        return Response.success(data=serializer.data, message="获取零件名称选项成功")
+    
+    except Exception as e:
+        return Response.error(message=f"获取零件名称选项失败: {str(e)}")
+
+
+@api_view(['GET'])
+@permission_classes([])  # 临时允许匿名访问用于测试
+def get_material_composition_options(request):
+    """根据零件名称获取材料组成选项列表"""
+    try:
+        part_name = request.GET.get('part_name')
+        
+        queryset = SoundAbsorptionCoefficients.objects.all()
+        if part_name:
+            queryset = queryset.filter(part_name=part_name)
+        
+        # 获取所有不重复的材料组成
+        material_compositions = queryset.values_list('material_composition', 'part_name').distinct().order_by('material_composition')
+        
+        options = []
+        for material_composition, related_part_name in material_compositions:
+            options.append({
+                'value': material_composition,
+                'label': material_composition,  # 直接使用实际名称
+                'part_name': related_part_name
+            })
+        
+        serializer = MaterialCompositionOptionSerializer(options, many=True)
+        return Response.success(data=serializer.data, message="获取材料组成选项成功")
+    
+    except Exception as e:
+        return Response.error(message=f"获取材料组成选项失败: {str(e)}")
+
+
+@api_view(['GET'])
+@permission_classes([])  # 临时允许匿名访问用于测试
+def get_weight_options(request):
+    """根据零件名称和材料组成获取克重选项列表"""
+    try:
+        part_name = request.GET.get('part_name')
+        material_composition = request.GET.get('material_composition')
+        
+        queryset = SoundAbsorptionCoefficients.objects.all()
+        if part_name:
+            queryset = queryset.filter(part_name=part_name)
+        if material_composition:
+            queryset = queryset.filter(material_composition=material_composition)
+        
+        # 获取所有不重复的克重
+        weights = queryset.values_list('weight', 'part_name', 'material_composition').distinct().order_by('weight')
+        
+        options = []
+        for weight, related_part_name, related_material_composition in weights:
+            options.append({
+                'value': weight,
+                'label': f'{weight}g/m²',
+                'part_name': related_part_name,
+                'material_composition': related_material_composition
+            })
+        
+        serializer = WeightOptionSerializer(options, many=True)
+        return Response.success(data=serializer.data, message="获取克重选项成功")
+    
+    except Exception as e:
+        return Response.error(message=f"获取克重选项失败: {str(e)}")
+
+
+@api_view(['POST'])
+@permission_classes([])  # 临时允许匿名访问用于测试
+def sound_absorption_query(request):
+    """吸声系数查询"""
+    try:
+        serializer = SoundAbsorptionQuerySerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response.error(
+                message="参数验证失败",
+                data=serializer.errors,
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # 构建查询条件
+        filters = {}
+        if 'part_name' in serializer.validated_data:
+            filters['part_name'] = serializer.validated_data['part_name']
+        if 'material_composition' in serializer.validated_data:
+            filters['material_composition'] = serializer.validated_data['material_composition']
+        if 'weight' in serializer.validated_data:
+            filters['weight'] = serializer.validated_data['weight']
+        
+        # 查询吸声系数数据
+        queryset = SoundAbsorptionCoefficients.objects.filter(**filters).order_by('-created_at')
+        
+        if not queryset.exists():
+            return Response.success(data=[], message="未找到匹配的吸声系数数据")
+        
+        # 构建查询结果
+        query_data = []
+        frequency_fields = [
+            'test_value_125', 'test_value_160', 'test_value_200', 'test_value_250',
+            'test_value_315', 'test_value_400', 'test_value_500', 'test_value_630',
+            'test_value_800', 'test_value_1000', 'test_value_1250', 'test_value_1600',
+            'test_value_2000', 'test_value_2500', 'test_value_3150', 'test_value_4000',
+            'test_value_5000', 'test_value_6300', 'test_value_8000', 'test_value_10000'
+        ]
+        
+        target_fields = [
+            'target_value_125', 'target_value_160', 'target_value_200', 'target_value_250',
+            'target_value_315', 'target_value_400', 'target_value_500', 'target_value_630',
+            'target_value_800', 'target_value_1000', 'target_value_1250', 'target_value_1600',
+            'target_value_2000', 'target_value_2500', 'target_value_3150', 'target_value_4000',
+            'target_value_5000', 'target_value_6300', 'target_value_8000', 'target_value_10000'
+        ]
+        
+        for data in queryset:
+            # 构建测试值频率数据字典
+            test_frequency_data = {}
+            target_frequency_data = {}
+            
+            for field in frequency_fields:
+                value = getattr(data, field)
+                test_frequency_data[field] = float(value) if value is not None else None
+            
+            for field in target_fields:
+                value = getattr(data, field)
+                target_frequency_data[field] = float(value) if value is not None else None
+            
+            query_data.append({
+                'id': data.id,
+                'part_name': data.part_name,
+                'part_name_label': data.part_name,
+                'material_composition': data.material_composition,
+                'material_composition_label': data.material_composition,
+                'manufacturer': data.manufacturer,
+                'manufacturer_label': data.manufacturer if data.manufacturer else None,
+                'test_institution': data.test_institution,
+                'thickness': float(data.thickness),
+                'weight': float(data.weight),
+                'test_frequency_data': test_frequency_data,
+                'target_frequency_data': target_frequency_data,
+                'test_image_path': data.test_image_path,
+                'test_date': data.test_date.isoformat() if data.test_date else None,
+                'test_location': data.test_location,
+                'test_engineer': data.test_engineer,
+                'remarks': data.remarks
+            })
+        
+        return Response.success(data=query_data, message="吸声系数查询成功")
+    
+    except Exception as e:
+        return Response.error(message=f"吸声系数查询失败: {str(e)}")

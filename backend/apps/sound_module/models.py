@@ -151,3 +151,77 @@ class VehicleReverberationData(models.Model):
 
     def __str__(self):
         return f"{self.vehicle_model.vehicle_model_name} - 混响时间"
+
+
+class SoundAbsorptionCoefficients(models.Model):
+    """吸声系数表"""
+    part_name = models.CharField(max_length=100, verbose_name='零件名称')
+    material_composition = models.CharField(max_length=200, verbose_name='材料组成')
+    manufacturer = models.CharField(max_length=100, null=True, blank=True, verbose_name='材料厂家')
+    test_institution = models.CharField(max_length=100, null=True, blank=True, verbose_name='测试机构')
+    thickness = models.DecimalField(max_digits=6, decimal_places=2, verbose_name='厚度(mm)')
+    weight = models.DecimalField(max_digits=8, decimal_places=2, verbose_name='克重(g/m²)')
+    
+    # 测试值字段 (125Hz-10000Hz)
+    test_value_125 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='125Hz测试值')
+    test_value_160 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='160Hz测试值')
+    test_value_200 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='200Hz测试值')
+    test_value_250 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='250Hz测试值')
+    test_value_315 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='315Hz测试值')
+    test_value_400 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='400Hz测试值')
+    test_value_500 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='500Hz测试值')
+    test_value_630 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='630Hz测试值')
+    test_value_800 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='800Hz测试值')
+    test_value_1000 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='1000Hz测试值')
+    test_value_1250 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='1250Hz测试值')
+    test_value_1600 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='1600Hz测试值')
+    test_value_2000 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='2000Hz测试值')
+    test_value_2500 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='2500Hz测试值')
+    test_value_3150 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='3150Hz测试值')
+    test_value_4000 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='4000Hz测试值')
+    test_value_5000 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='5000Hz测试值')
+    test_value_6300 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='6300Hz测试值')
+    test_value_8000 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='8000Hz测试值')
+    test_value_10000 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='10000Hz测试值')
+    
+    # 目标值字段 (125Hz-10000Hz)
+    target_value_125 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='125Hz目标值')
+    target_value_160 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='160Hz目标值')
+    target_value_200 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='200Hz目标值')
+    target_value_250 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='250Hz目标值')
+    target_value_315 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='315Hz目标值')
+    target_value_400 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='400Hz目标值')
+    target_value_500 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='500Hz目标值')
+    target_value_630 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='630Hz目标值')
+    target_value_800 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='800Hz目标值')
+    target_value_1000 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='1000Hz目标值')
+    target_value_1250 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='1250Hz目标值')
+    target_value_1600 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='1600Hz目标值')
+    target_value_2000 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='2000Hz目标值')
+    target_value_2500 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='2500Hz目标值')
+    target_value_3150 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='3150Hz目标值')
+    target_value_4000 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='4000Hz目标值')
+    target_value_5000 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='5000Hz目标值')
+    target_value_6300 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='6300Hz目标值')
+    target_value_8000 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='8000Hz目标值')
+    target_value_10000 = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True, verbose_name='10000Hz目标值')
+    
+    # 测试相关信息
+    test_date = models.DateField(null=True, blank=True, verbose_name='测试日期')
+    test_location = models.CharField(max_length=100, null=True, blank=True, verbose_name='测试地点')
+    test_engineer = models.CharField(max_length=50, null=True, blank=True, verbose_name='测试工程师')
+    test_image_path = models.CharField(max_length=500, null=True, blank=True, verbose_name='测试图片路径')
+    remarks = models.TextField(null=True, blank=True, verbose_name='备注')
+    
+    # 时间戳
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+
+    class Meta:
+        db_table = 'sound_absorption_coefficients'
+        verbose_name = '吸声系数'
+        verbose_name_plural = '吸声系数'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"零件{self.part_name} - 材料{self.material_composition} - {self.weight}g/m²"
