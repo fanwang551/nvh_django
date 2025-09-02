@@ -1,7 +1,5 @@
 <template>
   <div class="vehicle-sound-insulation-query">
-
-
     <!-- 查询条件卡片 -->
     <el-card class="search-card" shadow="never">
       <template #header>
@@ -16,29 +14,29 @@
           <el-col :span="16">
             <el-form-item label="对比车型" required>
               <el-select
-                v-model="store.searchForm.vehicleModelIds"
-                placeholder="请选择要对比的车型"
-                :loading="store.vehicleModelsLoading"
-                multiple
-                collapse-tags
-                collapse-tags-tooltip
-                @change="handleVehicleModelChange"
-                style="width: 100%"
+                  v-model="store.searchForm.vehicleModelIds"
+                  placeholder="请选择要对比的车型"
+                  :loading="store.vehicleModelsLoading"
+                  multiple
+                  collapse-tags
+                  collapse-tags-tooltip
+                  @change="handleVehicleModelChange"
+                  style="width: 100%"
               >
                 <template #header>
                   <el-checkbox
-                    v-model="store.selectAllVehicles"
-                    @change="handleSelectAllVehicles"
-                    style="margin-left: 12px"
+                      v-model="store.selectAllVehicles"
+                      @change="handleSelectAllVehicles"
+                      style="margin-left: 12px"
                   >
                     全选
                   </el-checkbox>
                 </template>
                 <el-option
-                  v-for="vehicle in store.vehicleModelOptions"
-                  :key="vehicle.id"
-                  :label="vehicle.vehicle_model_name"
-                  :value="vehicle.id"
+                    v-for="vehicle in store.vehicleModelOptions"
+                    :key="vehicle.id"
+                    :label="vehicle.vehicle_model_name"
+                    :value="vehicle.id"
                 />
               </el-select>
             </el-form-item>
@@ -48,11 +46,11 @@
           <el-col :span="8">
             <el-form-item label=" ">
               <el-button
-                type="primary"
-                :icon="TrendCharts"
-                :loading="store.compareLoading"
-                :disabled="!store.canQuery"
-                @click="handleCompare"
+                  type="primary"
+                  :icon="TrendCharts"
+                  :loading="store.compareLoading"
+                  :disabled="!store.canQuery"
+                  @click="handleCompare"
               >
                 生成对比
               </el-button>
@@ -76,22 +74,22 @@
 
         <div class="table-container">
           <el-table
-            :data="store.compareResult"
-            border
-            stripe
-            style="width: 100%"
-            :header-cell-style="{ background: '#f5f7fa', color: '#606266' }"
+              :data="store.compareResult"
+              border
+              stripe
+              style="width: 100%"
+              :header-cell-style="{ background: '#f5f7fa', color: '#606266' }"
           >
             <el-table-column prop="vehicle_model_name" label="车型名称" width="200" fixed="left" />
 
             <!-- 频率列 -->
             <el-table-column
-              v-for="freq in frequencies"
-              :key="freq"
-              :prop="`frequency_data.freq_${freq}`"
-              :label="`${freq}Hz`"
-              width="80"
-              align="center"
+                v-for="freq in frequencies"
+                :key="freq"
+                :prop="`frequency_data.freq_${freq}`"
+                :label="`${freq}Hz`"
+                width="80"
+                align="center"
             >
               <template #default="scope">
                 <span v-if="scope.row.frequency_data[`freq_${freq}`] !== null">
@@ -104,10 +102,10 @@
             <el-table-column label="测试信息" width="120" fixed="right">
               <template #default="scope">
                 <el-button
-                  type="primary"
-                  size="small"
-                  text
-                  @click="store.showImageDialog(scope.row)"
+                    type="primary"
+                    size="small"
+                    text
+                    @click="store.showImageDialog(scope.row)"
                 >
                   查看详情
                 </el-button>
@@ -139,10 +137,10 @@
 
     <!-- 测试图片弹窗 -->
     <el-dialog
-      v-model="store.imageDialogVisible"
-      title="测试详情"
-      width="600px"
-      @close="handleCloseImageDialog"
+        v-model="store.imageDialogVisible"
+        title="测试详情"
+        width="600px"
+        @close="handleCloseImageDialog"
     >
       <div v-if="store.currentImageData" class="image-dialog-content">
         <!-- 基本信息 -->
@@ -163,10 +161,10 @@
           <h4>测试图片</h4>
           <div class="image-container">
             <img
-              :src="getImageUrl(store.currentImageData.test_image_path)"
-              alt="测试图片"
-              class="test-image"
-              @error="handleImageError"
+                :src="getImageUrl(store.currentImageData.test_image_path)"
+                alt="测试图片"
+                class="test-image"
+                @error="handleImageError"
             />
           </div>
         </div>
@@ -179,7 +177,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onActivated, onDeactivated, nextTick } from 'vue'
+import { ref, onMounted, onActivated, onDeactivated, nextTick, onBeforeUnmount } from 'vue'
 import { ElMessage } from 'element-plus'
 import { TrendCharts } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
@@ -193,9 +191,10 @@ defineOptions({
 // 使用Pinia store
 const store = useVehicleSoundInsulationQueryStore()
 
-// 图表相关 - 改为组件内管理
+// 图表相关
 const chartRef = ref(null)
-const chartInstance = ref(null) // ECharts 实例由组件管理
+let chartInstance = null
+let resizeHandler = null
 
 // 频率数组（用于图表横轴）
 const frequencies = [200, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000]
@@ -237,18 +236,12 @@ const handleCompare = async () => {
 // 重置表单
 const handleReset = () => {
   store.resetState()
-
-  // 销毁图表实例（组件内管理）
-  if (chartInstance.value) {
-    chartInstance.value.dispose()
-    chartInstance.value = null
-  }
+  destroyChart()
 }
 
 // 获取图片URL
 const getImageUrl = (imagePath) => {
   if (!imagePath) return ''
-  // 如果是相对路径，添加基础URL
   if (imagePath.startsWith('/')) {
     return `http://127.0.0.1:8000${imagePath}`
   }
@@ -260,11 +253,23 @@ const handleImageError = (event) => {
   event.target.src = '/src/assets/images/no-image.png'
 }
 
+// 销毁图表实例
+const destroyChart = () => {
+  if (chartInstance) {
+    chartInstance.dispose()
+    chartInstance = null
+  }
+  if (resizeHandler) {
+    window.removeEventListener('resize', resizeHandler)
+    resizeHandler = null
+  }
+}
+
 // 渲染ECharts图表
 const renderChart = () => {
-  console.log('开始渲染图表，容器存在:', !!chartRef.value, '数据长度:', store.compareResult.length)
+  console.log('开始渲染图表，容器存在:', !!chartRef.value, '数据长度:', store.chartData.length)
 
-  if (!chartRef.value || store.compareResult.length === 0) {
+  if (!chartRef.value || !store.chartData.length) {
     console.warn('图表渲染条件不满足')
     return
   }
@@ -274,177 +279,46 @@ const renderChart = () => {
   if (containerRect.width === 0 || containerRect.height === 0) {
     console.warn('图表容器尺寸为0，延迟渲染')
     setTimeout(() => {
-      if (chartRef.value && store.compareResult.length > 0) {
+      if (chartRef.value && store.chartData.length) {
         renderChart()
       }
     }, 100)
     return
   }
 
-  // 销毁现有图表实例（组件内管理）
-  if (chartInstance.value) {
-    console.log('销毁现有图表实例')
-    chartInstance.value.dispose()
-    chartInstance.value = null
-  }
+  // 销毁现有图表实例
+  destroyChart()
 
-  // 创建新的图表实例（组件内管理）
+  // 创建新的图表实例
   console.log('创建新的图表实例，容器尺寸:', containerRect.width, 'x', containerRect.height)
-  chartInstance.value = echarts.init(chartRef.value)
+  chartInstance = echarts.init(chartRef.value)
 
-  // 准备图表数据
-  const series = []
-  const colors = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4']
+  // 使用store中的图表配置
+  const option = store.getChartOption()
 
-  store.compareResult.forEach((item, index) => {
-    const seriesData = []
+  chartInstance.setOption(option)
 
-    // 构建每个车型的数据点
-    frequencies.forEach((freq, freqIndex) => {
-      const fieldName = `freq_${freq}`
-      const value = item.frequency_data[fieldName]
-
-      // 确保数值有效，过滤null和undefined
-      const numValue = value !== null && value !== undefined ? Number(value) : null
-
-      seriesData.push({
-        value: [freqIndex, numValue], // 使用频率索引和数值
-        freq: freq, // 保存实际频率值
-        freqLabel: `${freq}Hz`, // 保存频率标签
-        itemData: item // 保存完整数据用于点击事件
-      })
-    })
-
-    series.push({
-      name: item.vehicle_model_name,
-      type: 'line',
-      data: seriesData,
-      symbol: 'circle',
-      symbolSize: 8,
-      lineStyle: {
-        width: 3,
-        color: colors[index % colors.length]
-      },
-      itemStyle: {
-        color: colors[index % colors.length]
-      },
-      emphasis: {
-        focus: 'series',
-        symbolSize: 12
-      },
-      connectNulls: false // 不连接空值点
-    })
-  })
-
-  // 图表配置
-  const option = {
-    title: {
-      text: '车型隔声量对比曲线',
-      left: 'center',
-      textStyle: {
-        fontSize: 16,
-        fontWeight: 'normal'
-      }
-    },
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: {
-        type: 'cross'
-      },
-      formatter: function(params) {
-        if (params.length === 0) return ''
-
-        const freqIndex = params[0].value[0]
-        const freq = frequencies[freqIndex]
-        let result = `频率: ${freq}Hz<br/>`
-
-        params.forEach(param => {
-          if (param.value[1] !== null && param.value[1] !== undefined) {
-            result += `${param.seriesName}: ${param.value[1]}dB<br/>`
-          }
-        })
-        result += '<br/>点击数据点查看测试详情'
-        return result
-      }
-    },
-    legend: {
-      top: 30,
-      type: 'scroll'
-    },
-    grid: {
-      left: '8%',
-      right: '4%',
-      bottom: '15%',
-      top: '15%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'category',
-      name: '频率 (Hz)',
-      nameLocation: 'middle',
-      nameGap: 30,
-      data: frequencies.map(freq => freq.toString()),
-      axisLabel: {
-        rotate: 45,
-        fontSize: 12
-      }
-    },
-    yAxis: {
-      type: 'value',
-      name: '隔声量 (dB)',
-      nameLocation: 'middle',
-      nameGap: 50,
-      axisLabel: {
-        formatter: '{value}',
-        fontSize: 12
-      },
-      splitLine: {
-        show: true,
-        lineStyle: {
-          color: '#e6e6e6',
-          type: 'dashed'
-        }
-      }
-    },
-    series: series,
-    dataZoom: [
-      {
-        type: 'slider',
-        show: true,
-        xAxisIndex: [0],
-        start: 0,
-        end: 100,
-        bottom: '5%'
-      }
-    ]
-  }
-
-  chartInstance.value.setOption(option)
-  
-  // 强制调整图表大小（解决标签切换后尺寸问题）
+  // 强制调整图表大小
   setTimeout(() => {
-    if (chartInstance.value) {
-      chartInstance.value.resize()
+    if (chartInstance) {
+      chartInstance.resize()
       console.log('图表大小已调整')
     }
   }, 100)
 
-  // 添加点击事件（组件内管理）
-  chartInstance.value.on('click', function(params) {
+  // 添加点击事件
+  chartInstance.on('click', function(params) {
     if (params.data && params.data.itemData) {
       store.showImageDialog(params.data.itemData)
     }
   })
 
-  // 响应式处理（组件内管理）
-  const resizeHandler = () => {
-    if (chartInstance.value) {
-      chartInstance.value.resize()
+  // 响应式处理
+  resizeHandler = () => {
+    if (chartInstance) {
+      chartInstance.resize()
     }
   }
-
-  // 移除之前的监听器，避免重复绑定
-  window.removeEventListener('resize', resizeHandler)
   window.addEventListener('resize', resizeHandler)
 }
 
@@ -456,23 +330,12 @@ const handleCloseImageDialog = () => {
 onMounted(async () => {
   console.log('VehicleSoundInsulationQuery mounted - 初始化页面数据')
   await store.initializePageData()
-  
-  // 如果已有数据，重新渲染图表（处理组件重新挂载的情况）
+
+  // 如果已有数据，重新渲染图表
   if (store.hasResults) {
     console.log('检测到已有数据，准备渲染图表')
     await nextTick()
-    
-    if (chartRef.value) {
-      console.log('重新渲染已有的对比图表，数据条数:', store.compareResult.length)
-      renderChart()
-    } else {
-      console.warn('图表容器未准备好，延迟渲染')
-      setTimeout(() => {
-        if (chartRef.value && store.hasResults) {
-          renderChart()
-        }
-      }, 100)
-    }
+    renderChart()
   }
 })
 
@@ -485,54 +348,30 @@ onActivated(async () => {
 
   // 强制重新渲染图表（如果有数据）
   if (store.hasResults) {
-    // 等待DOM完全更新
     await nextTick()
-
-    // 确保图表容器存在
     if (chartRef.value) {
-      console.log('标签切换回来，重新渲染车型对比图表，数据条数:', store.compareResult.length)
-
-      // 清除之前的图表实例（组件内管理）
-      if (chartInstance.value) {
-        chartInstance.value.dispose()
-        chartInstance.value = null
-      }
-
-      // 重新渲染图表
+      console.log('标签切换回来，重新渲染车型对比图表')
       renderChart()
-    } else {
-      console.warn('图表容器不存在，延迟渲染')
-      // 如果容器还没准备好，再等一下
-      setTimeout(() => {
-        if (chartRef.value && store.hasResults) {
-          renderChart()
-        }
-      }, 100)
     }
   }
-
-  console.log('车型查询组件状态恢复完成:', {
-    vehicleCount: store.searchForm.vehicleModelIds.length,
-    resultCount: store.compareResult.length,
-    selectAll: store.selectAllVehicles,
-    hasChartContainer: !!chartRef.value,
-    hasChartInstance: !!chartInstance.value
-  })
 })
 
 // keep-alive 停用时
 onDeactivated(() => {
   console.log('VehicleSoundInsulationQuery deactivated - 保存组件状态')
 
-  // 移除窗口resize监听器，避免内存泄漏（组件内管理）
-  if (chartInstance.value) {
-    window.removeEventListener('resize', chartInstance.value.resize)
-  }
+  // 销毁图表实例，避免内存泄漏
+  destroyChart()
 
   // 关闭可能打开的弹窗
   if (store.imageDialogVisible) {
     store.closeImageDialog()
   }
+})
+
+// 组件卸载时
+onBeforeUnmount(() => {
+  destroyChart()
 })
 </script>
 
@@ -540,25 +379,6 @@ onDeactivated(() => {
 .vehicle-sound-insulation-query {
   padding: 0;
   background-color: #f5f7fa;
-}
-
-/* 页面标题 */
-.page-header {
-  margin-bottom: 24px;
-  text-align: center;
-}
-
-.page-header h2 {
-  margin: 0 0 8px 0;
-  color: #303133;
-  font-size: 24px;
-  font-weight: 600;
-}
-
-.page-description {
-  margin: 0;
-  color: #909399;
-  font-size: 14px;
 }
 
 /* 卡片样式 */
