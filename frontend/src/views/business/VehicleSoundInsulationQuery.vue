@@ -80,7 +80,7 @@
               style="width: 100%"
               :header-cell-style="{ background: '#f5f7fa', color: '#606266' }"
           >
-            <el-table-column prop="vehicle_model_name" label="车型名称" width="200" fixed="left" />
+            <el-table-column prop="vehicle_model_name" label="车型名称" width="120" fixed="left" />
 
             <!-- 频率列 -->
             <el-table-column
