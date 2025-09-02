@@ -51,6 +51,26 @@ export const soundInsulationApi = {
    */
   compareVehicleSoundInsulationData(data = {}) {
     return request.post('/sound-insulation/vehicle-sound-compare/', data)
+  },
+
+  /**
+   * 获取有车辆混响时间数据的车型列表
+   * @param {Object} params - 查询参数
+   * @param {string} params.search - 搜索关键词（可选）
+   * @returns {Promise} 车型列表
+   */
+  getVehiclesWithReverberationData(params = {}) {
+    return request.get('/sound-insulation/vehicle-reverberation-data/', params)
+  },
+
+  /**
+   * 车辆混响时间数据对比
+   * @param {Object} data - 对比参数
+   * @param {string} data.vehicle_model_ids - 车型ID列表，逗号分隔（必需）
+   * @returns {Promise} 对比数据
+   */
+  compareVehicleReverberationData(data = {}) {
+    return request.post('/sound-insulation/vehicle-reverberation-compare/', data)
   }
 }
 

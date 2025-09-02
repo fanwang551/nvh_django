@@ -108,3 +108,46 @@ class VehicleSoundInsulationData(models.Model):
 
     def __str__(self):
         return f"{self.vehicle_model.vehicle_model_name} - 车型隔声量"
+
+
+class VehicleReverberationData(models.Model):
+    """车辆混响时间数据表"""
+    vehicle_model = models.ForeignKey(VehicleModel, on_delete=models.CASCADE, verbose_name='车型')
+
+    # 15个频率的混响时间数据 (400-10000Hz)
+    freq_400 = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True, verbose_name='400Hz混响时间(s)')
+    freq_500 = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True, verbose_name='500Hz混响时间(s)')
+    freq_630 = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True, verbose_name='630Hz混响时间(s)')
+    freq_800 = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True, verbose_name='800Hz混响时间(s)')
+    freq_1000 = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True, verbose_name='1000Hz混响时间(s)')
+    freq_1250 = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True, verbose_name='1250Hz混响时间(s)')
+    freq_1600 = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True, verbose_name='1600Hz混响时间(s)')
+    freq_2000 = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True, verbose_name='2000Hz混响时间(s)')
+    freq_2500 = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True, verbose_name='2500Hz混响时间(s)')
+    freq_3150 = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True, verbose_name='3150Hz混响时间(s)')
+    freq_4000 = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True, verbose_name='4000Hz混响时间(s)')
+    freq_5000 = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True, verbose_name='5000Hz混响时间(s)')
+    freq_6300 = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True, verbose_name='6300Hz混响时间(s)')
+    freq_8000 = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True, verbose_name='8000Hz混响时间(s)')
+    freq_10000 = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True, verbose_name='10000Hz混响时间(s)')
+
+    # 测试相关信息
+    test_image_path = models.CharField(max_length=500, null=True, blank=True, verbose_name='测试图片路径')
+    test_date = models.DateField(null=True, blank=True, verbose_name='测试日期')
+    test_location = models.CharField(max_length=100, null=True, blank=True, verbose_name='测试地点')
+    test_engineer = models.CharField(max_length=50, null=True, blank=True, verbose_name='测试工程师')
+    remarks = models.TextField(null=True, blank=True, verbose_name='备注')
+
+    # 时间戳
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+
+    class Meta:
+        db_table = 'vehicle_reverberation_data'
+        verbose_name = '车辆混响时间数据'
+        verbose_name_plural = '车辆混响时间数据'
+        ordering = ['-created_at']
+        unique_together = ['vehicle_model']  # 每个车型只能有一条混响时间数据
+
+    def __str__(self):
+        return f"{self.vehicle_model.vehicle_model_name} - 混响时间"

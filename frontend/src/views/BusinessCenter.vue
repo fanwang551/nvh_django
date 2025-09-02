@@ -74,6 +74,12 @@ const businessModules = ref([
     title: '车型隔声量查询',
     description: '查询和对比不同车型的隔声量数据',
     icon: TrendCharts
+  },
+  {
+    name: 'vehicle-reverberation-query',
+    title: '车辆混响时间查询',
+    description: '查询和对比不同车型的混响时间数据',
+    icon: Monitor
   }
 ])
 

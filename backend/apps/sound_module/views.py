@@ -3,11 +3,12 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
 from utils.response import Response
-from .models import SoundInsulationArea, SoundInsulationData, VehicleSoundInsulationData
+from .models import SoundInsulationArea, SoundInsulationData, VehicleSoundInsulationData, VehicleReverberationData
 from .serializers import (
     SoundInsulationAreaSerializer, SoundInsulationDataSerializer,
     SoundInsulationCompareSerializer, VehicleModelSimpleSerializer,
-    VehicleSoundInsulationDataSerializer, VehicleSoundInsulationCompareSerializer
+    VehicleSoundInsulationDataSerializer, VehicleSoundInsulationCompareSerializer,
+    VehicleReverberationDataSerializer, VehicleReverberationCompareSerializer
 )
 from apps.modal.models import VehicleModel
 
@@ -199,4 +200,84 @@ def vehicle_sound_insulation_compare(request):
         return Response.success(data=compare_data, message="车型隔声量对比数据获取成功")
 
     except Exception as e:
-        return Response.error(message=f"获取车型隔声量对比数据失败: {str(e)}")
+        return Response.error(message=f"获取对比数据失败: {str(e)}")
+
+
+@api_view(['GET'])
+@permission_classes([])  # 临时允许匿名访问用于测试
+def get_vehicles_with_reverberation_data(request):
+    """获取有车辆混响时间数据的车型列表"""
+    try:
+        # 获取有混响时间数据的车型
+        vehicle_models = VehicleModel.objects.filter(
+            vehiclereverberationdata__isnull=False,
+            status='active'
+        ).distinct().order_by('id')
+
+        serializer = VehicleModelSimpleSerializer(vehicle_models, many=True)
+        return Response.success(data=serializer.data, message="获取车型列表成功")
+
+    except Exception as e:
+        return Response.error(message=f"获取车型列表失败: {str(e)}")
+
+
+@api_view(['POST'])
+@permission_classes([])  # 临时允许匿名访问用于测试
+def vehicle_reverberation_compare(request):
+    """车辆混响时间数据对比"""
+    try:
+        serializer = VehicleReverberationCompareSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response.error(
+                message="参数验证失败",
+                data=serializer.errors,
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+
+        vehicle_model_ids_str = serializer.validated_data['vehicle_model_ids']
+
+        # 解析车型ID列表
+        vehicle_model_ids = [int(id.strip()) for id in vehicle_model_ids_str.split(',') if id.strip()]
+
+        # 查询车辆混响时间数据
+        queryset = VehicleReverberationData.objects.select_related(
+            'vehicle_model'
+        ).filter(
+            vehicle_model_id__in=vehicle_model_ids
+        ).order_by('vehicle_model__id')
+
+        if not queryset.exists():
+            return Response.success(data=[], message="未找到匹配的车辆混响时间数据")
+
+        # 构建对比数据
+        compare_data = []
+        frequency_fields = [
+            'freq_400', 'freq_500', 'freq_630', 'freq_800', 'freq_1000', 'freq_1250',
+            'freq_1600', 'freq_2000', 'freq_2500', 'freq_3150', 'freq_4000', 'freq_5000',
+            'freq_6300', 'freq_8000', 'freq_10000'
+        ]
+
+        for data in queryset:
+            # 构建频率数据字典
+            frequency_data = {}
+            for field in frequency_fields:
+                value = getattr(data, field)
+                frequency_data[field] = float(value) if value is not None else None
+
+            compare_data.append({
+                'id': data.id,
+                'vehicle_model_id': data.vehicle_model.id,
+                'vehicle_model_name': data.vehicle_model.vehicle_model_name,
+                'vehicle_model_code': data.vehicle_model.cle_model_code,
+                'frequency_data': frequency_data,
+                'test_image_path': data.test_image_path,
+                'test_date': data.test_date.isoformat() if data.test_date else None,
+                'test_location': data.test_location,
+                'test_engineer': data.test_engineer,
+                'remarks': data.remarks
+            })
+
+        return Response.success(data=compare_data, message="车辆混响时间对比数据获取成功")
+
+    except Exception as e:
+        return Response.error(message=f"获取车辆混响时间对比数据失败: {str(e)}")

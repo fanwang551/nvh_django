@@ -14,4 +14,8 @@ urlpatterns = [
     # 车型隔声量相关接口
     path('vehicle-sound-data/', views.get_vehicles_with_sound_data, name='get_vehicles_with_sound_data'),
     path('vehicle-sound-compare/', views.vehicle_sound_insulation_compare, name='vehicle_sound_insulation_compare'),
+
+    # 车辆混响时间相关接口
+    path('vehicle-reverberation-data/', views.get_vehicles_with_reverberation_data, name='get_vehicles_with_reverberation_data'),
+    path('vehicle-reverberation-compare/', views.vehicle_reverberation_compare, name='vehicle_reverberation_compare'),
 ]

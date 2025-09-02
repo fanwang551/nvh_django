@@ -67,7 +67,8 @@ const cachedComponents = ref([
   'AirtightLeakCompare',
   'AirtightnessImageQuery',
   'SoundInsulationCompare',
-  'VehicleSoundInsulationQuery'
+  'VehicleSoundInsulationQuery',
+  'VehicleReverberationQuery'
 ])
 
 // 菜单选择处理
@@ -105,7 +106,8 @@ const addBusinessTab = (routePath) => {
     '/business/airtight-leak-compare': { name: 'airtight-leak-compare', title: '气密性泄漏量对比' },
     '/business/airtightness-image-query': { name: 'airtightness-image-query', title: '气密性测试图片查询' },
     '/business/sound-insulation-compare': { name: 'sound-insulation-compare', title: '区域隔声量（ATF）对比' },
-    '/business/vehicle-sound-insulation-query': { name: 'vehicle-sound-insulation-query', title: '车型隔声量查询' }
+    '/business/vehicle-sound-insulation-query': { name: 'vehicle-sound-insulation-query', title: '车型隔声量查询' },
+    '/business/vehicle-reverberation-query': { name: 'vehicle-reverberation-query', title: '车辆混响时间查询' }
   }
 
   const tabConfig = businessTabConfig[routePath]
@@ -138,7 +140,8 @@ const handleTabClick = (tabName) => {
     'airtight-leak-compare': '/business/airtight-leak-compare',
     'airtightness-image-query': '/business/airtightness-image-query',
     'sound-insulation-compare': '/business/sound-insulation-compare',
-    'vehicle-sound-insulation-query': '/business/vehicle-sound-insulation-query'
+    'vehicle-sound-insulation-query': '/business/vehicle-sound-insulation-query',
+    'vehicle-reverberation-query': '/business/vehicle-reverberation-query'
   }
 
   if (allRoutes[tabName]) {
