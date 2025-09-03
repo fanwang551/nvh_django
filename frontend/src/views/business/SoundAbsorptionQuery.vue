@@ -8,22 +8,22 @@
         </div>
       </template>
       
-      <el-form :model="searchForm" label-width="120px" class="search-form">
+      <el-form :model="store.searchCriteria" label-width="120px" class="search-form">
         <el-row :gutter="20">
           <!-- 零件名称选择 -->
           <el-col :span="8">
             <el-form-item label="零件名称">
               <el-select
-                v-model="searchForm.partName"
+                v-model="store.searchCriteria.partName"
                 placeholder="请选择零件名称"
                 clearable
                 filterable
-                :loading="partNamesLoading"
+                :loading="store.partNamesLoading"
                 style="width: 100%"
                 @change="onPartNameChange"
               >
                 <el-option
-                  v-for="option in partNameOptions"
+                  v-for="option in store.partNames"
                   :key="option.value"
                   :label="option.label"
                   :value="option.value"
@@ -36,17 +36,17 @@
           <el-col :span="8">
             <el-form-item label="材料组成">
               <el-select
-                v-model="searchForm.materialComposition"
+                v-model="store.searchCriteria.materialComposition"
                 placeholder="请选择材料组成"
                 clearable
                 filterable
-                :loading="materialCompositionsLoading"
-                :disabled="!searchForm.partName"
+                :loading="store.materialCompositionsLoading"
+                :disabled="!store.searchCriteria.partName"
                 style="width: 100%"
                 @change="onMaterialCompositionChange"
               >
                 <el-option
-                  v-for="option in materialCompositionOptions"
+                  v-for="option in store.materialCompositions"
                   :key="option.value"
                   :label="option.label"
                   :value="option.value"
@@ -59,17 +59,17 @@
           <el-col :span="8">
             <el-form-item label="克重(g/m²)">
               <el-select
-                v-model="searchForm.weight"
+                v-model="store.searchCriteria.weight"
                 placeholder="请选择克重"
                 clearable
                 filterable
-                :loading="weightsLoading"
-                :disabled="!searchForm.materialComposition"
+                :loading="store.weightsLoading"
+                :disabled="!store.searchCriteria.materialComposition"
                 style="width: 100%"
                 @change="onWeightChange"
               >
                 <el-option
-                  v-for="option in weightOptions"
+                  v-for="option in store.weights"
                   :key="option.value"
                   :label="option.label"
                   :value="option.value"
@@ -84,8 +84,8 @@
           <el-col :span="24">
             <el-button
               type="primary"
-              :loading="queryLoading"
-              :disabled="!canQuery"
+              :loading="store.queryLoading"
+              :disabled="!store.canQuery"
               @click="handleQuery"
             >
               查询
@@ -97,9 +97,9 @@
     </el-card>
 
     <!-- 查询结果 -->
-    <div v-if="hasResults" class="results-section">
+    <div v-if="store.hasResults" class="results-section">
       <!-- 基本信息卡片 -->
-      <div v-for="(item, index) in queryResult" :key="item.id" class="result-item">
+      <div v-for="(item, index) in store.queryResults" :key="item.id" class="result-item">
         <el-card class="result-card" shadow="never">
           <template #header>
             <div class="card-header">
@@ -204,6 +204,7 @@
       title="测试图片"
       width="80%"
       center
+      @close="closeImageDialog"
     >
       <div v-if="currentImageData" class="image-dialog-content">
         <div class="image-info">
@@ -214,9 +215,9 @@
           <p v-if="currentImageData.test_location"><strong>测试地点：</strong>{{ currentImageData.test_location }}</p>
           <p v-if="currentImageData.test_engineer"><strong>测试工程师：</strong>{{ currentImageData.test_engineer }}</p>
         </div>
-        
+
         <div class="image-container">
-          <el-empty 
+          <el-empty
             v-if="!currentImageData.test_image_path"
             description="暂无测试图片"
             :image-size="80"
@@ -247,63 +248,57 @@ export default {
     const store = useSoundAbsorptionQueryStore()
     let chartInstance = null
 
+    // UI状态管理（组件职责）
+    const imageDialogVisible = ref(false)
+    const currentImageData = ref(null)
+
     // 频率列表
     const frequencies = [125, 160, 200, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000]
 
-    // 计算属性
-    const searchForm = computed(() => store.searchForm)
-    const partNameOptions = computed(() => store.partNameOptions)
-    const materialCompositionOptions = computed(() => store.materialCompositionOptions)
-    const weightOptions = computed(() => store.weightOptions)
-    const queryResult = computed(() => store.queryResult)
-    const chartData = computed(() => store.chartData)
-    
-    const partNamesLoading = computed(() => store.partNamesLoading)
-    const materialCompositionsLoading = computed(() => store.materialCompositionsLoading)
-    const weightsLoading = computed(() => store.weightsLoading)
-    const queryLoading = computed(() => store.queryLoading)
-    
-    const canQuery = computed(() => store.canQuery)
-    const hasResults = computed(() => store.hasResults)
-    
-    const imageDialogVisible = computed({
-      get: () => store.imageDialogVisible,
-      set: (value) => {
-        if (!value) {
-          store.closeImageDialog()
-        }
-      }
-    })
-    const currentImageData = computed(() => store.currentImageData)
-
-    // 方法
+    // UI交互处理：零件名称变化
     const onPartNameChange = async (partName) => {
       try {
-        await store.onPartNameChange(partName)
+        await store.handlePartNameChange(partName)
       } catch (error) {
         ElMessage.error('加载材料组成选项失败')
       }
     }
 
+    // UI交互处理：材料组成变化
     const onMaterialCompositionChange = async (materialComposition) => {
       try {
-        await store.onMaterialCompositionChange(materialComposition)
+        await store.handleMaterialCompositionChange(materialComposition)
       } catch (error) {
         ElMessage.error('加载克重选项失败')
       }
     }
 
+    // UI交互处理：克重变化
     const onWeightChange = (weight) => {
-      store.onWeightChange(weight)
+      store.handleWeightChange(weight)
+    }
+
+    // UI状态管理：显示图片弹窗
+    const showImageDialog = (data) => {
+      if (data && data.test_image_path) {
+        currentImageData.value = data
+        imageDialogVisible.value = true
+      }
+    }
+
+    // UI状态管理：关闭图片弹窗
+    const closeImageDialog = () => {
+      imageDialogVisible.value = false
+      currentImageData.value = null
     }
 
     const handleQuery = async () => {
       try {
         await store.queryData()
-        
+
         if (store.hasResults) {
-          ElMessage.success(`查询成功，共找到 ${store.queryResult.length} 条数据`)
-          
+          ElMessage.success(`查询成功，共找到 ${store.queryResults.length} 条数据`)
+
           // 等待DOM更新后再初始化图表
           await nextTick()
           initChart()
@@ -318,11 +313,8 @@ export default {
     const handleReset = () => {
       store.resetState()
       destroyChart()
+      closeImageDialog()
       ElMessage.info('已重置查询条件')
-    }
-
-    const showImageDialog = (data) => {
-      store.showImageDialog(data)
     }
 
     // 图片错误处理已移至 @/utils/imageService，直接使用导入的 handleImageError
@@ -331,37 +323,184 @@ export default {
     const getTableData = (item) => {
       const testRow = { type: '测试值' }
       const targetRow = { type: '目标值' }
-      
+
       frequencies.forEach(freq => {
         const testValue = item.test_frequency_data[`test_value_${freq}`]
         const targetValue = item.target_frequency_data[`target_value_${freq}`]
-        
+
         testRow[`freq_${freq}`] = testValue !== null && testValue !== undefined ? testValue : '-'
         targetRow[`freq_${freq}`] = targetValue !== null && targetValue !== undefined ? targetValue : '-'
       })
-      
+
       return [testRow, targetRow]
     }
 
-    // 初始化图表
+    // 图表管理：获取图表配置（组件职责）
+    const getChartOption = () => {
+      const colors = ['#5470c6', '#ee6666', '#91cc75', '#fac858', '#73c0de', '#3ba272', '#fc8452', '#9a60b4']
+
+      const series = []
+      store.formattedChartData.forEach((item, index) => {
+        // 测试值曲线（实线）
+        series.push({
+          name: `测试值`,
+          type: 'line',
+          data: item.testData.map((value, freqIndex) => ({
+            value: value,
+            freq: frequencies[freqIndex],
+            freqLabel: `${frequencies[freqIndex]}Hz`,
+            itemData: item.itemData
+          })),
+          symbol: 'circle',
+          symbolSize: 8,
+          lineStyle: {
+            width: 3,
+            color: colors[index % colors.length],
+            type: 'solid'
+          },
+          itemStyle: {
+            color: colors[index % colors.length]
+          },
+          emphasis: {
+            focus: 'series',
+            symbolSize: 12
+          },
+          connectNulls: false
+        })
+
+        // 目标值曲线（虚线）
+        series.push({
+          name: `目标值`,
+          type: 'line',
+          data: item.targetData.map((value, freqIndex) => ({
+            value: value,
+            freq: frequencies[freqIndex],
+            freqLabel: `${frequencies[freqIndex]}Hz`,
+            itemData: item.itemData
+          })),
+          symbol: 'diamond',
+          symbolSize: 8,
+          lineStyle: {
+            width: 3,
+            color: colors[index % colors.length],
+            type: 'dashed'
+          },
+          itemStyle: {
+            color: colors[index % colors.length]
+          },
+          emphasis: {
+            focus: 'series',
+            symbolSize: 12
+          },
+          connectNulls: false
+        })
+      })
+
+      return {
+        title: {
+          text: '吸声系数曲线对比',
+          left: 'center',
+          textStyle: {
+            fontSize: 16,
+            fontWeight: 'normal'
+          }
+        },
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: {
+            type: 'cross'
+          },
+          formatter: function(params) {
+            if (params.length === 0) return ''
+
+            const dataIndex = params[0].dataIndex
+            const freq = frequencies[dataIndex]
+            let result = `频率: ${freq}Hz<br/>`
+
+            params.forEach(param => {
+              if (param.value !== null && param.value !== undefined) {
+                result += `${param.seriesName}: ${param.value}<br/>`
+              }
+            })
+            result += '<br/>点击数据点查看测试详情'
+            return result
+          }
+        },
+        legend: {
+          top: 30,
+          type: 'scroll'
+        },
+        grid: {
+          left: '8%',
+          right: '4%',
+          bottom: '15%',
+          top: '15%',
+          containLabel: true
+        },
+        xAxis: {
+          type: 'category',
+          name: '频率 (Hz)',
+          nameLocation: 'middle',
+          nameGap: 30,
+          data: frequencies.map(freq => freq.toString()),
+          axisLabel: {
+            rotate: 45,
+            fontSize: 12
+          }
+        },
+        yAxis: {
+          type: 'value',
+          name: '吸声系数',
+          nameLocation: 'middle',
+          nameGap: 50,
+          min: 0,
+          max: 1,
+          axisLabel: {
+            formatter: '{value}',
+            fontSize: 12
+          },
+          splitLine: {
+            show: true,
+            lineStyle: {
+              color: '#e6e6e6',
+              type: 'dashed'
+            }
+          }
+        },
+        series: series,
+        dataZoom: [
+          {
+            type: 'slider',
+            show: true,
+            xAxisIndex: [0],
+            start: 0,
+            end: 100,
+            bottom: '5%'
+          }
+        ]
+      }
+    }
+
+    // 图表管理：初始化图表（组件职责）
     const initChart = () => {
       destroyChart()
-      
+
       const chartDom = document.getElementById('absorptionChart')
-      if (!chartDom) return
-      
+      if (!chartDom || !store.formattedChartData.length) return
+
       chartInstance = echarts.init(chartDom)
-      
-      const option = store.getChartOption()
+
+      // 使用组件内的图表配置
+      const option = getChartOption()
       chartInstance.setOption(option)
-      
+
       // 绑定点击事件
       chartInstance.on('click', (params) => {
         if (params.data && params.data.itemData) {
           showImageDialog(params.data.itemData)
         }
       })
-      
+
       // 响应式处理
       window.addEventListener('resize', chartInstance.resize)
     }
@@ -378,9 +517,37 @@ export default {
     // 生命周期
     onMounted(async () => {
       try {
-        await store.initializePageData()
+        await store.initializeData()
+
+        // 如果有查询结果，重新渲染图表
+        if (store.hasResults) {
+          await nextTick()
+          initChart()
+        }
       } catch (error) {
         ElMessage.error('初始化页面数据失败')
+      }
+    })
+
+    onActivated(async () => {
+      try {
+        await store.initializeData()
+
+        // 如果有查询结果，重新渲染图表
+        if (store.hasResults) {
+          await nextTick()
+          initChart()
+        }
+      } catch (error) {
+        ElMessage.error('初始化页面数据失败')
+      }
+    })
+
+    onDeactivated(() => {
+      destroyChart()
+      // 关闭可能打开的弹窗
+      if (imageDialogVisible.value) {
+        closeImageDialog()
       }
     })
 
@@ -389,23 +556,14 @@ export default {
     })
 
     return {
-      // 状态
-      searchForm,
-      partNameOptions,
-      materialCompositionOptions,
-      weightOptions,
-      queryResult,
-      chartData,
-      partNamesLoading,
-      materialCompositionsLoading,
-      weightsLoading,
-      queryLoading,
-      canQuery,
-      hasResults,
+      // Store
+      store,
+
+      // UI状态
       imageDialogVisible,
       currentImageData,
       frequencies,
-      
+
       // 方法
       onPartNameChange,
       onMaterialCompositionChange,
@@ -413,6 +571,7 @@ export default {
       handleQuery,
       handleReset,
       showImageDialog,
+      closeImageDialog,
       handleImageError,
       getImageUrl,
       getTableData

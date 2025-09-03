@@ -3,70 +3,81 @@ import { soundAbsorptionApi } from '@/api/soundAbsorption'
 
 export const useSoundAbsorptionQueryStore = defineStore('soundAbsorptionQuery', {
     state: () => ({
-        // 查询表单状态
-        searchForm: {
+        // 查询条件
+        searchCriteria: {
             partName: '',
             materialComposition: '',
             weight: null
         },
 
-        // 选项数据
-        partNameOptions: [],
-        materialCompositionOptions: [],
-        weightOptions: [],
+        // 业务数据
+        partNames: [],
+        materialCompositions: [],
+        weights: [],
+        queryResults: [],
+        chartData: [],
 
-        // 查询结果
-        queryResult: [],
-        chartData: [], // 专门用于图表的数据
-
-        // 加载状态
+        // 业务状态
+        isLoading: false,
+        error: null,
         partNamesLoading: false,
         materialCompositionsLoading: false,
         weightsLoading: false,
         queryLoading: false,
-
-        // 弹窗状态
-        imageDialogVisible: false,
-        currentImageData: null,
     }),
 
     getters: {
-        // 是否可以查询
+        // 业务验证：是否可以查询
         canQuery: (state) => {
-            return state.searchForm.partName || 
-                   state.searchForm.materialComposition || 
-                   state.searchForm.weight !== null
+            return state.searchCriteria.partName ||
+                   state.searchCriteria.materialComposition ||
+                   state.searchCriteria.weight !== null
         },
 
-        // 是否有查询结果
+        // 业务状态：是否有查询结果
         hasResults: (state) => {
-            return state.queryResult.length > 0
+            return state.queryResults.length > 0
         },
 
-        // 获取当前查询条件描述
+        // 计算属性：格式化的图表数据
+        formattedChartData: (state) => {
+            return state.chartData
+        },
+
+        // 计算属性：当前查询条件描述
         queryDescription: (state) => {
             const conditions = []
-            if (state.searchForm.partName) {
-                conditions.push(`零件名称: ${state.searchForm.partName}`)
+            if (state.searchCriteria.partName) {
+                conditions.push(`零件名称: ${state.searchCriteria.partName}`)
             }
-            if (state.searchForm.materialComposition) {
-                conditions.push(`材料组成: ${state.searchForm.materialComposition}`)
+            if (state.searchCriteria.materialComposition) {
+                conditions.push(`材料组成: ${state.searchCriteria.materialComposition}`)
             }
-            if (state.searchForm.weight !== null) {
-                conditions.push(`克重: ${state.searchForm.weight}g/m²`)
+            if (state.searchCriteria.weight !== null) {
+                conditions.push(`克重: ${state.searchCriteria.weight}g/m²`)
             }
             return conditions.join(' | ')
+        },
+
+        // 业务状态：是否正在加载
+        isLoadingAny: (state) => {
+            return state.isLoading || state.partNamesLoading || state.materialCompositionsLoading || state.weightsLoading || state.queryLoading
         }
     },
 
     actions: {
-        // 加载零件名称选项
-        async loadPartNameOptions() {
+        // API调用：加载零件名称选项
+        async fetchPartNames() {
             try {
                 this.partNamesLoading = true
+                this.error = null
+
                 const response = await soundAbsorptionApi.getPartNameOptions()
-                this.partNameOptions = response.data || []
+                this.partNames = response.data || []
+
+                return this.partNames
             } catch (error) {
+                this.error = '加载零件名称选项失败'
                 console.error('加载零件名称选项失败:', error)
                 throw error
             } finally {
@@ -74,17 +85,22 @@ export const useSoundAbsorptionQueryStore = defineStore('soundAbsorptionQuery', 
             }
         },
 
-        // 加载材料组成选项
-        async loadMaterialCompositionOptions(partName = null) {
+        // API调用：加载材料组成选项
+        async fetchMaterialCompositions(partName = null) {
             try {
                 this.materialCompositionsLoading = true
+                this.error = null
+
                 const params = {}
                 if (partName) {
                     params.part_name = partName
                 }
                 const response = await soundAbsorptionApi.getMaterialCompositionOptions(params)
-                this.materialCompositionOptions = response.data || []
+                this.materialCompositions = response.data || []
+
+                return this.materialCompositions
             } catch (error) {
+                this.error = '加载材料组成选项失败'
                 console.error('加载材料组成选项失败:', error)
                 throw error
             } finally {
@@ -92,10 +108,12 @@ export const useSoundAbsorptionQueryStore = defineStore('soundAbsorptionQuery', 
             }
         },
 
-        // 加载克重选项
-        async loadWeightOptions(partName = null, materialComposition = null) {
+        // API调用：加载克重选项
+        async fetchWeights(partName = null, materialComposition = null) {
             try {
                 this.weightsLoading = true
+                this.error = null
+
                 const params = {}
                 if (partName) {
                     params.part_name = partName
@@ -104,8 +122,11 @@ export const useSoundAbsorptionQueryStore = defineStore('soundAbsorptionQuery', 
                     params.material_composition = materialComposition
                 }
                 const response = await soundAbsorptionApi.getWeightOptions(params)
-                this.weightOptions = response.data || []
+                this.weights = response.data || []
+
+                return this.weights
             } catch (error) {
+                this.error = '加载克重选项失败'
                 console.error('加载克重选项失败:', error)
                 throw error
             } finally {
@@ -113,34 +134,38 @@ export const useSoundAbsorptionQueryStore = defineStore('soundAbsorptionQuery', 
             }
         },
 
-        // 查询吸声系数数据
+        // API调用：查询吸声系数数据
         async queryData() {
             if (!this.canQuery) {
-                throw new Error('请至少选择一个查询条件')
+                const error = new Error('请至少选择一个查询条件')
+                this.error = error.message
+                throw error
             }
 
             try {
                 this.queryLoading = true
+                this.error = null
 
                 const data = {}
-                if (this.searchForm.partName) {
-                    data.part_name = this.searchForm.partName
+                if (this.searchCriteria.partName) {
+                    data.part_name = this.searchCriteria.partName
                 }
-                if (this.searchForm.materialComposition) {
-                    data.material_composition = this.searchForm.materialComposition
+                if (this.searchCriteria.materialComposition) {
+                    data.material_composition = this.searchCriteria.materialComposition
                 }
-                if (this.searchForm.weight !== null) {
-                    data.weight = this.searchForm.weight
+                if (this.searchCriteria.weight !== null) {
+                    data.weight = this.searchCriteria.weight
                 }
 
                 const response = await soundAbsorptionApi.querySoundAbsorption(data)
-                this.queryResult = response.data || []
+                this.queryResults = response.data || []
 
-                // 生成图表数据
-                this.generateChartData()
+                // 处理图表数据
+                this.processChartData()
 
-                return this.queryResult
+                return this.queryResults
             } catch (error) {
+                this.error = '查询吸声系数数据失败'
                 console.error('查询吸声系数数据失败:', error)
                 throw error
             } finally {
@@ -148,11 +173,11 @@ export const useSoundAbsorptionQueryStore = defineStore('soundAbsorptionQuery', 
             }
         },
 
-        // 生成图表数据
-        generateChartData() {
+        // 业务逻辑：处理图表数据
+        processChartData() {
             const frequencies = [125, 160, 200, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000]
 
-            this.chartData = this.queryResult.map((item, index) => {
+            this.chartData = this.queryResults.map((item, index) => {
                 // 测试值数据
                 const testSeriesData = frequencies.map(freq => {
                     const fieldName = `test_value_${freq}`
@@ -171,224 +196,80 @@ export const useSoundAbsorptionQueryStore = defineStore('soundAbsorptionQuery', 
                     name: `样本${index + 1}`,
                     testData: testSeriesData,
                     targetData: targetSeriesData,
-                    itemData: item // 保存完整数据用于点击事件
+                    itemData: item // 保存完整数据用于组件使用
                 }
             })
         },
 
-        // 获取图表配置
-        getChartOption() {
-            const frequencies = [125, 160, 200, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000]
-            const colors = ['#5470c6', '#ee6666', '#91cc75', '#fac858', '#73c0de', '#3ba272', '#fc8452', '#9a60b4']
-
-            const series = []
-            this.chartData.forEach((item, index) => {
-                // 测试值曲线（实线）
-                series.push({
-                    name: `测试值`,
-                    type: 'line',
-                    data: item.testData.map((value, freqIndex) => ({
-                        value: value,
-                        freq: frequencies[freqIndex],
-                        freqLabel: `${frequencies[freqIndex]}Hz`,
-                        itemData: item.itemData
-                    })),
-                    symbol: 'circle',
-                    symbolSize: 8,
-                    lineStyle: {
-                        width: 3,
-                        color: colors[index % colors.length],
-                        type: 'solid'
-                    },
-                    itemStyle: {
-                        color: colors[index % colors.length]
-                    },
-                    emphasis: {
-                        focus: 'series',
-                        symbolSize: 12
-                    },
-                    connectNulls: false
-                })
-
-                // 目标值曲线（虚线）
-                series.push({
-                    name: `目标值`,
-                    type: 'line',
-                    data: item.targetData.map((value, freqIndex) => ({
-                        value: value,
-                        freq: frequencies[freqIndex],
-                        freqLabel: `${frequencies[freqIndex]}Hz`,
-                        itemData: item.itemData
-                    })),
-                    symbol: 'diamond',
-                    symbolSize: 8,
-                    lineStyle: {
-                        width: 3,
-                        color: colors[index % colors.length],
-                        type: 'dashed'
-                    },
-                    itemStyle: {
-                        color: colors[index % colors.length]
-                    },
-                    emphasis: {
-                        focus: 'series',
-                        symbolSize: 12
-                    },
-                    connectNulls: false
-                })
-            })
-
-            return {
-                title: {
-                    text: '吸声系数曲线对比',
-                    left: 'center',
-                    textStyle: {
-                        fontSize: 16,
-                        fontWeight: 'normal'
-                    }
-                },
-                tooltip: {
-                    trigger: 'axis',
-                    axisPointer: {
-                        type: 'cross'
-                    },
-                    formatter: function(params) {
-                        if (params.length === 0) return ''
-
-                        const dataIndex = params[0].dataIndex
-                        const freq = frequencies[dataIndex]
-                        let result = `频率: ${freq}Hz<br/>`
-
-                        params.forEach(param => {
-                            if (param.value !== null && param.value !== undefined) {
-                                result += `${param.seriesName}: ${param.value}<br/>`
-                            }
-                        })
-                        result += '<br/>点击数据点查看测试详情'
-                        return result
-                    }
-                },
-                legend: {
-                    top: 30,
-                    type: 'scroll'
-                },
-                grid: {
-                    left: '8%',
-                    right: '4%',
-                    bottom: '15%',
-                    top: '15%',
-                    containLabel: true
-                },
-                xAxis: {
-                    type: 'category',
-                    name: '频率 (Hz)',
-                    nameLocation: 'middle',
-                    nameGap: 30,
-                    data: frequencies.map(freq => freq.toString()),
-                    axisLabel: {
-                        rotate: 45,
-                        fontSize: 12
-                    }
-                },
-                yAxis: {
-                    type: 'value',
-                    name: '吸声系数',
-                    nameLocation: 'middle',
-                    nameGap: 50,
-                    min: 0,
-                    max: 1,
-                    axisLabel: {
-                        formatter: '{value}',
-                        fontSize: 12
-                    },
-                    splitLine: {
-                        show: true,
-                        lineStyle: {
-                            color: '#e6e6e6',
-                            type: 'dashed'
-                        }
-                    }
-                },
-                series: series,
-                dataZoom: [
-                    {
-                        type: 'slider',
-                        show: true,
-                        xAxisIndex: [0],
-                        start: 0,
-                        end: 100,
-                        bottom: '5%'
-                    }
-                ]
+        // 业务逻辑：数据验证
+        validateSearchCriteria() {
+            if (!this.searchCriteria.partName && !this.searchCriteria.materialComposition && this.searchCriteria.weight === null) {
+                throw new Error('请至少选择一个查询条件')
             }
+            return true
         },
 
-        // 零件名称变化处理
-        async onPartNameChange(partName) {
-            this.searchForm.partName = partName
-            
+        // 业务逻辑：零件名称变化处理
+        async handlePartNameChange(partName) {
+            this.searchCriteria.partName = partName
+
             // 清空下级选项
-            this.searchForm.materialComposition = ''
-            this.searchForm.weight = null
-            this.materialCompositionOptions = []
-            this.weightOptions = []
+            this.searchCriteria.materialComposition = ''
+            this.searchCriteria.weight = null
+            this.materialCompositions = []
+            this.weights = []
 
             if (partName) {
                 // 重新加载材料组成选项
-                await this.loadMaterialCompositionOptions(partName)
+                await this.fetchMaterialCompositions(partName)
             }
         },
 
-        // 材料组成变化处理
-        async onMaterialCompositionChange(materialComposition) {
-            this.searchForm.materialComposition = materialComposition
-            
+        // 业务逻辑：材料组成变化处理
+        async handleMaterialCompositionChange(materialComposition) {
+            this.searchCriteria.materialComposition = materialComposition
+
             // 清空下级选项
-            this.searchForm.weight = null
-            this.weightOptions = []
+            this.searchCriteria.weight = null
+            this.weights = []
 
             if (materialComposition) {
                 // 重新加载克重选项
-                await this.loadWeightOptions(this.searchForm.partName, materialComposition)
+                await this.fetchWeights(this.searchCriteria.partName, materialComposition)
             }
         },
 
-        // 克重变化处理
-        onWeightChange(weight) {
-            this.searchForm.weight = weight
+        // 业务逻辑：克重变化处理
+        handleWeightChange(weight) {
+            this.searchCriteria.weight = weight
         },
 
-        // 显示图片弹窗
-        showImageDialog(data) {
-            if (data && data.test_image_path) {
-                this.currentImageData = data
-                this.imageDialogVisible = true
-            }
+        // 业务逻辑：设置查询条件
+        setSearchCriteria(criteria) {
+            this.searchCriteria = { ...this.searchCriteria, ...criteria }
         },
 
-        // 关闭图片弹窗
-        closeImageDialog() {
-            this.imageDialogVisible = false
-            this.currentImageData = null
+        // 业务逻辑：清除错误状态
+        clearError() {
+            this.error = null
         },
 
-        // 清空所有状态
+        // 业务逻辑：重置所有状态
         resetState() {
-            this.searchForm = {
+            this.searchCriteria = {
                 partName: '',
                 materialComposition: '',
                 weight: null
             }
-            this.queryResult = []
+            this.queryResults = []
             this.chartData = []
-            this.imageDialogVisible = false
-            this.currentImageData = null
+            this.error = null
         },
 
-        // 初始化页面数据
-        async initializePageData() {
-            if (this.partNameOptions.length === 0) {
-                await this.loadPartNameOptions()
+        // 业务逻辑：初始化数据
+        async initializeData() {
+            if (this.partNames.length === 0) {
+                await this.fetchPartNames()
             }
         }
     }
