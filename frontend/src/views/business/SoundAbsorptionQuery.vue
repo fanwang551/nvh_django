@@ -193,7 +193,7 @@
 
     <!-- 空状态 -->
     <el-empty
-      v-else-if="!queryLoading && queryResult.length === 0"
+      v-else-if="!store.queryLoading && store.queryResults.length === 0"
       description="暂无查询结果"
       style="margin-top: 40px;"
     />
@@ -236,7 +236,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onActivated, onDeactivated, onUnmounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useSoundAbsorptionQueryStore } from '@/store/soundAbsorptionQuery'
 import { getImageUrl, handleImageError } from '@/utils/imageService'
@@ -321,12 +321,14 @@ export default {
 
     // 获取表格数据
     const getTableData = (item) => {
+      if (!item) return []
+
       const testRow = { type: '测试值' }
       const targetRow = { type: '目标值' }
 
       frequencies.forEach(freq => {
-        const testValue = item.test_frequency_data[`test_value_${freq}`]
-        const targetValue = item.target_frequency_data[`target_value_${freq}`]
+        const testValue = item.test_frequency_data?.[`test_value_${freq}`]
+        const targetValue = item.target_frequency_data?.[`target_value_${freq}`]
 
         testRow[`freq_${freq}`] = testValue !== null && testValue !== undefined ? testValue : '-'
         targetRow[`freq_${freq}`] = targetValue !== null && targetValue !== undefined ? targetValue : '-'
@@ -340,17 +342,20 @@ export default {
       const colors = ['#5470c6', '#ee6666', '#91cc75', '#fac858', '#73c0de', '#3ba272', '#fc8452', '#9a60b4']
 
       const series = []
-      store.formattedChartData.forEach((item, index) => {
-        // 测试值曲线（实线）
-        series.push({
-          name: `测试值`,
-          type: 'line',
-          data: item.testData.map((value, freqIndex) => ({
-            value: value,
-            freq: frequencies[freqIndex],
-            freqLabel: `${frequencies[freqIndex]}Hz`,
-            itemData: item.itemData
-          })),
+      if (store.formattedChartData && Array.isArray(store.formattedChartData)) {
+        store.formattedChartData.forEach((item, index) => {
+          if (!item || !item.testData || !Array.isArray(item.testData)) return
+
+          // 测试值曲线（实线）
+          series.push({
+            name: `测试值`,
+            type: 'line',
+            data: item.testData.map((value, freqIndex) => ({
+              value: value,
+              freq: frequencies[freqIndex],
+              freqLabel: `${frequencies[freqIndex]}Hz`,
+              itemData: item.itemData
+            })),
           symbol: 'circle',
           symbolSize: 8,
           lineStyle: {
@@ -368,16 +373,17 @@ export default {
           connectNulls: false
         })
 
-        // 目标值曲线（虚线）
-        series.push({
-          name: `目标值`,
-          type: 'line',
-          data: item.targetData.map((value, freqIndex) => ({
-            value: value,
-            freq: frequencies[freqIndex],
-            freqLabel: `${frequencies[freqIndex]}Hz`,
-            itemData: item.itemData
-          })),
+          // 目标值曲线（虚线）
+          if (item.targetData && Array.isArray(item.targetData)) {
+            series.push({
+              name: `目标值`,
+              type: 'line',
+              data: item.targetData.map((value, freqIndex) => ({
+                value: value,
+                freq: frequencies[freqIndex],
+                freqLabel: `${frequencies[freqIndex]}Hz`,
+                itemData: item.itemData
+              })),
           symbol: 'diamond',
           symbolSize: 8,
           lineStyle: {
@@ -388,13 +394,15 @@ export default {
           itemStyle: {
             color: colors[index % colors.length]
           },
-          emphasis: {
-            focus: 'series',
-            symbolSize: 12
-          },
-          connectNulls: false
+            emphasis: {
+              focus: 'series',
+              symbolSize: 12
+            },
+            connectNulls: false
+          })
+        }
         })
-      })
+      }
 
       return {
         title: {
@@ -486,7 +494,7 @@ export default {
       destroyChart()
 
       const chartDom = document.getElementById('absorptionChart')
-      if (!chartDom || !store.formattedChartData.length) return
+      if (!chartDom || !store.formattedChartData || !Array.isArray(store.formattedChartData) || !store.formattedChartData.length) return
 
       chartInstance = echarts.init(chartDom)
 
