@@ -199,6 +199,7 @@ import { computed, onMounted, onActivated, onDeactivated } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search, List } from '@element-plus/icons-vue'
 import { useModalDataQueryStore } from '@/store/modalDataQuery'
+import { getImageUrl, handleImageError } from '@/utils/imageService'
 
 // 组件名称，用于keep-alive缓存
 defineOptions({
@@ -270,21 +271,7 @@ const handleCloseDialog = () => {
   store.closeModalShapeDialog()
 }
 
-// 获取图片URL
-const getImageUrl = (filePath) => {
-  if (!filePath) return ''
-  // 如果是相对路径，添加后端服务器地址
-  if (filePath.startsWith('/')) {
-    return `http://127.0.0.1:8000${filePath}`
-  }
-  return filePath
-}
-
-// 图片加载错误处理
-const handleImageError = (event) => {
-  console.error('图片加载失败:', event.target.src)
-  ElMessage.error('图片加载失败')
-}
+// 图片相关功能已移至 @/utils/imageService
 
 // 分页处理
 const handleSizeChange = async (val) => {
