@@ -3,35 +3,33 @@ import modalApi from '@/api/modal'
 
 export const useModalDataQueryStore = defineStore('modalDataQuery', {
   state: () => ({
-    // 查询表单状态
+    // 业务数据状态 - 查询表单状态
     searchForm: {
       vehicleModelId: null,
-      componentIds: [] // 与组件中使用的字段名保持一致
+      componentIds: []
     },
-    
-    // 选项数据
+
+    // 业务数据状态 - 选项数据
     vehicleModelOptions: [],
-    componentOptions: [], // 与组件中的字段名保持一致
-    
-    // 加载状态
+    componentOptions: [],
+
+    // 业务状态 - 加载状态
     vehicleModelsLoading: false,
-    componentsLoading: false, // 与组件中的字段名保持一致
+    componentsLoading: false,
     loading: false, // 查询时的加载状态
-    
-    // 查询结果
+
+    // 业务数据状态 - 查询结果
     modalDataResult: {
       count: 0,
       results: []
     },
-    
-    // 分页状态
+
+    // 业务状态 - 分页状态
     currentPage: 1,
-    pageSize: 10,
-    
-    // 弹窗状态
-    modalShapeDialogVisible: false, // 与组件中的字段名保持一致
-    currentModalData: null, // 与组件中的字段名保持一致
-    activeTab: 'shape' // 'shape' 或 'photo'，与组件中保持一致
+    pageSize: 10
+
+    // UI状态已移除：modalShapeDialogVisible, currentModalData, activeTab
+    // 这些状态现在由组件管理
   }),
   
   getters: {
@@ -159,24 +157,8 @@ export const useModalDataQueryStore = defineStore('modalDataQuery', {
       }
     },
     
-    // 查看振型
-    viewModalShape(row) {
-      this.currentModalData = row
-      this.activeTab = 'shape' // 默认显示振型动画
-      this.modalShapeDialogVisible = true
-    },
-    
-    // 关闭弹窗
-    closeModalShapeDialog() {
-      this.modalShapeDialogVisible = false
-      this.currentModalData = null
-      this.activeTab = 'shape'
-    },
-    
-    // 切换弹窗标签页
-    switchDialogTab(tab) {
-      this.activeTab = tab
-    },
+    // UI相关方法已移除：viewModalShape, closeModalShapeDialog, switchDialogTab
+    // 这些方法现在由组件管理
     
     // 设置零件选择
     setComponentIds(componentIds) {
@@ -195,7 +177,7 @@ export const useModalDataQueryStore = defineStore('modalDataQuery', {
       }
     },
     
-    // 清空所有状态
+    // 业务逻辑：重置业务状态
     resetState() {
       this.searchForm = {
         vehicleModelId: null,
@@ -207,9 +189,7 @@ export const useModalDataQueryStore = defineStore('modalDataQuery', {
       }
       this.currentPage = 1
       this.pageSize = 10
-      this.modalShapeDialogVisible = false
-      this.currentModalData = null
-      this.activeTab = 'shape'
+      // UI状态重置已移除，现在由组件管理
     }
   }
 })

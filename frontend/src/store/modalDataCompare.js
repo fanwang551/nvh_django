@@ -24,17 +24,12 @@ export const useModalDataCompareStore = defineStore('modalDataCompare', {
     modeTypesLoading: false,
     compareLoading: false,
     
-    // 对比结果 - 需要保持的状态
-    compareResult: [],
-    
-    // 弹窗状态 - 切换时需要清除
-    modalShapeDialogVisible: false,
-    currentModalData: null,
-    activeTab: 'shape', // 'shape' 或 'photo'
-    
-    // 图表状态
-    chartInstance: null,
-    chartInitialized: false
+    // 业务数据状态 - 对比结果
+    compareResult: []
+
+    // UI状态已移除：modalShapeDialogVisible, currentModalData, activeTab
+    // 图表状态已移除：chartInstance, chartInitialized
+    // 这些状态现在由组件管理
   }),
   
   getters: {
@@ -247,37 +242,9 @@ export const useModalDataCompareStore = defineStore('modalDataCompare', {
       this.compareResult = []
     },
     
-    // 显示模态振型弹窗
-    showModalShapeDialog(modalData) {
-      this.currentModalData = modalData
-      this.modalShapeDialogVisible = true
-      this.activeTab = 'shape'
-    },
-    
-    // 关闭模态振型弹窗
-    closeModalShapeDialog() {
-      this.modalShapeDialogVisible = false
-      this.currentModalData = null
-      this.activeTab = 'shape'
-    },
-    
-    // 切换弹窗标签页
-    switchDialogTab(tab) {
-      this.activeTab = tab
-    },
-    
-    // 设置图表实例
-    setChartInstance(instance) {
-      this.chartInstance = instance
-      this.chartInitialized = !!instance
-    },
-    
-    // 清理弹窗状态（在onDeactivated时调用）
-    clearDialogState() {
-      this.modalShapeDialogVisible = false
-      this.currentModalData = null
-      this.activeTab = 'shape'
-    },
+    // UI相关方法已移除：showModalShapeDialog, closeModalShapeDialog, switchDialogTab
+    // 图表相关方法已移除：setChartInstance, clearDialogState
+    // 这些方法现在由组件管理
     
     // 初始化页面数据（在onMounted或onActivated时调用）
     async initializePageData() {

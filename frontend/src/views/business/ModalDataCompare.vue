@@ -196,14 +196,14 @@
           <div
             class="tab-item"
             :class="{ active: activeTab === 'shape' }"
-            @click="activeTab = 'shape'"
+            @click="switchDialogTab('shape')"
           >
             振型动画
           </div>
           <div
             class="tab-item"
             :class="{ active: activeTab === 'photo' }"
-            @click="activeTab = 'photo'"
+            @click="switchDialogTab('photo')"
           >
             测试图片
           </div>
@@ -287,18 +287,12 @@ const vehicleColumns = computed(() => store.vehicleColumns)
 const canCompare = computed(() => store.canCompare)
 const isTestStatusMultiple = computed(() => store.isTestStatusMultiple)
 
-const modalShapeDialogVisible = computed({
-  get: () => store.modalShapeDialogVisible,
-  set: (value) => store.modalShapeDialogVisible = value
-})
+// UI状态管理（组件职责）
+const modalShapeDialogVisible = ref(false)
+const currentModalData = ref(null)
+const activeTab = ref('shape')
 
-const currentModalData = computed(() => store.currentModalData)
-const activeTab = computed({
-  get: () => store.activeTab,
-  set: (value) => store.activeTab = value
-})
-
-// 图表引用
+// 图表状态管理（组件职责）
 const chartContainer = ref(null)
 let chartInstance = null
 
@@ -365,7 +359,6 @@ const renderChart = () => {
 
   // 创建新的图表实例
   chartInstance = echarts.init(chartContainer.value)
-  store.setChartInstance(chartInstance)
 
   // 准备图表数据
   const seriesData = {}
@@ -535,13 +528,22 @@ const renderChart = () => {
   chartInstance._resizeListener = resizeListener
 }
 
-// 弹窗相关方法
+// UI交互处理：弹窗相关方法（组件职责）
 const viewModalShape = (modalData) => {
-  store.showModalShapeDialog(modalData)
+  currentModalData.value = modalData
+  modalShapeDialogVisible.value = true
+  activeTab.value = 'shape'
 }
 
 const handleCloseDialog = () => {
-  store.closeModalShapeDialog()
+  modalShapeDialogVisible.value = false
+  currentModalData.value = null
+  activeTab.value = 'shape'
+}
+
+// UI交互处理：切换弹窗标签页（组件职责）
+const switchDialogTab = (tab) => {
+  activeTab.value = tab
 }
 
 // 图片URL生成功能已移至 @/utils/imageService
@@ -576,11 +578,13 @@ onActivated(async () => {
   }
 })
 
-// 失活时 - 清理弹窗等UI状态，避免状态残留
+// 失活时 - 清理UI状态，避免状态残留（组件职责）
 onDeactivated(() => {
   // 清理弹窗状态
-  store.clearDialogState()
-  
+  if (modalShapeDialogVisible.value) {
+    handleCloseDialog()
+  }
+
   // 清理图表监听器，避免内存泄漏
   if (chartInstance && chartInstance._resizeListener) {
     window.removeEventListener('resize', chartInstance._resizeListener)

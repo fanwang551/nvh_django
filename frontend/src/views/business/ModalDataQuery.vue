@@ -142,14 +142,14 @@
           <div
             class="tab-item"
             :class="{ active: activeTab === 'shape' }"
-            @click="store.switchDialogTab('shape')"
+            @click="switchDialogTab('shape')"
           >
             振型动画
           </div>
           <div
             class="tab-item"
             :class="{ active: activeTab === 'photo' }"
-            @click="store.switchDialogTab('photo')"
+            @click="switchDialogTab('photo')"
           >
             测试图片
           </div>
@@ -195,7 +195,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onActivated, onDeactivated } from 'vue'
+import { ref, computed, onMounted, onActivated, onDeactivated } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search, List } from '@element-plus/icons-vue'
 import { useModalDataQueryStore } from '@/store/modalDataQuery'
@@ -225,15 +225,10 @@ const pageSize = computed({
 const vehicleModelOptions = computed(() => store.vehicleModelOptions)
 const componentOptions = computed(() => store.componentOptions)
 const modalDataResult = computed(() => store.modalDataResult)
-const modalShapeDialogVisible = computed({
-  get: () => store.modalShapeDialogVisible,
-  set: (value) => { store.modalShapeDialogVisible = value }
-})
-const activeTab = computed({
-  get: () => store.activeTab,
-  set: (value) => { store.activeTab = value }
-})
-const currentModalData = computed(() => store.currentModalData)
+// UI状态管理（组件职责）
+const modalShapeDialogVisible = ref(false)
+const currentModalData = ref(null)
+const activeTab = ref('shape')
 
 // 车型变化处理
 const handleVehicleModelChange = async (vehicleModelId) => {
@@ -261,14 +256,23 @@ const handleSearch = async () => {
   }
 }
 
-// 查看振型
+// UI交互处理：查看振型（组件职责）
 const viewModalShape = (row) => {
-  store.viewModalShape(row)
+  currentModalData.value = row
+  activeTab.value = 'shape' // 默认显示振型动画
+  modalShapeDialogVisible.value = true
 }
 
-// 关闭弹窗
+// UI交互处理：关闭弹窗（组件职责）
 const handleCloseDialog = () => {
-  store.closeModalShapeDialog()
+  modalShapeDialogVisible.value = false
+  currentModalData.value = null
+  activeTab.value = 'shape'
+}
+
+// UI交互处理：切换弹窗标签页（组件职责）
+const switchDialogTab = (tab) => {
+  activeTab.value = tab
 }
 
 // 图片相关功能已移至 @/utils/imageService
@@ -322,9 +326,9 @@ onActivated(async () => {
 
 // 组件被停用时（被keep-alive缓存）
 onDeactivated(() => {
-  // 关闭弹窗，避免状态残留
-  if (store.modalShapeDialogVisible) {
-    store.closeModalShapeDialog()
+  // 清理UI状态，避免状态残留（组件职责）
+  if (modalShapeDialogVisible.value) {
+    handleCloseDialog()
   }
 })
 </script>
