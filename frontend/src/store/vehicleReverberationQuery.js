@@ -3,59 +3,63 @@ import { soundInsulationApi } from '@/api/soundInsulation'
 
 export const useVehicleReverberationQueryStore = defineStore('vehicleReverberationQuery', {
     state: () => ({
-        // 查询表单状态
-        searchForm: {
+        // 查询条件
+        searchCriteria: {
             vehicleModelIds: []
         },
 
-        // 数据状态
-        vehicleModelOptions: [],
-        compareResult: [],
-        chartData: [], // 专门用于图表的数据
+        // 业务数据
+        vehicleModels: [],
+        compareResults: [],
+        chartData: [],
 
-        // 加载状态
+        // 业务状态
+        isLoading: false,
+        error: null,
         vehicleModelsLoading: false,
         compareLoading: false,
-
-        // UI状态
-        selectAllVehicles: false,
-
-        // 弹窗状态
-        imageDialogVisible: false,
-        currentImageData: null,
     }),
 
     getters: {
-        // 是否可以查询
+        // 业务验证：是否可以查询
         canQuery: (state) => {
-            return state.searchForm.vehicleModelIds.length > 0
+            return state.searchCriteria.vehicleModelIds.length > 0
         },
 
-        // 是否有查询结果
+        // 业务状态：是否有查询结果
         hasResults: (state) => {
-            return state.compareResult.length > 0
+            return state.compareResults.length > 0
         },
 
-        // 选中的车型数量
+        // 计算属性：选中的车型数量
         selectedVehicleCount: (state) => {
-            return state.searchForm.vehicleModelIds.length
+            return state.searchCriteria.vehicleModelIds.length
         },
 
-        // 全选状态
-        isAllVehiclesSelected: (state) => {
-            return state.vehicleModelOptions.length > 0 &&
-                state.searchForm.vehicleModelIds.length === state.vehicleModelOptions.length
+        // 计算属性：格式化的图表数据
+        formattedChartData: (state) => {
+            return state.chartData
+        },
+
+        // 业务状态：是否正在加载
+        isLoadingAny: (state) => {
+            return state.isLoading || state.vehicleModelsLoading || state.compareLoading
         }
     },
 
     actions: {
-        // 加载有混响时间数据的车型列表
-        async loadVehicleModels() {
+        // API调用：加载有混响时间数据的车型列表
+        async fetchVehicleModels() {
             try {
                 this.vehicleModelsLoading = true
+                this.error = null
+
                 const response = await soundInsulationApi.getVehiclesWithReverberationData()
-                this.vehicleModelOptions = response.data || []
+                this.vehicleModels = response.data || []
+
+                return this.vehicleModels
             } catch (error) {
+                this.error = '加载车型列表失败'
                 console.error('加载车型列表失败:', error)
                 throw error
             } finally {
@@ -63,27 +67,31 @@ export const useVehicleReverberationQueryStore = defineStore('vehicleReverberati
             }
         },
 
-        // 生成对比数据
+        // API调用：生成对比数据
         async generateCompareData() {
             if (!this.canQuery) {
-                throw new Error('请选择车型')
+                const error = new Error('请选择车型')
+                this.error = error.message
+                throw error
             }
 
             try {
                 this.compareLoading = true
+                this.error = null
 
                 const data = {
-                    vehicle_model_ids: this.searchForm.vehicleModelIds.join(',')
+                    vehicle_model_ids: this.searchCriteria.vehicleModelIds.join(',')
                 }
 
                 const response = await soundInsulationApi.compareVehicleReverberationData(data)
-                this.compareResult = response.data || []
+                this.compareResults = response.data || []
 
-                // 生成图表数据
-                this.generateChartData()
+                // 处理图表数据
+                this.processChartData()
 
-                return this.compareResult
+                return this.compareResults
             } catch (error) {
+                this.error = '生成对比数据失败'
                 console.error('生成对比数据失败:', error)
                 throw error
             } finally {
@@ -91,11 +99,11 @@ export const useVehicleReverberationQueryStore = defineStore('vehicleReverberati
             }
         },
 
-        // 生成图表数据
-        generateChartData() {
+        // 业务逻辑：处理图表数据
+        processChartData() {
             const frequencies = [400, 500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000]
 
-            this.chartData = this.compareResult.map(item => {
+            this.chartData = this.compareResults.map(item => {
                 const seriesData = frequencies.map(freq => {
                     const fieldName = `freq_${freq}`
                     const value = item.frequency_data[fieldName]
@@ -105,179 +113,48 @@ export const useVehicleReverberationQueryStore = defineStore('vehicleReverberati
                 return {
                     name: item.vehicle_model_name,
                     data: seriesData,
-                    itemData: item // 保存完整数据用于点击事件
+                    itemData: item // 保存完整数据用于组件使用
                 }
             })
         },
 
-        // 获取图表配置
-        getChartOption() {
-            const frequencies = [400, 500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000]
-            const colors = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4']
-
-            const series = this.chartData.map((item, index) => ({
-                name: item.name,
-                type: 'line',
-                data: item.data.map((value, freqIndex) => ({
-                    value: value,
-                    freq: frequencies[freqIndex],
-                    freqLabel: `${frequencies[freqIndex]}Hz`,
-                    itemData: item.itemData
-                })),
-                symbol: 'circle',
-                symbolSize: 8,
-                lineStyle: {
-                    width: 3,
-                    color: colors[index % colors.length]
-                },
-                itemStyle: {
-                    color: colors[index % colors.length]
-                },
-                emphasis: {
-                    focus: 'series',
-                    symbolSize: 12
-                },
-                connectNulls: false
-            }))
-
-            return {
-                title: {
-                    text: '车辆混响时间对比曲线',
-                    left: 'center',
-                    textStyle: {
-                        fontSize: 16,
-                        fontWeight: 'normal'
-                    }
-                },
-                tooltip: {
-                    trigger: 'axis',
-                    axisPointer: {
-                        type: 'cross'
-                    },
-                    formatter: function(params) {
-                        if (params.length === 0) return ''
-
-                        const dataIndex = params[0].dataIndex
-                        const freq = frequencies[dataIndex]
-                        let result = `频率: ${freq}Hz<br/>`
-
-                        params.forEach(param => {
-                            if (param.value !== null && param.value !== undefined) {
-                                result += `${param.seriesName}: ${param.value}s<br/>`
-                            }
-                        })
-                        result += '<br/>点击数据点查看测试详情'
-                        return result
-                    }
-                },
-                legend: {
-                    top: 30,
-                    type: 'scroll'
-                },
-                grid: {
-                    left: '8%',
-                    right: '4%',
-                    bottom: '15%',
-                    top: '15%',
-                    containLabel: true
-                },
-                xAxis: {
-                    type: 'category',
-                    name: '频率 (Hz)',
-                    nameLocation: 'middle',
-                    nameGap: 30,
-                    data: frequencies.map(freq => freq.toString()),
-                    axisLabel: {
-                        rotate: 45,
-                        fontSize: 12
-                    }
-                },
-                yAxis: {
-                    type: 'value',
-                    name: '混响时间 (s)',
-                    nameLocation: 'middle',
-                    nameGap: 50,
-                    axisLabel: {
-                        formatter: '{value}',
-                        fontSize: 12
-                    },
-                    splitLine: {
-                        show: true,
-                        lineStyle: {
-                            color: '#e6e6e6',
-                            type: 'dashed'
-                        }
-                    }
-                },
-                series: series,
-                dataZoom: [
-                    {
-                        type: 'slider',
-                        show: true,
-                        xAxisIndex: [0],
-                        start: 0,
-                        end: 100,
-                        bottom: '5%'
-                    }
-                ]
+        // 业务逻辑：数据验证
+        validateSearchCriteria() {
+            if (!this.searchCriteria.vehicleModelIds.length) {
+                throw new Error('请选择至少一个车型')
             }
+            return true
         },
 
-        // 设置车型选择
-        setVehicleModels(vehicleIds) {
-            this.searchForm.vehicleModelIds = vehicleIds
-            this.updateSelectAllState()
+        // 业务逻辑：设置查询条件
+        setSearchCriteria(criteria) {
+            this.searchCriteria = { ...this.searchCriteria, ...criteria }
         },
 
-        // 全选/反选车型
-        toggleSelectAllVehicles(checked) {
-            if (checked) {
-                this.searchForm.vehicleModelIds = this.vehicleModelOptions.map(v => v.id)
-            } else {
-                this.searchForm.vehicleModelIds = []
-            }
-            this.selectAllVehicles = checked
+        // 业务逻辑：设置车型选择
+        setVehicleModelIds(vehicleIds) {
+            this.searchCriteria.vehicleModelIds = vehicleIds
         },
 
-        // 更新全选状态
-        updateSelectAllState() {
-            if (this.searchForm.vehicleModelIds.length === 0) {
-                this.selectAllVehicles = false
-            } else if (this.searchForm.vehicleModelIds.length === this.vehicleModelOptions.length) {
-                this.selectAllVehicles = true
-            } else {
-                this.selectAllVehicles = false
-            }
+        // 业务逻辑：清除错误状态
+        clearError() {
+            this.error = null
         },
 
-        // 显示图片弹窗
-        showImageDialog(data) {
-            this.currentImageData = data
-            this.imageDialogVisible = true
-        },
-
-        // 关闭图片弹窗
-        closeImageDialog() {
-            this.imageDialogVisible = false
-            this.currentImageData = null
-        },
-
-        // 清空所有状态
+        // 业务逻辑：重置所有状态
         resetState() {
-            this.searchForm = {
+            this.searchCriteria = {
                 vehicleModelIds: []
             }
-            this.compareResult = []
+            this.compareResults = []
             this.chartData = []
-            this.selectAllVehicles = false
-            this.imageDialogVisible = false
-            this.currentImageData = null
+            this.error = null
         },
 
-        // 初始化页面数据
-        async initializePageData() {
-            if (this.vehicleModelOptions.length === 0) {
-                await this.loadVehicleModels()
+        // 业务逻辑：初始化数据
+        async initializeData() {
+            if (this.vehicleModels.length === 0) {
+                await this.fetchVehicleModels()
             }
         }
     }
