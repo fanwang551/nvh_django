@@ -182,6 +182,7 @@ import { ElMessage } from 'element-plus'
 import { TrendCharts } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import { useVehicleSoundInsulationQueryStore } from '@/store'
+import { getImageUrl, handleImageError } from '@/utils/imageService'
 
 // 组件名称，用于keep-alive缓存
 defineOptions({
@@ -284,15 +285,7 @@ const handleCloseImageDialog = () => {
   currentImageData.value = null
 }
 
-// 获取图片URL（使用store的getter）
-const getImageUrl = (imagePath) => {
-  return store.getImageUrl(imagePath)
-}
-
-// 图片加载错误处理
-const handleImageError = (event) => {
-  event.target.src = '/src/assets/images/no-image.png'
-}
+// 图片相关功能已移至 @/utils/imageService
 
 // 销毁图表实例
 const destroyChart = () => {

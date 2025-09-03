@@ -223,7 +223,7 @@
           />
           <img
             v-else
-            :src="currentImageData.test_image_path"
+            :src="getImageUrl(currentImageData.test_image_path)"
             :alt="`${currentImageData.part_name}测试图片`"
             style="width: 100%; max-height: 500px; object-fit: contain;"
             @error="handleImageError"
@@ -238,6 +238,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useSoundAbsorptionQueryStore } from '@/store/soundAbsorptionQuery'
+import { getImageUrl, handleImageError } from '@/utils/imageService'
 import * as echarts from 'echarts'
 
 export default {
@@ -324,10 +325,7 @@ export default {
       store.showImageDialog(data)
     }
 
-    const handleImageError = (event) => {
-      event.target.src = '/placeholder-image.png' // 设置占位图片
-      ElMessage.warning('图片加载失败')
-    }
+    // 图片错误处理已移至 @/utils/imageService，直接使用导入的 handleImageError
 
     // 获取表格数据
     const getTableData = (item) => {
@@ -416,6 +414,7 @@ export default {
       handleReset,
       showImageDialog,
       handleImageError,
+      getImageUrl,
       getTableData
     }
   }

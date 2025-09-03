@@ -182,6 +182,7 @@ import { ElMessage } from 'element-plus'
 import { TrendCharts } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import { useVehicleReverberationQueryStore } from '@/store'
+import { getImageUrl, handleImageError } from '@/utils/imageService'
 
 // 组件名称，用于keep-alive缓存
 defineOptions({
@@ -239,19 +240,7 @@ const handleReset = () => {
   destroyChart()
 }
 
-// 获取图片URL
-const getImageUrl = (imagePath) => {
-  if (!imagePath) return ''
-  if (imagePath.startsWith('/')) {
-    return `http://127.0.0.1:8000${imagePath}`
-  }
-  return imagePath
-}
-
-// 图片加载错误处理
-const handleImageError = (event) => {
-  event.target.src = '/src/assets/images/no-image.png'
-}
+// 图片相关功能已移至 @/utils/imageService
 
 // 销毁图表实例
 const destroyChart = () => {

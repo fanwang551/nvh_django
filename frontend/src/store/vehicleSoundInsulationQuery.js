@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { soundInsulationApi } from '@/api/soundInsulation'
+import { getImageUrl } from '@/utils/imageService'
 
 export const useVehicleSoundInsulationQueryStore = defineStore('vehicleSoundInsulationQuery', {
     state: () => ({
@@ -39,13 +40,9 @@ export const useVehicleSoundInsulationQueryStore = defineStore('vehicleSoundInsu
             return state.chartData
         },
 
-        // 获取图片URL（统一处理）
+        // 获取图片URL（使用统一的图片服务）
         getImageUrl: () => (imagePath) => {
-            if (!imagePath) return ''
-            if (imagePath.startsWith('/')) {
-                return `http://127.0.0.1:8000${imagePath}`
-            }
-            return imagePath
+            return getImageUrl(imagePath)
         }
     },
 

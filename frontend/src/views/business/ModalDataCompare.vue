@@ -254,6 +254,7 @@ import { ElMessage } from 'element-plus'
 import { TrendCharts } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import { useModalDataCompareStore } from '@/store/modalDataCompare'
+import { getImageUrl } from '@/utils/imageService'
 
 // 组件名称，用于keep-alive缓存
 defineOptions({
@@ -543,14 +544,7 @@ const handleCloseDialog = () => {
   store.closeModalShapeDialog()
 }
 
-const getImageUrl = (filePath) => {
-  if (!filePath) return ''
-  // 如果是相对路径，添加后端服务器地址
-  if (filePath.startsWith('/')) {
-    return `http://127.0.0.1:8000${filePath}`
-  }
-  return filePath
-}
+// 图片URL生成功能已移至 @/utils/imageService
 
 const handleImageError = (event) => {
   console.error('图片加载失败:', event.target.src)
