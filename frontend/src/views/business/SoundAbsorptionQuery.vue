@@ -9,9 +9,9 @@
       </template>
       
       <el-form :model="store.searchCriteria" label-width="120px" class="search-form">
-        <el-row :gutter="20">
+        <el-row :gutter="4">
           <!-- 零件名称选择 -->
-          <el-col :span="8">
+          <el-col :span="6">
             <el-form-item label="零件名称">
               <el-select
                 v-model="store.searchCriteria.partName"
@@ -33,7 +33,7 @@
           </el-col>
 
           <!-- 材料组成选择 -->
-          <el-col :span="8">
+          <el-col :span="6">
             <el-form-item label="材料组成">
               <el-select
                 v-model="store.searchCriteria.materialComposition"
@@ -56,7 +56,7 @@
           </el-col>
 
           <!-- 克重选择 -->
-          <el-col :span="8">
+          <el-col :span="6">
             <el-form-item label="克重(g/m²)">
               <el-select
                 v-model="store.searchCriteria.weight"
@@ -77,22 +77,20 @@
               </el-select>
             </el-form-item>
           </el-col>
-        </el-row>
 
-        <!-- 操作按钮 -->
-        <el-row class="button-row">
-          <el-col :span="24">
+          <el-col :span="6" style="text-align: right; padding-right: 40px;">
             <el-button
-              type="primary"
-              :loading="store.queryLoading"
-              :disabled="!store.canQuery"
-              @click="handleQuery"
+                type="primary"
+                :loading="store.queryLoading"
+                :disabled="!store.canQuery"
+                @click="handleQuery"
             >
               查询
             </el-button>
             <el-button @click="handleReset">重置</el-button>
           </el-col>
         </el-row>
+
       </el-form>
     </el-card>
 
