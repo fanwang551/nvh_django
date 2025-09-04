@@ -33,14 +33,14 @@ export const soundAbsorptionApi = {
 
   /**
    * 吸声系数查询
-   * @param {Object} data - 查询参数
-   * @param {string} data.part_name - 零件名称（可选）
-   * @param {string} data.material_composition - 材料组成（可选）
-   * @param {number} data.weight - 克重（可选）
+   * @param {Object} params - 查询参数
+   * @param {string} params.part_name - 零件名称（可选）
+   * @param {string} params.material_composition - 材料组成（可选）
+   * @param {number} params.weight - 克重（可选）
    * @returns {Promise} 查询结果
    */
-  querySoundAbsorption(data = {}) {
-    return request.post('/sound-insulation/sound-absorption/query/', data)
+  querySoundAbsorption(params = {}) {
+    return request.get('/sound-insulation/sound-absorption/query/', params)
   }
 }
 

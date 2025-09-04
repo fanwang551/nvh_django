@@ -106,12 +106,12 @@ export const useSoundInsulationCompareStore = defineStore('soundInsulationCompar
                 this.compareLoading = true
                 this.error = null
 
-                const data = {
+                const params = {
                     area_id: this.searchCriteria.areaId,
                     vehicle_model_ids: this.searchCriteria.vehicleModelIds.join(',')
                 }
 
-                const response = await soundInsulationApi.compareSoundInsulationData(data)
+                const response = await soundInsulationApi.compareSoundInsulationData(params)
                 this.compareResults = response.data || []
 
                 // 处理图表数据

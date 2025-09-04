@@ -60,24 +60,34 @@ def get_vehicles_by_area(request):
         return Response.error(message=f"获取车型列表失败: {str(e)}")
 
 
-@api_view(['POST'])
+@api_view(['GET'])
 @permission_classes([])  # 临时允许匿名访问用于测试
 def sound_insulation_compare(request):
     """隔声量数据对比"""
     try:
-        serializer = SoundInsulationCompareSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response.error(
-                message="参数验证失败",
-                data=serializer.errors,
-                status_code=status.HTTP_400_BAD_REQUEST
-            )
+        # 获取查询参数
+        area_id = request.GET.get('area_id')
+        vehicle_model_ids_str = request.GET.get('vehicle_model_ids')
 
-        area_id = serializer.validated_data['area_id']
-        vehicle_model_ids_str = serializer.validated_data['vehicle_model_ids']
+        # 参数验证
+        if not area_id:
+            return Response.error(message="区域ID不能为空", status_code=status.HTTP_400_BAD_REQUEST)
+
+        if not vehicle_model_ids_str:
+            return Response.error(message="车型ID列表不能为空", status_code=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            area_id = int(area_id)
+        except ValueError:
+            return Response.error(message="区域ID格式错误", status_code=status.HTTP_400_BAD_REQUEST)
 
         # 解析车型ID列表
-        vehicle_model_ids = [int(id.strip()) for id in vehicle_model_ids_str.split(',') if id.strip()]
+        try:
+            vehicle_model_ids = [int(id.strip()) for id in vehicle_model_ids_str.split(',') if id.strip()]
+            if not vehicle_model_ids:
+                return Response.error(message="车型ID列表不能为空", status_code=status.HTTP_400_BAD_REQUEST)
+        except ValueError:
+            return Response.error(message="车型ID格式错误，请使用逗号分隔的数字", status_code=status.HTTP_400_BAD_REQUEST)
 
         # 查询隔声量数据
         queryset = SoundInsulationData.objects.select_related(
@@ -143,23 +153,25 @@ def get_vehicles_with_sound_data(request):
         return Response.error(message=f"获取车型列表失败: {str(e)}")
 
 
-@api_view(['POST'])
+@api_view(['GET'])
 @permission_classes([])  # 临时允许匿名访问用于测试
 def vehicle_sound_insulation_compare(request):
     """车型隔声量数据对比"""
     try:
-        serializer = VehicleSoundInsulationCompareSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response.error(
-                message="参数验证失败",
-                data=serializer.errors,
-                status_code=status.HTTP_400_BAD_REQUEST
-            )
+        # 获取查询参数
+        vehicle_model_ids_str = request.GET.get('vehicle_model_ids')
 
-        vehicle_model_ids_str = serializer.validated_data['vehicle_model_ids']
+        # 参数验证
+        if not vehicle_model_ids_str:
+            return Response.error(message="车型ID列表不能为空", status_code=status.HTTP_400_BAD_REQUEST)
 
         # 解析车型ID列表
-        vehicle_model_ids = [int(id.strip()) for id in vehicle_model_ids_str.split(',') if id.strip()]
+        try:
+            vehicle_model_ids = [int(id.strip()) for id in vehicle_model_ids_str.split(',') if id.strip()]
+            if not vehicle_model_ids:
+                return Response.error(message="车型ID列表不能为空", status_code=status.HTTP_400_BAD_REQUEST)
+        except ValueError:
+            return Response.error(message="车型ID格式错误，请使用逗号分隔的数字", status_code=status.HTTP_400_BAD_REQUEST)
 
         # 查询车型隔声量数据
         queryset = VehicleSoundInsulationData.objects.select_related(
@@ -223,23 +235,25 @@ def get_vehicles_with_reverberation_data(request):
         return Response.error(message=f"获取车型列表失败: {str(e)}")
 
 
-@api_view(['POST'])
+@api_view(['GET'])
 @permission_classes([])  # 临时允许匿名访问用于测试
 def vehicle_reverberation_compare(request):
     """车辆混响时间数据对比"""
     try:
-        serializer = VehicleReverberationCompareSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response.error(
-                message="参数验证失败",
-                data=serializer.errors,
-                status_code=status.HTTP_400_BAD_REQUEST
-            )
+        # 获取查询参数
+        vehicle_model_ids_str = request.GET.get('vehicle_model_ids')
 
-        vehicle_model_ids_str = serializer.validated_data['vehicle_model_ids']
+        # 参数验证
+        if not vehicle_model_ids_str:
+            return Response.error(message="车型ID列表不能为空", status_code=status.HTTP_400_BAD_REQUEST)
 
         # 解析车型ID列表
-        vehicle_model_ids = [int(id.strip()) for id in vehicle_model_ids_str.split(',') if id.strip()]
+        try:
+            vehicle_model_ids = [int(id.strip()) for id in vehicle_model_ids_str.split(',') if id.strip()]
+            if not vehicle_model_ids:
+                return Response.error(message="车型ID列表不能为空", status_code=status.HTTP_400_BAD_REQUEST)
+        except ValueError:
+            return Response.error(message="车型ID格式错误，请使用逗号分隔的数字", status_code=status.HTTP_400_BAD_REQUEST)
 
         # 查询车辆混响时间数据
         queryset = VehicleReverberationData.objects.select_related(
@@ -369,27 +383,34 @@ def get_weight_options(request):
         return Response.error(message=f"获取克重选项失败: {str(e)}")
 
 
-@api_view(['POST'])
+@api_view(['GET'])
 @permission_classes([])  # 临时允许匿名访问用于测试
 def sound_absorption_query(request):
     """吸声系数查询"""
     try:
-        serializer = SoundAbsorptionQuerySerializer(data=request.data)
-        if not serializer.is_valid():
+        # 获取查询参数
+        part_name = request.GET.get('part_name')
+        material_composition = request.GET.get('material_composition')
+        weight = request.GET.get('weight')
+
+        # 参数验证 - 至少需要一个查询条件
+        if not any([part_name, material_composition, weight]):
             return Response.error(
-                message="参数验证失败",
-                data=serializer.errors,
+                message="至少需要提供一个查询条件",
                 status_code=status.HTTP_400_BAD_REQUEST
             )
-        
+
         # 构建查询条件
         filters = {}
-        if 'part_name' in serializer.validated_data:
-            filters['part_name'] = serializer.validated_data['part_name']
-        if 'material_composition' in serializer.validated_data:
-            filters['material_composition'] = serializer.validated_data['material_composition']
-        if 'weight' in serializer.validated_data:
-            filters['weight'] = serializer.validated_data['weight']
+        if part_name:
+            filters['part_name'] = part_name
+        if material_composition:
+            filters['material_composition'] = material_composition
+        if weight:
+            try:
+                filters['weight'] = float(weight)
+            except ValueError:
+                return Response.error(message="克重格式错误", status_code=status.HTTP_400_BAD_REQUEST)
         
         # 查询吸声系数数据
         queryset = SoundAbsorptionCoefficients.objects.filter(**filters).order_by('-created_at')

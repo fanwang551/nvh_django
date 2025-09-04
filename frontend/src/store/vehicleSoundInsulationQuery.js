@@ -70,11 +70,11 @@ export const useVehicleSoundInsulationQueryStore = defineStore('vehicleSoundInsu
             try {
                 this.compareLoading = true
 
-                const data = {
+                const params = {
                     vehicle_model_ids: this.searchForm.vehicleModelIds.join(',')
                 }
 
-                const response = await soundInsulationApi.compareVehicleSoundInsulationData(data)
+                const response = await soundInsulationApi.compareVehicleSoundInsulationData(params)
                 this.compareResult = response.data || []
 
                 // 生成图表数据

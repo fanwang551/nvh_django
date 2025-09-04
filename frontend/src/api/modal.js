@@ -83,25 +83,25 @@ export const modalApi = {
 
   /**
    * 模态数据对比
-   * @param {Object} data - 对比参数
-   * @param {number} data.component_id - 零件ID（必需）
-   * @param {string} data.vehicle_model_ids - 车型ID列表，逗号分隔（必需）
-   * @param {string} data.test_statuses - 测试状态列表，逗号分隔（可选）
-   * @param {string} data.mode_types - 振型类型列表，逗号分隔（可选）
+   * @param {Object} params - 对比参数
+   * @param {number} params.component_id - 零件ID（必需）
+   * @param {string} params.vehicle_model_ids - 车型ID列表，逗号分隔（必需）
+   * @param {string} params.test_statuses - 测试状态列表，逗号分隔（可选）
+   * @param {string} params.mode_types - 振型类型列表，逗号分隔（可选）
    * @returns {Promise} 对比数据
    */
-  compareModalData(data = {}) {
-    return request.post('/modal/modal-data/compare/', data)
+  compareModalData(params = {}) {
+    return request.get('/modal/modal-data/compare/', params)
   },
 
   /**
    * 气密性数据对比
-   * @param {Object} data - 对比参数
-   * @param {string} data.vehicle_model_ids - 车型ID列表，逗号分隔（必需）
+   * @param {Object} params - 对比参数
+   * @param {string} params.vehicle_model_ids - 车型ID列表，逗号分隔（必需）
    * @returns {Promise} 气密性对比数据
    */
-  compareAirtightnessData(data = {}) {
-    return request.post('/modal/airtightness-data/compare/', data)
+  compareAirtightnessData(params = {}) {
+    return request.get('/modal/airtightness-data/compare/', params)
   },
 
   /**

@@ -265,24 +265,46 @@ def get_mode_types(request):
         return Response.error(message=f"获取振型类型失败: {str(e)}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@api_view(['POST'])
+@api_view(['GET'])
 @permission_classes([])  # 临时允许匿名访问用于测试
 def modal_data_compare(request):
     """模态数据对比"""
     try:
-        serializer = ModalDataCompareSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response.error(message="参数验证失败", data=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+        # 获取查询参数
+        component_id = request.GET.get('component_id')
+        vehicle_model_ids_str = request.GET.get('vehicle_model_ids')
+        test_statuses_str = request.GET.get('test_statuses', '')
+        mode_types_str = request.GET.get('mode_types', '')
 
-        validated_data = serializer.validated_data
-        component_id = validated_data['component_id']
-        vehicle_model_ids = validated_data['vehicle_model_ids']
-        test_statuses = validated_data.get('test_statuses', '').split(',') if validated_data.get('test_statuses') else []
-        mode_types = validated_data.get('mode_types', '').split(',') if validated_data.get('mode_types') else []
+        # 参数验证
+        if not component_id:
+            return Response.error(message="零件ID不能为空", status_code=status.HTTP_400_BAD_REQUEST)
 
-        # 清理空值
-        test_statuses = [status.strip() for status in test_statuses if status.strip()]
-        mode_types = [mode_type.strip() for mode_type in mode_types if mode_type.strip()]
+        if not vehicle_model_ids_str:
+            return Response.error(message="车型ID列表不能为空", status_code=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            component_id = int(component_id)
+        except ValueError:
+            return Response.error(message="零件ID格式错误", status_code=status.HTTP_400_BAD_REQUEST)
+
+        # 验证零件是否存在
+        if not Component.objects.filter(id=component_id).exists():
+            return Response.error(message="指定的零件不存在", status_code=status.HTTP_400_BAD_REQUEST)
+
+        # 解析车型ID列表
+        try:
+            vehicle_model_ids = [int(id.strip()) for id in vehicle_model_ids_str.split(',') if id.strip()]
+            if not vehicle_model_ids:
+                return Response.error(message="车型ID列表不能为空", status_code=status.HTTP_400_BAD_REQUEST)
+        except ValueError:
+            return Response.error(message="车型ID格式错误，请使用逗号分隔的数字", status_code=status.HTTP_400_BAD_REQUEST)
+
+        # 解析测试状态列表
+        test_statuses = [status.strip() for status in test_statuses_str.split(',') if status.strip()] if test_statuses_str else []
+
+        # 解析振型类型列表
+        mode_types = [mode_type.strip() for mode_type in mode_types_str.split(',') if mode_type.strip()] if mode_types_str else []
 
         # 构建查询条件
         queryset = ModalData.objects.select_related(
@@ -336,17 +358,30 @@ def modal_data_compare(request):
         return Response.error(message=f"获取对比数据失败: {str(e)}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@api_view(['POST'])
+@api_view(['GET'])
 @permission_classes([])  # 临时允许匿名访问用于测试
 def airtightness_data_compare(request):
     """气密性数据对比"""
     try:
-        serializer = AirtightnessCompareSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response.error(message="参数验证失败", data=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+        # 获取查询参数
+        vehicle_model_ids_str = request.GET.get('vehicle_model_ids')
 
-        validated_data = serializer.validated_data
-        vehicle_model_ids = validated_data['vehicle_model_ids']
+        # 参数验证
+        if not vehicle_model_ids_str:
+            return Response.error(message="车型ID列表不能为空", status_code=status.HTTP_400_BAD_REQUEST)
+
+        # 解析车型ID列表
+        try:
+            vehicle_model_ids = [int(id.strip()) for id in vehicle_model_ids_str.split(',') if id.strip()]
+            if not vehicle_model_ids:
+                return Response.error(message="车型ID列表不能为空", status_code=status.HTTP_400_BAD_REQUEST)
+        except ValueError:
+            return Response.error(message="车型ID格式错误，请使用逗号分隔的数字", status_code=status.HTTP_400_BAD_REQUEST)
+
+        # 验证所有车型ID是否存在
+        existing_count = VehicleModel.objects.filter(id__in=vehicle_model_ids).count()
+        if existing_count != len(vehicle_model_ids):
+            return Response.error(message="部分车型ID不存在", status_code=status.HTTP_400_BAD_REQUEST)
 
         # 查询气密性测试数据
         queryset = AirtightnessTest.objects.select_related('vehicle_model').filter(

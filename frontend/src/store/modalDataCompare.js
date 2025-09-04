@@ -165,14 +165,14 @@ export const useModalDataCompareStore = defineStore('modalDataCompare', {
           ? this.compareForm.testStatuses
           : [this.compareForm.testStatuses]
         
-        const data = {
+        const params = {
           component_id: this.compareForm.componentId,
           vehicle_model_ids: this.compareForm.vehicleModelIds.join(','),
           test_statuses: testStatusesArray.join(','),
           mode_types: this.compareForm.modeTypes.join(',')
         }
-        
-        const response = await modalApi.compareModalData(data)
+
+        const response = await modalApi.compareModalData(params)
         this.compareResult = response.data || []
         
         return this.compareResult

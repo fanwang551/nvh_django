@@ -79,11 +79,11 @@ export const useVehicleReverberationQueryStore = defineStore('vehicleReverberati
                 this.compareLoading = true
                 this.error = null
 
-                const data = {
+                const params = {
                     vehicle_model_ids: this.searchCriteria.vehicleModelIds.join(',')
                 }
 
-                const response = await soundInsulationApi.compareVehicleReverberationData(data)
+                const response = await soundInsulationApi.compareVehicleReverberationData(params)
                 this.compareResults = response.data || []
 
                 // 处理图表数据

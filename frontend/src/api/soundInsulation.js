@@ -24,13 +24,13 @@ export const soundInsulationApi = {
 
   /**
    * 隔声量数据对比
-   * @param {Object} data - 对比参数
-   * @param {number} data.area_id - 区域ID（必需）
-   * @param {string} data.vehicle_model_ids - 车型ID列表，逗号分隔（必需）
+   * @param {Object} params - 对比参数
+   * @param {number} params.area_id - 区域ID（必需）
+   * @param {string} params.vehicle_model_ids - 车型ID列表，逗号分隔（必需）
    * @returns {Promise} 对比数据
    */
-  compareSoundInsulationData(data = {}) {
-    return request.post('/sound-insulation/compare/', data)
+  compareSoundInsulationData(params = {}) {
+    return request.get('/sound-insulation/compare/', params)
   },
 
   /**
@@ -45,12 +45,12 @@ export const soundInsulationApi = {
 
   /**
    * 车型隔声量数据对比
-   * @param {Object} data - 对比参数
-   * @param {string} data.vehicle_model_ids - 车型ID列表，逗号分隔（必需）
+   * @param {Object} params - 对比参数
+   * @param {string} params.vehicle_model_ids - 车型ID列表，逗号分隔（必需）
    * @returns {Promise} 对比数据
    */
-  compareVehicleSoundInsulationData(data = {}) {
-    return request.post('/sound-insulation/vehicle-sound-compare/', data)
+  compareVehicleSoundInsulationData(params = {}) {
+    return request.get('/sound-insulation/vehicle-sound-compare/', params)
   },
 
   /**
@@ -65,12 +65,12 @@ export const soundInsulationApi = {
 
   /**
    * 车辆混响时间数据对比
-   * @param {Object} data - 对比参数
-   * @param {string} data.vehicle_model_ids - 车型ID列表，逗号分隔（必需）
+   * @param {Object} params - 对比参数
+   * @param {string} params.vehicle_model_ids - 车型ID列表，逗号分隔（必需）
    * @returns {Promise} 对比数据
    */
-  compareVehicleReverberationData(data = {}) {
-    return request.post('/sound-insulation/vehicle-reverberation-compare/', data)
+  compareVehicleReverberationData(params = {}) {
+    return request.get('/sound-insulation/vehicle-reverberation-compare/', params)
   }
 }
 

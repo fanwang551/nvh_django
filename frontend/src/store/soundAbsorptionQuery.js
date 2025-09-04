@@ -146,18 +146,18 @@ export const useSoundAbsorptionQueryStore = defineStore('soundAbsorptionQuery', 
                 this.queryLoading = true
                 this.error = null
 
-                const data = {}
+                const params = {}
                 if (this.searchCriteria.partName) {
-                    data.part_name = this.searchCriteria.partName
+                    params.part_name = this.searchCriteria.partName
                 }
                 if (this.searchCriteria.materialComposition) {
-                    data.material_composition = this.searchCriteria.materialComposition
+                    params.material_composition = this.searchCriteria.materialComposition
                 }
                 if (this.searchCriteria.weight !== null) {
-                    data.weight = this.searchCriteria.weight
+                    params.weight = this.searchCriteria.weight
                 }
 
-                const response = await soundAbsorptionApi.querySoundAbsorption(data)
+                const response = await soundAbsorptionApi.querySoundAbsorption(params)
                 this.queryResults = response.data || []
 
                 // 处理图表数据
