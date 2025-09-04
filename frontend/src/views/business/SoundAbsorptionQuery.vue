@@ -101,7 +101,7 @@
         <el-card class="result-card" shadow="never">
           <template #header>
             <div class="card-header">
-              <span>查询结果 {{ index + 1 }}</span>
+              <span>吸声系数</span>
               <el-button
                 v-if="item.test_image_path"
                 type="primary"
@@ -200,33 +200,55 @@
     <el-dialog
       v-model="imageDialogVisible"
       title="测试图片"
-      width="80%"
-      center
+      width="600px"
       @close="closeImageDialog"
     >
       <div v-if="currentImageData" class="image-dialog-content">
-        <div class="image-info">
-          <p><strong>零件名称：</strong>{{ currentImageData.part_name }}</p>
-          <p><strong>材料组成：</strong>{{ currentImageData.material_composition }}</p>
-          <p><strong>克重：</strong>{{ currentImageData.weight }}g/m²</p>
-          <p v-if="currentImageData.test_date"><strong>测试日期：</strong>{{ currentImageData.test_date }}</p>
-          <p v-if="currentImageData.test_location"><strong>测试地点：</strong>{{ currentImageData.test_location }}</p>
-          <p v-if="currentImageData.test_engineer"><strong>测试工程师：</strong>{{ currentImageData.test_engineer }}</p>
+        <!-- 基本信息 -->
+        <div class="info-section">
+          <h4>基本信息</h4>
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">零件名称：</span>
+              <span class="info-value">{{ currentImageData.part_name }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">材料组成：</span>
+              <span class="info-value">{{ currentImageData.material_composition }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">克重：</span>
+              <span class="info-value">{{ currentImageData.weight }}g/m²</span>
+            </div>
+            <div v-if="currentImageData.test_date" class="info-item">
+              <span class="info-label">测试日期：</span>
+              <span class="info-value">{{ currentImageData.test_date }}</span>
+            </div>
+            <div v-if="currentImageData.test_location" class="info-item">
+              <span class="info-label">测试地点：</span>
+              <span class="info-value">{{ currentImageData.test_location }}</span>
+            </div>
+            <div v-if="currentImageData.test_engineer" class="info-item">
+              <span class="info-label">测试工程师：</span>
+              <span class="info-value">{{ currentImageData.test_engineer }}</span>
+            </div>
+          </div>
         </div>
 
-        <div class="image-container">
-          <el-empty
-            v-if="!currentImageData.test_image_path"
-            description="暂无测试图片"
-            :image-size="80"
-          />
-          <img
-            v-else
-            :src="getImageUrl(currentImageData.test_image_path)"
-            :alt="`${currentImageData.part_name}测试图片`"
-            style="width: 100%; max-height: 500px; object-fit: contain;"
-            @error="handleImageError"
-          />
+        <!-- 测试图片 -->
+        <div v-if="currentImageData.test_image_path" class="image-section">
+          <h4>测试图片</h4>
+          <div class="image-container">
+            <img
+              :src="getImageUrl(currentImageData.test_image_path)"
+              :alt="`${currentImageData.part_name}测试图片`"
+              class="test-image"
+              @error="handleImageError"
+            />
+          </div>
+        </div>
+        <div v-else class="no-image">
+          <el-empty description="暂无测试图片" />
         </div>
       </div>
     </el-dialog>
@@ -337,14 +359,16 @@ export default {
 
     // 图表管理：获取图表配置（组件职责）
     const getChartOption = () => {
-      const colors = ['#5470c6', '#ee6666', '#91cc75', '#fac858', '#73c0de', '#3ba272', '#fc8452', '#9a60b4']
+      // 定义固定的颜色方案，确保测试值和目标值有明显区分
+      const testValueColor = '#409EFF'  // 蓝色 - 测试值
+      const targetValueColor = '#67C23A' // 绿色 - 目标值
 
       const series = []
       if (store.formattedChartData && Array.isArray(store.formattedChartData)) {
         store.formattedChartData.forEach((item, index) => {
           if (!item || !item.testData || !Array.isArray(item.testData)) return
 
-          // 测试值曲线（实线）
+          // 测试值曲线（蓝色实线）
           series.push({
             name: `测试值`,
             type: 'line',
@@ -354,24 +378,24 @@ export default {
               freqLabel: `${frequencies[freqIndex]}Hz`,
               itemData: item.itemData
             })),
-          symbol: 'circle',
-          symbolSize: 8,
-          lineStyle: {
-            width: 3,
-            color: colors[index % colors.length],
-            type: 'solid'
-          },
-          itemStyle: {
-            color: colors[index % colors.length]
-          },
-          emphasis: {
-            focus: 'series',
-            symbolSize: 12
-          },
-          connectNulls: false
-        })
+            symbol: 'circle',
+            symbolSize: 8,
+            lineStyle: {
+              width: 3,
+              color: testValueColor,
+              type: 'solid'
+            },
+            itemStyle: {
+              color: testValueColor
+            },
+            emphasis: {
+              focus: 'series',
+              symbolSize: 12
+            },
+            connectNulls: false
+          })
 
-          // 目标值曲线（虚线）
+          // 目标值曲线（绿色虚线）
           if (item.targetData && Array.isArray(item.targetData)) {
             series.push({
               name: `目标值`,
@@ -382,23 +406,23 @@ export default {
                 freqLabel: `${frequencies[freqIndex]}Hz`,
                 itemData: item.itemData
               })),
-          symbol: 'diamond',
-          symbolSize: 8,
-          lineStyle: {
-            width: 3,
-            color: colors[index % colors.length],
-            type: 'dashed'
-          },
-          itemStyle: {
-            color: colors[index % colors.length]
-          },
-            emphasis: {
-              focus: 'series',
-              symbolSize: 12
-            },
-            connectNulls: false
-          })
-        }
+              symbol: 'diamond',
+              symbolSize: 8,
+              lineStyle: {
+                width: 3,
+                color: targetValueColor,
+                type: 'dashed'
+              },
+              itemStyle: {
+                color: targetValueColor
+              },
+              emphasis: {
+                focus: 'series',
+                symbolSize: 12
+              },
+              connectNulls: false
+            })
+          }
         })
       }
 
@@ -636,26 +660,76 @@ export default {
   margin-top: 20px;
 }
 
+/* 弹窗样式 */
 .image-dialog-content {
-  .image-info {
-    margin-bottom: 20px;
-    padding: 15px;
-    background-color: #f5f7fa;
-    border-radius: 4px;
-    
-    p {
-      margin: 8px 0;
-      color: #606266;
-    }
-  }
-  
-  .image-container {
-    text-align: center;
-    border: 1px solid #dcdfe6;
-    border-radius: 4px;
-    padding: 10px;
-    background-color: #fff;
-  }
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.info-section {
+  margin-bottom: 20px;
+}
+
+.info-section h4 {
+  margin: 0 0 12px 0;
+  color: #303133;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px 16px;
+  padding: 15px;
+  background-color: #f5f7fa;
+  border-radius: 4px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  min-height: 40px;
+}
+
+.info-label {
+  font-size: 12px;
+  color: #909399;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.info-value {
+  font-size: 13px;
+  color: #303133;
+  word-break: break-all;
+  line-height: 1.4;
+}
+
+.image-section h4 {
+  margin: 20px 0 12px 0;
+  color: #303133;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.image-container {
+  text-align: center;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+}
+
+.test-image {
+  max-width: 100%;
+  max-height: 400px;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.no-image {
+  padding: 40px 0;
+  text-align: center;
 }
 
 .no-image-text {
@@ -670,15 +744,33 @@ export default {
       margin-bottom: 15px;
     }
   }
-  
+
   .basic-info {
     :deep(.el-descriptions) {
       font-size: 12px;
     }
   }
-  
+
   .frequency-table {
     overflow-x: auto;
+  }
+
+  /* 弹窗响应式 */
+  .info-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .info-item {
+    min-height: 32px;
+  }
+
+  .info-label {
+    font-size: 11px;
+  }
+
+  .info-value {
+    font-size: 12px;
   }
 }
 </style>
