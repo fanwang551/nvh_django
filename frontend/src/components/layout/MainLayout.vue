@@ -69,7 +69,8 @@ const cachedComponents = ref([
   'SoundInsulationCompare',
   'VehicleSoundInsulationQuery',
   'VehicleReverberationQuery',
-  'SoundAbsorptionQuery'
+  'SoundAbsorptionQuery',
+  'SoundInsulationCoefficientQuery'
 ])
 
 // 菜单选择处理
@@ -109,7 +110,8 @@ const addBusinessTab = (routePath) => {
     '/business/sound-insulation-compare': { name: 'sound-insulation-compare', title: '区域隔声量（ATF）对比' },
     '/business/vehicle-sound-insulation-query': { name: 'vehicle-sound-insulation-query', title: '车型隔声量查询' },
     '/business/vehicle-reverberation-query': { name: 'vehicle-reverberation-query', title: '车辆混响时间查询' },
-    '/business/sound-absorption-query': { name: 'sound-absorption-query', title: '吸声系数查询' }
+    '/business/sound-absorption-query': { name: 'sound-absorption-query', title: '吸声系数查询' },
+    '/business/sound-insulation-coefficient-query': { name: 'sound-insulation-coefficient-query', title: '隔声量查询' }
   }
 
   const tabConfig = businessTabConfig[routePath]
@@ -144,7 +146,8 @@ const handleTabClick = (tabName) => {
     'sound-insulation-compare': '/business/sound-insulation-compare',
     'vehicle-sound-insulation-query': '/business/vehicle-sound-insulation-query',
     'vehicle-reverberation-query': '/business/vehicle-reverberation-query',
-    'sound-absorption-query': '/business/sound-absorption-query'
+    'sound-absorption-query': '/business/sound-absorption-query',
+    'sound-insulation-coefficient-query': '/business/sound-insulation-coefficient-query'
   }
 
   if (allRoutes[tabName]) {

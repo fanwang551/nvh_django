@@ -3,14 +3,20 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
 from utils.response import Response
-from .models import SoundInsulationArea, SoundInsulationData, VehicleSoundInsulationData, VehicleReverberationData, SoundAbsorptionCoefficients
+from .models import (
+    SoundInsulationArea, SoundInsulationData, VehicleSoundInsulationData,
+    VehicleReverberationData, SoundAbsorptionCoefficients, SoundInsulationCoefficients
+)
 from .serializers import (
     SoundInsulationAreaSerializer, SoundInsulationDataSerializer,
     SoundInsulationCompareSerializer, VehicleModelSimpleSerializer,
     VehicleSoundInsulationDataSerializer, VehicleSoundInsulationCompareSerializer,
     VehicleReverberationDataSerializer, VehicleReverberationCompareSerializer,
     SoundAbsorptionCoefficientsSerializer, SoundAbsorptionQuerySerializer,
-    PartNameOptionSerializer, MaterialCompositionOptionSerializer, WeightOptionSerializer
+    PartNameOptionSerializer, MaterialCompositionOptionSerializer, WeightOptionSerializer,
+    SoundInsulationCoefficientsSerializer, SoundInsulationCoefficientQuerySerializer,
+    TestTypeOptionSerializer, InsulationPartNameOptionSerializer,
+    InsulationMaterialCompositionOptionSerializer, InsulationWeightOptionSerializer
 )
 from apps.modal.models import VehicleModel
 
@@ -470,6 +476,214 @@ def sound_absorption_query(request):
             })
         
         return Response.success(data=query_data, message="吸声系数查询成功")
-    
+
     except Exception as e:
         return Response.error(message=f"吸声系数查询失败: {str(e)}")
+
+
+@api_view(['GET'])
+@permission_classes([])  # 临时允许匿名访问用于测试
+def get_test_type_options(request):
+    """获取测试类型选项列表"""
+    try:
+        test_types = [
+            {'value': 'vertical', 'label': '垂直入射法'},
+            {'value': 'wall_mount', 'label': '上墙法'}
+        ]
+
+        serializer = TestTypeOptionSerializer(test_types, many=True)
+        return Response.success(data=serializer.data, message="获取测试类型选项成功")
+
+    except Exception as e:
+        return Response.error(message=f"获取测试类型选项失败: {str(e)}")
+
+
+@api_view(['GET'])
+@permission_classes([])  # 临时允许匿名访问用于测试
+def get_insulation_part_name_options(request):
+    """获取隔声量零件名称选项列表"""
+    try:
+        # 获取查询参数
+        test_type = request.GET.get('test_type')
+
+        # 构建查询条件
+        filters = {}
+        if test_type:
+            filters['test_type'] = test_type
+
+        # 获取不重复的零件名称
+        part_names = SoundInsulationCoefficients.objects.filter(**filters).values_list('part_name', flat=True).distinct()
+
+        # 构建选项数据
+        options = [{'value': name, 'label': name} for name in part_names if name]
+
+        serializer = InsulationPartNameOptionSerializer(options, many=True)
+        return Response.success(data=serializer.data, message="获取零件名称选项成功")
+
+    except Exception as e:
+        return Response.error(message=f"获取零件名称选项失败: {str(e)}")
+
+
+@api_view(['GET'])
+@permission_classes([])  # 临时允许匿名访问用于测试
+def get_insulation_material_composition_options(request):
+    """获取隔声量材料组成选项列表"""
+    try:
+        # 获取查询参数
+        test_type = request.GET.get('test_type')
+        part_name = request.GET.get('part_name')
+
+        # 构建查询条件
+        filters = {}
+        if test_type:
+            filters['test_type'] = test_type
+        if part_name:
+            filters['part_name'] = part_name
+
+        # 获取不重复的材料组成
+        compositions = SoundInsulationCoefficients.objects.filter(**filters).values(
+            'material_composition', 'part_name', 'test_type'
+        ).distinct()
+
+        # 构建选项数据
+        options = []
+        for comp in compositions:
+            if comp['material_composition']:
+                options.append({
+                    'value': comp['material_composition'],
+                    'label': comp['material_composition'],
+                    'part_name': comp['part_name'],
+                    'test_type': comp['test_type']
+                })
+
+        serializer = InsulationMaterialCompositionOptionSerializer(options, many=True)
+        return Response.success(data=serializer.data, message="获取材料组成选项成功")
+
+    except Exception as e:
+        return Response.error(message=f"获取材料组成选项失败: {str(e)}")
+
+
+@api_view(['GET'])
+@permission_classes([])  # 临时允许匿名访问用于测试
+def get_insulation_weight_options(request):
+    """获取隔声量克重选项列表"""
+    try:
+        # 获取查询参数
+        test_type = request.GET.get('test_type')
+        part_name = request.GET.get('part_name')
+        material_composition = request.GET.get('material_composition')
+
+        # 构建查询条件
+        filters = {}
+        if test_type:
+            filters['test_type'] = test_type
+        if part_name:
+            filters['part_name'] = part_name
+        if material_composition:
+            filters['material_composition'] = material_composition
+
+        # 获取不重复的克重
+        weights = SoundInsulationCoefficients.objects.filter(**filters).values(
+            'weight', 'part_name', 'material_composition', 'test_type'
+        ).distinct()
+
+        # 构建选项数据
+        options = []
+        for weight in weights:
+            if weight['weight']:
+                options.append({
+                    'value': weight['weight'],
+                    'label': f"{weight['weight']}g/m²",
+                    'part_name': weight['part_name'],
+                    'material_composition': weight['material_composition'],
+                    'test_type': weight['test_type']
+                })
+
+        serializer = InsulationWeightOptionSerializer(options, many=True)
+        return Response.success(data=serializer.data, message="获取克重选项成功")
+
+    except Exception as e:
+        return Response.error(message=f"获取克重选项失败: {str(e)}")
+
+
+@api_view(['GET'])
+@permission_classes([])  # 临时允许匿名访问用于测试
+def sound_insulation_coefficient_query(request):
+    """隔声量系数查询"""
+    try:
+        # 获取查询参数
+        test_type = request.GET.get('test_type')
+        part_name = request.GET.get('part_name')
+        material_composition = request.GET.get('material_composition')
+        weight = request.GET.get('weight')
+
+        # 参数验证 - 至少需要一个查询条件
+        if not any([test_type, part_name, material_composition, weight]):
+            return Response.error(
+                message="至少需要提供一个查询条件",
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 构建查询条件
+        filters = {}
+        if test_type:
+            filters['test_type'] = test_type
+        if part_name:
+            filters['part_name'] = part_name
+        if material_composition:
+            filters['material_composition'] = material_composition
+        if weight:
+            try:
+                filters['weight'] = float(weight)
+            except ValueError:
+                return Response.error(message="克重格式错误", status_code=status.HTTP_400_BAD_REQUEST)
+
+        # 执行查询
+        queryset = SoundInsulationCoefficients.objects.filter(**filters)
+
+        if not queryset.exists():
+            return Response.success(data=[], message="未找到匹配的隔声量数据")
+
+        # 频率列表
+        frequencies = [125, 160, 200, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000]
+
+        # 处理查询结果
+        query_data = []
+        for data in queryset:
+            # 测试值频率数据
+            test_frequency_data = {}
+            for freq in frequencies:
+                field_name = f'test_value_{freq}'
+                value = getattr(data, field_name, None)
+                test_frequency_data[field_name] = float(value) if value is not None else None
+
+            # 目标值频率数据
+            target_frequency_data = {}
+            for freq in frequencies:
+                field_name = f'target_value_{freq}'
+                value = getattr(data, field_name, None)
+                target_frequency_data[field_name] = float(value) if value is not None else None
+
+            query_data.append({
+                'id': data.id,
+                'part_name': data.part_name,
+                'material_composition': data.material_composition,
+                'test_type': data.test_type,
+                'test_type_display': data.get_test_type_display(),
+                'manufacturer': data.manufacturer,
+                'test_institution': data.test_institution,
+                'thickness': float(data.thickness) if data.thickness else None,
+                'weight': float(data.weight) if data.weight else None,
+                'test_frequency_data': test_frequency_data,
+                'target_frequency_data': target_frequency_data,
+                'test_image_path': data.test_image_path,
+                'test_date': data.test_date.isoformat() if data.test_date else None,
+                'test_location': data.test_location,
+                'test_engineer': data.test_engineer,
+                'remarks': data.remarks
+            })
+
+        return Response.success(data=query_data, message="隔声量系数查询成功")
+
+    except Exception as e:
+        return Response.error(message=f"隔声量系数查询失败: {str(e)}")

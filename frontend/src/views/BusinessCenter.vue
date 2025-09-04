@@ -87,6 +87,12 @@ const businessModules = ref([
     title: '吸声系数查询',
     description: '查询和分析材料的吸声系数数据',
     icon: MagicStick
+  },
+  {
+    name: 'sound-insulation-coefficient-query',
+    title: '隔声量查询',
+    description: '查询和分析材料的隔声量数据',
+    icon: MagicStick
   }
 ])
 

@@ -17,6 +17,7 @@ import SoundInsulationCompare from '@/views/business/SoundInsulationCompare.vue'
 import VehicleSoundInsulationQuery from '@/views/business/VehicleSoundInsulationQuery.vue'
 import VehicleReverberationQuery from '@/views/business/VehicleReverberationQuery.vue'
 import SoundAbsorptionQuery from '@/views/business/SoundAbsorptionQuery.vue'
+import SoundInsulationCoefficientQuery from '@/views/business/SoundInsulationCoefficientQuery.vue'
 
 const routes = [
   {
@@ -77,6 +78,12 @@ const routes = [
     path: '/business/sound-absorption-query',
     name: 'SoundAbsorptionQuery',
     component: SoundAbsorptionQuery,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/business/sound-insulation-coefficient-query',
+    name: 'SoundInsulationCoefficientQuery',
+    component: SoundInsulationCoefficientQuery,
     meta: { requiresAuth: true }
   },
   {

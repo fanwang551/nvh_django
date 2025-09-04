@@ -24,4 +24,11 @@ urlpatterns = [
     path('sound-absorption/material-compositions/', views.get_material_composition_options, name='get_material_composition_options'),
     path('sound-absorption/weights/', views.get_weight_options, name='get_weight_options'),
     path('sound-absorption/query/', views.sound_absorption_query, name='sound_absorption_query'),
+
+    # 隔声量系数相关接口
+    path('sound-insulation-coefficient/test-types/', views.get_test_type_options, name='get_test_type_options'),
+    path('sound-insulation-coefficient/part-names/', views.get_insulation_part_name_options, name='get_insulation_part_name_options'),
+    path('sound-insulation-coefficient/material-compositions/', views.get_insulation_material_composition_options, name='get_insulation_material_composition_options'),
+    path('sound-insulation-coefficient/weights/', views.get_insulation_weight_options, name='get_insulation_weight_options'),
+    path('sound-insulation-coefficient/query/', views.sound_insulation_coefficient_query, name='sound_insulation_coefficient_query'),
 ]
