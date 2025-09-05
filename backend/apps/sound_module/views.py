@@ -5,7 +5,8 @@ from django.db.models import Q
 from utils.response import Response
 from .models import (
     SoundInsulationArea, SoundInsulationData, VehicleSoundInsulationData,
-    VehicleReverberationData, SoundAbsorptionCoefficients, SoundInsulationCoefficients
+    VehicleReverberationData, SoundAbsorptionCoefficients, SoundInsulationCoefficients,
+    MaterialPorosityFlowResistance
 )
 from .serializers import (
     SoundInsulationAreaSerializer, SoundInsulationDataSerializer,
@@ -16,7 +17,9 @@ from .serializers import (
     PartNameOptionSerializer, MaterialCompositionOptionSerializer, WeightOptionSerializer,
     SoundInsulationCoefficientsSerializer, SoundInsulationCoefficientQuerySerializer,
     TestTypeOptionSerializer, InsulationPartNameOptionSerializer,
-    InsulationMaterialCompositionOptionSerializer, InsulationWeightOptionSerializer
+    InsulationMaterialCompositionOptionSerializer, InsulationWeightOptionSerializer,
+    MaterialPorosityFlowResistanceSerializer, MaterialPorosityQuerySerializer,
+    MaterialPorosityPartNameOptionSerializer
 )
 from apps.modal.models import VehicleModel
 
@@ -687,3 +690,60 @@ def sound_insulation_coefficient_query(request):
 
     except Exception as e:
         return Response.error(message=f"隔声量系数查询失败: {str(e)}")
+
+
+@api_view(['GET'])
+@permission_classes([])  # 临时允许匿名访问用于测试
+def get_material_porosity_part_names(request):
+    """获取材料孔隙率流阻的零件名称选项"""
+    try:
+        # 获取所有不重复的零件名称
+        part_names = MaterialPorosityFlowResistance.objects.values_list(
+            'part_name', flat=True
+        ).distinct().order_by('part_name')
+
+        # 构建选项数据
+        options = []
+        for part_name in part_names:
+            if part_name:  # 过滤空值
+                options.append({
+                    'value': part_name,
+                    'label': part_name
+                })
+
+        serializer = MaterialPorosityPartNameOptionSerializer(options, many=True)
+        return Response.success(data=serializer.data, message="获取零件名称选项成功")
+
+    except Exception as e:
+        return Response.error(message=f"获取零件名称选项失败: {str(e)}")
+
+
+@api_view(['GET'])
+@permission_classes([])  # 临时允许匿名访问用于测试
+def material_porosity_query(request):
+    """材料孔隙率流阻查询"""
+    try:
+        # 获取查询参数
+        part_names_str = request.GET.get('part_names', '')
+
+        # 构建查询条件
+        queryset = MaterialPorosityFlowResistance.objects.all()
+
+        # 如果指定了零件名称，进行筛选
+        if part_names_str:
+            part_names_list = [name.strip() for name in part_names_str.split(',') if name.strip()]
+            if part_names_list:
+                queryset = queryset.filter(part_name__in=part_names_list)
+
+        # 按创建时间倒序排列
+        queryset = queryset.order_by('-created_at')
+
+        if not queryset.exists():
+            return Response.success(data=[], message="未找到匹配的材料孔隙率流阻数据")
+
+        # 序列化数据
+        serializer = MaterialPorosityFlowResistanceSerializer(queryset, many=True)
+        return Response.success(data=serializer.data, message="材料孔隙率流阻查询成功")
+
+    except Exception as e:
+        return Response.error(message=f"材料孔隙率流阻查询失败: {str(e)}")

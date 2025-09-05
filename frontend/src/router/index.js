@@ -18,6 +18,8 @@ import VehicleSoundInsulationQuery from '@/views/business/VehicleSoundInsulation
 import VehicleReverberationQuery from '@/views/business/VehicleReverberationQuery.vue'
 import SoundAbsorptionQuery from '@/views/business/SoundAbsorptionQuery.vue'
 import SoundInsulationCoefficientQuery from '@/views/business/SoundInsulationCoefficientQuery.vue'
+import MaterialPorosityFlowResistanceQuery from '@/views/business/MaterialPorosityFlowResistanceQuery.vue'
+import DynamicStiffnessQuery from '@/views/business/DynamicStiffnessQuery.vue'
 
 const routes = [
   {
@@ -84,6 +86,18 @@ const routes = [
     path: '/business/sound-insulation-coefficient-query',
     name: 'SoundInsulationCoefficientQuery',
     component: SoundInsulationCoefficientQuery,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/business/material-porosity-flow-resistance-query',
+    name: 'MaterialPorosityFlowResistanceQuery',
+    component: MaterialPorosityFlowResistanceQuery,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/business/dynamic-stiffness-query',
+    name: 'DynamicStiffnessQuery',
+    component: DynamicStiffnessQuery,
     meta: { requiresAuth: true }
   },
   {

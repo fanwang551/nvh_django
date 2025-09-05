@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from .models import (
     SoundInsulationArea, SoundInsulationData, VehicleSoundInsulationData,
-    VehicleReverberationData, SoundAbsorptionCoefficients, SoundInsulationCoefficients
+    VehicleReverberationData, SoundAbsorptionCoefficients, SoundInsulationCoefficients,
+    MaterialPorosityFlowResistance
 )
 from apps.modal.models import VehicleModel
 
@@ -292,3 +293,29 @@ class InsulationWeightOptionSerializer(serializers.Serializer):
     part_name = serializers.CharField()
     material_composition = serializers.CharField()
     test_type = serializers.CharField()
+
+
+class MaterialPorosityFlowResistanceSerializer(serializers.ModelSerializer):
+    """材料孔隙率流阻序列化器"""
+
+    class Meta:
+        model = MaterialPorosityFlowResistance
+        fields = [
+            'id', 'part_name', 'material_composition', 'material_manufacturer',
+            'test_institution', 'thickness_mm', 'weight_per_area', 'density',
+            'porosity_percent', 'porosity_deviation_percent', 'flow_resistance',
+            'flow_resistance_deviation', 'test_time', 'test_engineer',
+            'created_at', 'updated_at', 'remarks'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class MaterialPorosityQuerySerializer(serializers.Serializer):
+    """材料孔隙率流阻查询参数序列化器"""
+    part_names = serializers.CharField(required=False, help_text='零件名称列表（逗号分隔）')
+
+
+class MaterialPorosityPartNameOptionSerializer(serializers.Serializer):
+    """材料孔隙率零件名称选项序列化器"""
+    value = serializers.CharField()
+    label = serializers.CharField()

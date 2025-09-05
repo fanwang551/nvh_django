@@ -93,6 +93,18 @@ const businessModules = ref([
     title: '隔声量查询',
     description: '查询和分析材料的隔声量数据',
     icon: MagicStick
+  },
+  {
+    name: 'material-porosity-flow-resistance-query',
+    title: '材料孔隙率和流阻查询',
+    description: '查询和分析材料的孔隙率和流阻数据',
+    icon: MagicStick
+  },
+  {
+    name: 'dynamic-stiffness-query',
+    title: '动刚度查询',
+    description: '查询和分析车辆动刚度测试数据',
+    icon: MagicStick
   }
 ])
 

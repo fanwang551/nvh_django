@@ -70,7 +70,8 @@ const cachedComponents = ref([
   'VehicleSoundInsulationQuery',
   'VehicleReverberationQuery',
   'SoundAbsorptionQuery',
-  'SoundInsulationCoefficientQuery'
+  'SoundInsulationCoefficientQuery',
+  'MaterialPorosityFlowResistanceQuery'
 ])
 
 // 菜单选择处理
@@ -111,7 +112,9 @@ const addBusinessTab = (routePath) => {
     '/business/vehicle-sound-insulation-query': { name: 'vehicle-sound-insulation-query', title: '车型隔声量查询' },
     '/business/vehicle-reverberation-query': { name: 'vehicle-reverberation-query', title: '车辆混响时间查询' },
     '/business/sound-absorption-query': { name: 'sound-absorption-query', title: '吸声系数查询' },
-    '/business/sound-insulation-coefficient-query': { name: 'sound-insulation-coefficient-query', title: '隔声量查询' }
+    '/business/sound-insulation-coefficient-query': { name: 'sound-insulation-coefficient-query', title: '隔声量查询' },
+    '/business/material-porosity-flow-resistance-query': { name: 'material-porosity-flow-resistance-query', title: '材料孔隙率流阻查询' },
+    '/business/dynamic-stiffness-query': { name: 'dynamic-stiffness-query', title: '动刚度查询' }
   }
 
   const tabConfig = businessTabConfig[routePath]

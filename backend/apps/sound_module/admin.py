@@ -1,7 +1,8 @@
 from django.contrib import admin
 from .models import (
     SoundInsulationArea, SoundInsulationData, VehicleSoundInsulationData,
-    VehicleReverberationData, SoundAbsorptionCoefficients, SoundInsulationCoefficients
+    VehicleReverberationData, SoundAbsorptionCoefficients, SoundInsulationCoefficients,
+    MaterialPorosityFlowResistance
 )
 
 
@@ -177,5 +178,33 @@ class SoundInsulationCoefficientsAdmin(admin.ModelAdmin):
         }),
         ('测试信息', {
             'fields': ('test_image_path', 'test_date', 'test_location', 'test_engineer', 'remarks')
+        })
+    )
+
+
+@admin.register(MaterialPorosityFlowResistance)
+class MaterialPorosityFlowResistanceAdmin(admin.ModelAdmin):
+    list_display = [
+        'id', 'part_name', 'material_composition', 'material_manufacturer',
+        'thickness_mm', 'weight_per_area', 'density', 'porosity_percent',
+        'flow_resistance', 'test_engineer', 'created_at'
+    ]
+    list_filter = ['part_name', 'material_manufacturer', 'test_institution', 'test_engineer', 'created_at']
+    search_fields = ['part_name', 'material_composition', 'material_manufacturer', 'test_engineer']
+    ordering = ['-created_at']
+
+    fieldsets = (
+        ('基本信息', {
+            'fields': ('part_name', 'material_composition', 'material_manufacturer', 'test_institution')
+        }),
+        ('物理参数', {
+            'fields': (
+                ('thickness_mm', 'weight_per_area', 'density'),
+                ('porosity_percent', 'porosity_deviation_percent'),
+                ('flow_resistance', 'flow_resistance_deviation')
+            )
+        }),
+        ('测试信息', {
+            'fields': ('test_time', 'test_engineer', 'remarks')
         })
     )

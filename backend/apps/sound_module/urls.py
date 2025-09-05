@@ -31,4 +31,8 @@ urlpatterns = [
     path('sound-insulation-coefficient/material-compositions/', views.get_insulation_material_composition_options, name='get_insulation_material_composition_options'),
     path('sound-insulation-coefficient/weights/', views.get_insulation_weight_options, name='get_insulation_weight_options'),
     path('sound-insulation-coefficient/query/', views.sound_insulation_coefficient_query, name='sound_insulation_coefficient_query'),
+
+    # 材料孔隙率流阻相关接口
+    path('material-porosity/part-names/', views.get_material_porosity_part_names, name='get_material_porosity_part_names'),
+    path('material-porosity/query/', views.material_porosity_query, name='material_porosity_query'),
 ]

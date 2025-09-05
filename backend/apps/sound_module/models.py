@@ -303,3 +303,32 @@ class SoundInsulationCoefficients(models.Model):
 
     def __str__(self):
         return f"零件{self.part_name} - 材料{self.material_composition} - {self.get_test_type_display()} - {self.weight}g/m²"
+
+
+class MaterialPorosityFlowResistance(models.Model):
+    """材料孔隙率流阻表"""
+    part_name = models.CharField(max_length=100, verbose_name='零件名称')
+    material_composition = models.CharField(max_length=200, verbose_name='材料组成')
+    material_manufacturer = models.CharField(max_length=100, null=True, blank=True, verbose_name='材料厂家')
+    test_institution = models.CharField(max_length=100, null=True, blank=True, verbose_name='测试机构')
+    thickness_mm = models.DecimalField(max_digits=6, decimal_places=2, verbose_name='厚度(mm)')
+    weight_per_area = models.DecimalField(max_digits=8, decimal_places=2, verbose_name='克重(g/m²)')
+    density = models.DecimalField(max_digits=8, decimal_places=2, verbose_name='密度(kg/m³)')
+    porosity_percent = models.DecimalField(max_digits=5, decimal_places=2, verbose_name='孔隙率(%)')
+    porosity_deviation_percent = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name='孔隙率偏差(%)')
+    flow_resistance = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='流阻率(Pa·s/m²)')
+    flow_resistance_deviation = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='流阻率偏差(Pa·s/m²)')
+    test_time = models.DateTimeField(null=True, blank=True, verbose_name='测试时间')
+    test_engineer = models.CharField(max_length=50, null=True, blank=True, verbose_name='测试工程师')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+    remarks = models.TextField(null=True, blank=True, verbose_name='备注')
+
+    class Meta:
+        db_table = 'material_porosity_flow_resistance'
+        verbose_name = '材料孔隙率流阻'
+        verbose_name_plural = '材料孔隙率流阻'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"零件{self.part_name} - 材料{self.material_composition} - {self.thickness_mm}mm"
