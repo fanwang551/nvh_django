@@ -19,6 +19,7 @@ urlpatterns = [
     path('api/users/', include('apps.users.urls')),
     path('api/modal/', include('apps.modal.urls')),
     path('api/sound-insulation/', include('apps.sound_module.urls')),
+    path('api/dynamic-stiffness/', include('apps.dynamic_stiffness.urls')),
     path('oidc/', include('mozilla_django_oidc.urls')),
 ]
 
