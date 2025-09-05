@@ -33,7 +33,8 @@ import {
   Connection,
   Monitor,
   Picture,
-  MagicStick
+  MagicStick,
+  Setting
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -105,6 +106,12 @@ const businessModules = ref([
     title: '动刚度查询',
     description: '查询和分析车辆动刚度测试数据',
     icon: MagicStick
+  },
+  {
+    name: 'vehicle-mount-isolation-query',
+    title: '整车悬置隔振率查询',
+    description: '查询和分析整车悬置隔振率测试数据',
+    icon: Setting
   }
 ])
 

@@ -9,4 +9,8 @@ urlpatterns = [
     
     # 动刚度数据查询接口
     path('data/', views.dynamic_stiffness_query, name='dynamic_stiffness_query'),
+
+    # 悬置隔振率查询接口
+    path('measuring-points/', views.get_measuring_points, name='get_measuring_points'),
+    path('mount-isolation-data/', views.mount_isolation_query, name='mount_isolation_query'),
 ]

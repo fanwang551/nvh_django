@@ -20,6 +20,7 @@ import SoundAbsorptionQuery from '@/views/business/SoundAbsorptionQuery.vue'
 import SoundInsulationCoefficientQuery from '@/views/business/SoundInsulationCoefficientQuery.vue'
 import MaterialPorosityFlowResistanceQuery from '@/views/business/MaterialPorosityFlowResistanceQuery.vue'
 import DynamicStiffnessQuery from '@/views/business/DynamicStiffnessQuery.vue'
+import VehicleMountIsolationQuery from '@/views/business/VehicleMountIsolationQuery.vue'
 
 const routes = [
   {
@@ -98,6 +99,12 @@ const routes = [
     path: '/business/dynamic-stiffness-query',
     name: 'DynamicStiffnessQuery',
     component: DynamicStiffnessQuery,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/business/vehicle-mount-isolation-query',
+    name: 'VehicleMountIsolationQuery',
+    component: VehicleMountIsolationQuery,
     meta: { requiresAuth: true }
   },
   {
