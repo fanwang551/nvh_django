@@ -220,42 +220,82 @@
           :header-cell-style="{ backgroundColor: '#fafafa', color: '#606266', fontWeight: '600', fontSize: '14px' }"
           style="width: 100%"
         >
-        <!-- 测点列 -->
-        <el-table-column prop="measuring_point" label="测点" width="100" align="center" />
+        <!-- 测点列 - 弹性宽度，最小宽度保证内容显示 -->
+        <el-table-column
+          prop="measuring_point"
+          label="测点"
+          min-width="120"
+          align="center"
+          show-overflow-tooltip
+        />
 
-        <!-- 方向列 -->
-        <el-table-column prop="direction" label="方向" width="60" align="center" />
+        <!-- 方向列 - 固定较小宽度 -->
+        <el-table-column
+          prop="direction"
+          label="方向"
+          width="80"
+          align="center"
+        />
 
-        <!-- AC OFF (N档) -->
-        <el-table-column label="AC OFF (N档)" align="center">
-          <el-table-column prop="ac_off_isolation" label="隔振率(dB)" width="120" align="center">
+        <!-- AC OFF (N档) - 弹性分组列 -->
+        <el-table-column label="AC OFF (N档)" align="center" header-align="center">
+          <el-table-column
+            prop="ac_off_isolation"
+            label="隔振率(dB)"
+            min-width="140"
+            align="center"
+            show-overflow-tooltip
+          >
             <template #default="scope">
               <span>{{ formatValue(scope.row.ac_off_isolation) }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="ac_off_vibration" label="2阶被动端振动(m/s²)" width="160" align="center">
+          <el-table-column
+            prop="ac_off_vibration"
+            label="2阶被动端振动(m/s²)"
+            min-width="180"
+            align="center"
+            show-overflow-tooltip
+          >
             <template #default="scope">
               <span>{{ formatValue(scope.row.ac_off_vibration) }}</span>
             </template>
           </el-table-column>
         </el-table-column>
 
-        <!-- AC ON (N档) -->
-        <el-table-column label="AC ON (N档)" align="center">
-          <el-table-column prop="ac_on_isolation" label="隔振率(dB)" width="120" align="center">
+        <!-- AC ON (N档) - 弹性分组列 -->
+        <el-table-column label="AC ON (N档)" align="center" header-align="center">
+          <el-table-column
+            prop="ac_on_isolation"
+            label="隔振率(dB)"
+            min-width="140"
+            align="center"
+            show-overflow-tooltip
+          >
             <template #default="scope">
               <span>{{ formatValue(scope.row.ac_on_isolation) }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="ac_on_vibration" label="2阶被动端振动(m/s²)" width="160" align="center">
+          <el-table-column
+            prop="ac_on_vibration"
+            label="2阶被动端振动(m/s²)"
+            min-width="180"
+            align="center"
+            show-overflow-tooltip
+          >
             <template #default="scope">
               <span>{{ formatValue(scope.row.ac_on_vibration) }}</span>
             </template>
           </el-table-column>
         </el-table-column>
 
-        <!-- 操作列 -->
-        <el-table-column label="操作" width="100" align="center">
+        <!-- 操作列 - 固定宽度 -->
+        <el-table-column
+          label="操作"
+          width="120"
+          align="center"
+          fixed="right"
+        >
           <template #default="scope">
             <el-button
               type="primary"
@@ -263,7 +303,7 @@
               @click="viewImages(scope.row.originalData)"
               v-if="scope.row.direction === 'X'"
             >
-              查看按钮
+              查看图片
             </el-button>
           </template>
         </el-table-column>
@@ -746,32 +786,63 @@ onMounted(async () => {
   background-color: #ecf5ff !important;
 }
 
-/* 表格样式 */
+/* 表格样式 - 弹性布局优化 */
 .table-container {
   width: 100%;
   overflow-x: auto;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .result-table {
   width: 100%;
-  min-width: 800px; /* 确保表格有最小宽度 */
+  min-width: 1000px; /* 增加最小宽度以适应弹性列 */
+  table-layout: auto; /* 允许表格自动调整列宽 */
 }
 
 .result-table :deep(.el-table__header-wrapper) {
-  border-radius: 4px 4px 0 0;
+  border-radius: 8px 8px 0 0;
 }
 
 .result-table :deep(.el-table__body-wrapper) {
-  border-radius: 0 0 4px 4px;
+  border-radius: 0 0 8px 8px;
 }
 
-.result-table :deep(.el-table th),
+.result-table :deep(.el-table th) {
+  text-align: center;
+  padding: 12px 8px;
+  font-weight: 600;
+  white-space: nowrap;
+  background-color: #fafafa !important;
+}
+
 .result-table :deep(.el-table td) {
   text-align: center;
+  padding: 10px 8px;
+  white-space: nowrap;
 }
 
 .result-table :deep(.el-table__row:hover > td) {
   background-color: #f5f7fa !important;
+}
+
+/* 表格滚动条样式优化 */
+.table-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
 /* 图片弹窗样式 */
@@ -849,7 +920,19 @@ onMounted(async () => {
   color: #909399;
 }
 
-/* 响应式设计 */
+/* 响应式设计 - 弹性布局优化 */
+@media (max-width: 1400px) {
+  .result-table {
+    min-width: 1200px;
+  }
+
+  .result-table :deep(.el-table th),
+  .result-table :deep(.el-table td) {
+    padding: 10px 6px;
+    font-size: 13px;
+  }
+}
+
 @media (max-width: 1200px) {
   .vehicle-mount-isolation-query {
     padding: 15px;
@@ -861,6 +944,34 @@ onMounted(async () => {
 
   .vibration-cards-section .el-col {
     margin-bottom: 16px;
+  }
+
+  .result-table {
+    min-width: 1100px;
+  }
+
+  .result-table :deep(.el-table th),
+  .result-table :deep(.el-table td) {
+    padding: 8px 4px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 992px) {
+  .result-table {
+    min-width: 1000px;
+  }
+
+  .table-container {
+    border-radius: 6px;
+  }
+
+  .result-table :deep(.el-table__header-wrapper) {
+    border-radius: 6px 6px 0 0;
+  }
+
+  .result-table :deep(.el-table__body-wrapper) {
+    border-radius: 0 0 6px 6px;
   }
 }
 
@@ -880,7 +991,18 @@ onMounted(async () => {
   }
 
   .result-table {
-    font-size: 12px;
+    min-width: 900px;
+    font-size: 11px;
+  }
+
+  .result-table :deep(.el-table th) {
+    padding: 8px 4px;
+    font-size: 11px;
+  }
+
+  .result-table :deep(.el-table td) {
+    padding: 6px 4px;
+    font-size: 11px;
   }
 
   /* 移动端振动卡片单列显示 */
@@ -897,6 +1019,13 @@ onMounted(async () => {
   .vibration-table :deep(.el-table td) {
     padding: 4px 6px;
     font-size: 11px;
+  }
+
+  /* 移动端表格容器优化 */
+  .table-container {
+    border-radius: 4px;
+    margin: 0 -10px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
   }
 }
 </style>
