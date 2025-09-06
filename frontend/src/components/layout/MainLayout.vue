@@ -73,7 +73,8 @@ const cachedComponents = ref([
   'SoundInsulationCoefficientQuery',
   'MaterialPorosityFlowResistanceQuery',
   'DynamicStiffnessQuery',
-  'VehicleMountIsolationQuery'
+  'VehicleMountIsolationQuery',
+  'SuspensionIsolationQuery'
 ])
 
 // 菜单选择处理
@@ -117,7 +118,8 @@ const addBusinessTab = (routePath) => {
     '/business/sound-insulation-coefficient-query': { name: 'sound-insulation-coefficient-query', title: '隔声量查询' },
     '/business/material-porosity-flow-resistance-query': { name: 'material-porosity-flow-resistance-query', title: '材料孔隙率流阻查询' },
     '/business/dynamic-stiffness-query': { name: 'dynamic-stiffness-query', title: '动刚度查询' },
-    '/business/vehicle-mount-isolation-query': { name: 'vehicle-mount-isolation-query', title: '整车悬置隔振率查询' }
+    '/business/vehicle-mount-isolation-query': { name: 'vehicle-mount-isolation-query', title: '整车悬置隔振率查询' },
+    '/business/suspension-isolation-query': { name: 'suspension-isolation-query', title: '整车悬架隔振率查询' }
   }
 
   const tabConfig = businessTabConfig[routePath]
@@ -156,7 +158,8 @@ const handleTabClick = (tabName) => {
     'sound-insulation-coefficient-query': '/business/sound-insulation-coefficient-query',
     'material-porosity-flow-resistance-query': '/business/material-porosity-flow-resistance-query',
     'dynamic-stiffness-query': '/business/dynamic-stiffness-query',
-    'vehicle-mount-isolation-query': '/business/vehicle-mount-isolation-query'
+    'vehicle-mount-isolation-query': '/business/vehicle-mount-isolation-query',
+    'suspension-isolation-query': '/business/suspension-isolation-query'
   }
 
   if (allRoutes[tabName]) {

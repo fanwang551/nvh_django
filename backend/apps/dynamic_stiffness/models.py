@@ -164,3 +164,57 @@ class MountIsolationData(models.Model):
 
     def __str__(self):
         return f"{self.test.vehicle_model.vehicle_model_name} - {self.measuring_point}"
+
+
+class VehicleSuspensionIsolationTest(models.Model):
+    """整车悬架隔振率测试基本信息表"""
+    vehicle_model = models.ForeignKey(VehicleModel, on_delete=models.CASCADE, verbose_name='车型')
+    test_date = models.DateField(verbose_name='测试时间')
+    test_location = models.CharField(max_length=100, null=True, blank=True, verbose_name='测试地点')
+    test_engineer = models.CharField(max_length=50, verbose_name='测试人员')
+    suspension_type = models.CharField(max_length=50, verbose_name='悬挂形式')
+    tire_pressure = models.CharField(max_length=50, null=True, blank=True, verbose_name='实测胎压')
+    test_condition = models.CharField(max_length=200, null=True, blank=True, verbose_name='测试工况')
+    
+    class Meta:
+        db_table = 'vehicle_suspension_isolation_tests'
+        verbose_name = '整车悬架隔振率测试'
+        verbose_name_plural = '整车悬架隔振率测试'
+        ordering = ['-test_date']
+
+    def __str__(self):
+        return f"{self.vehicle_model.vehicle_model_name} - {self.test_date}"
+
+
+class SuspensionIsolationData(models.Model):
+    """悬架隔振率试验数据表"""
+    test = models.ForeignKey(VehicleSuspensionIsolationTest, on_delete=models.CASCADE, verbose_name='测试基本信息')
+    measuring_point = models.CharField(max_length=100, verbose_name='测点名称')
+
+    # X方向数据 - 遵循数据精度要求：主动端/被动端使用Decimal(10,6)，隔振率使用Decimal(8,3)
+    x_active_value = models.DecimalField(max_digits=10, decimal_places=6, null=True, blank=True, verbose_name='X方向主动端(m/s²)')
+    x_passive_value = models.DecimalField(max_digits=10, decimal_places=6, null=True, blank=True, verbose_name='X方向被动端(m/s²)')
+    x_isolation_rate = models.DecimalField(max_digits=8, decimal_places=3, null=True, blank=True, verbose_name='X方向隔振率(dB)')
+
+    # Y方向数据
+    y_active_value = models.DecimalField(max_digits=10, decimal_places=6, null=True, blank=True, verbose_name='Y方向主动端(m/s²)')
+    y_passive_value = models.DecimalField(max_digits=10, decimal_places=6, null=True, blank=True, verbose_name='Y方向被动端(m/s²)')
+    y_isolation_rate = models.DecimalField(max_digits=8, decimal_places=3, null=True, blank=True, verbose_name='Y方向隔振率(dB)')
+
+    # Z方向数据
+    z_active_value = models.DecimalField(max_digits=10, decimal_places=6, null=True, blank=True, verbose_name='Z方向主动端(m/s²)')
+    z_passive_value = models.DecimalField(max_digits=10, decimal_places=6, null=True, blank=True, verbose_name='Z方向被动端(m/s²)')
+    z_isolation_rate = models.DecimalField(max_digits=8, decimal_places=3, null=True, blank=True, verbose_name='Z方向隔振率(dB)')
+
+    # 图片路径
+    layout_image_path = models.CharField(max_length=255, null=True, blank=True, verbose_name='测试布置图路径')
+    curve_image_path = models.CharField(max_length=255, null=True, blank=True, verbose_name='测试数据曲线图路径')
+
+    class Meta:
+        db_table = 'suspension_isolation_data'
+        verbose_name = '悬架隔振率试验数据'
+        verbose_name_plural = '悬架隔振率试验数据'
+        ordering = ['measuring_point']
+
+    def __str__(self):
+        return f"{self.test.vehicle_model.vehicle_model_name} - {self.measuring_point}"

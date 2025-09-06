@@ -112,6 +112,12 @@ const businessModules = ref([
     title: '整车悬置隔振率查询',
     description: '查询和分析整车悬置隔振率测试数据',
     icon: Setting
+  },
+  {
+    name: 'suspension-isolation-query',
+    title: '整车悬架隔振率查询',
+    description: '查询和分析整车悬架隔振率测试数据',
+    icon: Setting
   }
 ])
 

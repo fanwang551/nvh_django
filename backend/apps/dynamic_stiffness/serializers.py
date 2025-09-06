@@ -1,5 +1,9 @@
 from rest_framework import serializers
-from .models import DynamicStiffnessTest, DynamicStiffnessData, VehicleMountIsolationTest, MountIsolationData
+from .models import (
+    DynamicStiffnessTest, DynamicStiffnessData, 
+    VehicleMountIsolationTest, MountIsolationData,
+    VehicleSuspensionIsolationTest, SuspensionIsolationData
+)
 from apps.modal.models import VehicleModel
 
 
@@ -145,6 +149,59 @@ class MountIsolationDataSerializer(serializers.ModelSerializer):
 
 class MountIsolationQuerySerializer(serializers.Serializer):
     """悬置隔振率查询参数序列化器"""
+    vehicle_model_id = serializers.IntegerField(required=True, help_text='车型ID')
+    measuring_points = serializers.CharField(required=False, allow_blank=True, help_text='测点列表（逗号分隔，可选）')
+
+    def validate_vehicle_model_id(self, value):
+        """验证车型ID是否存在"""
+        if not VehicleModel.objects.filter(id=value).exists():
+            raise serializers.ValidationError("指定的车型不存在")
+        return value
+
+
+class VehicleSuspensionIsolationTestSerializer(serializers.ModelSerializer):
+    """整车悬架隔振率测试序列化器"""
+    vehicle_model_name = serializers.CharField(source='vehicle_model.vehicle_model_name', read_only=True)
+
+    class Meta:
+        model = VehicleSuspensionIsolationTest
+        fields = [
+            'id', 'vehicle_model', 'vehicle_model_name', 'test_date', 'test_location',
+            'test_engineer', 'suspension_type', 'tire_pressure', 'test_condition'
+        ]
+        read_only_fields = ['id']
+
+
+class SuspensionIsolationDataSerializer(serializers.ModelSerializer):
+    """悬架隔振率试验数据序列化器"""
+    vehicle_model_name = serializers.CharField(source='test.vehicle_model.vehicle_model_name', read_only=True)
+    test_date = serializers.DateField(source='test.test_date', read_only=True)
+    test_location = serializers.CharField(source='test.test_location', read_only=True)
+    test_engineer = serializers.CharField(source='test.test_engineer', read_only=True)
+    suspension_type = serializers.CharField(source='test.suspension_type', read_only=True)
+    tire_pressure = serializers.CharField(source='test.tire_pressure', read_only=True)
+    test_condition = serializers.CharField(source='test.test_condition', read_only=True)
+
+    class Meta:
+        model = SuspensionIsolationData
+        fields = [
+            'id', 'test', 'vehicle_model_name', 'test_date', 'test_location',
+            'test_engineer', 'suspension_type', 'tire_pressure', 'test_condition',
+            'measuring_point',
+            # X方向数据
+            'x_active_value', 'x_passive_value', 'x_isolation_rate',
+            # Y方向数据
+            'y_active_value', 'y_passive_value', 'y_isolation_rate',
+            # Z方向数据
+            'z_active_value', 'z_passive_value', 'z_isolation_rate',
+            # 图片路径
+            'layout_image_path', 'curve_image_path'
+        ]
+        read_only_fields = ['id']
+
+
+class SuspensionIsolationQuerySerializer(serializers.Serializer):
+    """悬架隔振率查询参数序列化器"""
     vehicle_model_id = serializers.IntegerField(required=True, help_text='车型ID')
     measuring_points = serializers.CharField(required=False, allow_blank=True, help_text='测点列表（逗号分隔，可选）')
 
