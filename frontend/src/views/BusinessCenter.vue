@@ -5,22 +5,76 @@
       <p class="page-description">选择业务功能模块</p>
     </div>
 
-    <div class="business-modules">
-      <div
-        v-for="module in businessModules"
-        :key="module.name"
-        class="module-item"
-        @click="openModule(module)"
-      >
-        <div class="module-icon">
-          <el-icon :size="32">
-            <component :is="module.icon" />
-          </el-icon>
+    <el-collapse v-model="activeGroups" class="business-groups">
+      <!-- 模态和气密性模块 -->
+      <el-collapse-item name="modal" class="group-item">
+        <template #title>
+          <h3 class="group-title">模态和气密性模块</h3>
+        </template>
+        <div class="group-divider"></div>
+        <div class="modules-grid">
+          <div
+            v-for="module in modalAirtightnessModules"
+            :key="module.name"
+            class="module-card"
+            @click="openModule(module)"
+          >
+            <div class="module-icon">
+              <el-icon :size="20">
+                <component :is="module.icon" />
+              </el-icon>
+            </div>
+            <div class="module-title">{{ module.title }}</div>
+          </div>
         </div>
-        <div class="module-title">{{ module.title }}</div>
-        <div class="module-description">{{ module.description }}</div>
-      </div>
-    </div>
+      </el-collapse-item>
+
+      <!-- 吸隔声模块 -->
+      <el-collapse-item name="sound" class="group-item">
+        <template #title>
+          <h3 class="group-title">吸隔声模块</h3>
+        </template>
+        <div class="group-divider"></div>
+        <div class="modules-grid">
+          <div
+            v-for="module in soundModules"
+            :key="module.name"
+            class="module-card"
+            @click="openModule(module)"
+          >
+            <div class="module-icon">
+              <el-icon :size="20">
+                <component :is="module.icon" />
+              </el-icon>
+            </div>
+            <div class="module-title">{{ module.title }}</div>
+          </div>
+        </div>
+      </el-collapse-item>
+
+      <!-- 动刚度模块 -->
+      <el-collapse-item name="dynamic" class="group-item">
+        <template #title>
+          <h3 class="group-title">动刚度模块</h3>
+        </template>
+        <div class="group-divider"></div>
+        <div class="modules-grid">
+          <div
+            v-for="module in dynamicStiffnessModules"
+            :key="module.name"
+            class="module-card"
+            @click="openModule(module)"
+          >
+            <div class="module-icon">
+              <el-icon :size="20">
+                <component :is="module.icon" />
+              </el-icon>
+            </div>
+            <div class="module-title">{{ module.title }}</div>
+          </div>
+        </div>
+      </el-collapse-item>
+    </el-collapse>
   </div>
 </template>
 
@@ -39,84 +93,82 @@ import {
 
 const router = useRouter()
 
-// 业务模块
-const businessModules = ref([
+// 控制折叠面板展开状态
+const activeGroups = ref(['modal', 'sound', 'dynamic'])
+
+// 模态和气密性模块
+const modalAirtightnessModules = ref([
   {
     name: 'modal-data-query',
     title: '模态数据查询',
-    description: '查询和分析模态测试数据',
     icon: DataAnalysis
   },
   {
     name: 'modal-data-compare',
     title: '模态数据对比',
-    description: '对比不同模态测试结果',
     icon: TrendCharts
   },
   {
     name: 'airtight-leak-compare',
     title: '气密性泄漏量对比',
-    description: '对比气密性测试泄漏量数据',
     icon: Connection
   },
   {
     name: 'airtightness-image-query',
     title: '气密性测试图片查询',
-    description: '查看各车型的气密性测试图片',
     icon: Picture
-  },
+  }
+])
+
+// 吸隔声模块
+const soundModules = ref([
   {
     name: 'sound-insulation-compare',
     title: '区域隔声量（ATF）对比',
-    description: '对比不同车型在各区域的隔声量数据',
     icon: TrendCharts
   },
   {
     name: 'vehicle-sound-insulation-query',
     title: '车型隔声量查询',
-    description: '查询和对比不同车型的隔声量数据',
     icon: TrendCharts
   },
   {
     name: 'vehicle-reverberation-query',
     title: '车辆混响时间查询',
-    description: '查询和对比不同车型的混响时间数据',
     icon: Monitor
   },
   {
     name: 'sound-absorption-query',
     title: '吸声系数查询',
-    description: '查询和分析材料的吸声系数数据',
     icon: MagicStick
   },
   {
     name: 'sound-insulation-coefficient-query',
     title: '隔声量查询',
-    description: '查询和分析材料的隔声量数据',
     icon: MagicStick
   },
   {
     name: 'material-porosity-flow-resistance-query',
     title: '材料孔隙率和流阻查询',
-    description: '查询和分析材料的孔隙率和流阻数据',
     icon: MagicStick
-  },
+  }
+])
+
+// 动刚度模块
+const dynamicStiffnessModules = ref([
   {
     name: 'dynamic-stiffness-query',
     title: '动刚度查询',
-    description: '查询和分析车辆动刚度测试数据',
     icon: MagicStick
   },
   {
     name: 'vehicle-mount-isolation-query',
     title: '整车悬置隔振率查询',
-    description: '查询和分析整车悬置隔振率测试数据',
     icon: Setting
   },
   {
     name: 'suspension-isolation-query',
     title: '整车悬架隔振率查询',
-    description: '查询和分析整车悬架隔振率测试数据',
     icon: Setting
   }
 ])
@@ -150,45 +202,119 @@ const openModule = (module) => {
   font-size: 14px;
 }
 
-.business-modules {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 24px;
+.business-groups {
   max-width: 1200px;
   margin: 0 auto;
 }
 
-.module-item {
-  background: white;
-  border: 1px solid #e4e7ed;
-  border-radius: 8px;
-  padding: 32px 24px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
+.group-item {
+  margin-bottom: 20px;
 }
 
-.module-item:hover {
+.group-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.group-divider {
+  height: 1px;
+  background-color: #e4e7ed;
+  margin: 16px 0 20px 0;
+}
+
+.modules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  max-width: 100%;
+}
+
+/* 响应式：最多6列 */
+@media (min-width: 1080px) {
+  .modules-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1079px) {
+  .modules-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+@media (min-width: 720px) and (max-width: 899px) {
+  .modules-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 540px) and (max-width: 719px) {
+  .modules-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 360px) and (max-width: 539px) {
+  .modules-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 359px) {
+  .modules-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.module-card {
+  background: white;
+  border: 1px solid #e4e7ed;
+  border-radius: 4px;
+  padding: 16px 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.module-card:hover {
   border-color: #409eff;
-  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.15);
-  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.1);
 }
 
 .module-icon {
   color: #409eff;
-  margin-bottom: 16px;
-}
-
-.module-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #303133;
   margin-bottom: 8px;
 }
 
-.module-description {
-  font-size: 14px;
-  color: #909399;
-  line-height: 1.5;
+.module-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: #303133;
+  line-height: 1.3;
+  word-break: break-all;
+}
+
+/* 深度选择器，覆盖 Element Plus 折叠面板样式 */
+:deep(.el-collapse-item__header) {
+  background-color: #f8f9fa;
+  border: none;
+  padding: 16px 20px;
+  border-radius: 6px;
+}
+
+:deep(.el-collapse-item__content) {
+  padding: 0 20px 20px 20px;
+  border: none;
+}
+
+:deep(.el-collapse-item) {
+  border: none;
 }
 </style>
