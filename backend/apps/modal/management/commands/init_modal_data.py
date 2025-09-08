@@ -67,35 +67,30 @@ class Command(BaseCommand):
                     'category': '动力总成',
                     'component_brand': 'Continental',
                     'component_model': 'EM-2023-001',
-                    'component_code': 'ENG_MOUNT_001',
                 },
                 {
                     'component_name': '变速箱悬置',
                     'category': '动力总成',
                     'component_brand': 'ZF',
                     'component_model': 'TM-2023-002',
-                    'component_code': 'TRANS_MOUNT_002',
                 },
                 {
                     'component_name': '前悬架弹簧',
                     'category': '悬架系统',
                     'component_brand': 'Bilstein',
                     'component_model': 'FS-2023-003',
-                    'component_code': 'FRONT_SPRING_003',
                 },
                 {
                     'component_name': '后悬架减震器',
                     'category': '悬架系统',
                     'component_brand': 'Monroe',
                     'component_model': 'RS-2023-004',
-                    'component_code': 'REAR_SHOCK_004',
                 },
                 {
                     'component_name': '车身框架',
                     'category': '车身结构',
                     'component_brand': 'OEM',
                     'component_model': 'BF-2023-005',
-                    'component_code': 'BODY_FRAME_005',
                 }
             ]
             

@@ -60,7 +60,6 @@ def component_list(request):
         if search:
             queryset = queryset.filter(
                 Q(component_name__icontains=search) |
-                Q(component_code__icontains=search) |
                 Q(category__icontains=search)
             )
 

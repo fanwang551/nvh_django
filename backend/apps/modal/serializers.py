@@ -22,7 +22,7 @@ class ComponentSerializer(serializers.ModelSerializer):
         model = Component
         fields = [
             'id', 'component_name', 'category', 'component_brand',
-            'component_model', 'component_code'
+            'component_model'
         ]
         read_only_fields = ['id']
 

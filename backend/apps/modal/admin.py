@@ -12,9 +12,9 @@ class VehicleModelAdmin(admin.ModelAdmin):
 
 @admin.register(Component)
 class ComponentAdmin(admin.ModelAdmin):
-    list_display = ['component_code', 'component_name', 'category', 'component_brand', 'component_model']
+    list_display = ['component_name', 'category', 'component_brand', 'component_model']
     list_filter = ['category', 'component_brand']
-    search_fields = ['component_code', 'component_name', 'category', 'component_brand']
+    search_fields = ['component_name', 'category', 'component_brand']
     ordering = ['id']
 
 

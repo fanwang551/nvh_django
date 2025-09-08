@@ -32,7 +32,6 @@ class Component(models.Model):
     category = models.CharField(max_length=100, verbose_name='分类')
     component_brand = models.CharField(max_length=100, null=True, blank=True, verbose_name='零件品牌')
     component_model = models.CharField(max_length=100, null=True, blank=True, verbose_name='零件规格型号')
-    component_code = models.CharField(max_length=50, unique=True, verbose_name='零件代码')
 
     class Meta:
         db_table = 'components'
@@ -41,7 +40,7 @@ class Component(models.Model):
         ordering = ['id']
 
     def __str__(self):
-        return f"{self.component_code} - {self.component_name}"
+        return f"{self.component_name} ({self.category})"
 
 
 class TestProject(models.Model):
