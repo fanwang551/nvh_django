@@ -1,48 +1,123 @@
 #!/bin/bash
 
-# NVH 项目部署脚本
-# 项目地址: https://github.com/fanwang551/nvh_django
-# 数据库方案: 方案1 (MySQL 容器化)
-echo "开始部署 NVH 项目..."
-echo "项目仓库: https://github.com/fanwang551/nvh_django"
-echo "数据库方案: 方案1 (MySQL 8.0 容器化)"
+# 部署脚本 - deploy.sh
+# 使用方法: ./deploy.sh
 
-# 检查 Docker 是否安装
-if ! command -v docker &> /dev/null; then
-    echo "错误: Docker 未安装，请先安装 Docker"
-    exit 1
-fi
+set -e
 
-if ! command -v docker-compose &> /dev/null; then
-    echo "错误: Docker Compose 未安装，请先安装 Docker Compose"
-    exit 1
-fi
+echo "🚀 开始部署 NVH 系统..."
 
-# 停止并删除现有容器
-echo "停止现有服务..."
-docker-compose -f docker-compose.prod.yml down
+# 检查Docker和Docker Compose是否安装
+check_requirements() {
+    echo "📋 检查部署环境..."
+    
+    if ! command -v docker &> /dev/null; then
+        echo "❌ Docker 未安装，请先安装 Docker"
+        exit 1
+    fi
+    
+    if ! command -v docker-compose &> /dev/null; then
+        echo "❌ Docker Compose 未安装，请先安装 Docker Compose"
+        exit 1
+    fi
+    
+    echo "✅ 环境检查通过"
+}
 
-# 清理悬挂的镜像
-echo "清理悬挂的镜像..."
-docker image prune -f
+# 停止现有服务
+stop_services() {
+    echo "🛑 停止现有服务..."
+    docker-compose -f docker-compose.prod.yml down --remove-orphans || true
+}
 
-# 构建并启动服务
-echo "构建并启动服务..."
-docker-compose -f docker-compose.prod.yml up --build -d
+# 清理旧镜像（可选）
+cleanup_images() {
+    echo "🧹 清理旧镜像..."
+    docker system prune -f
+    docker volume prune -f
+}
 
-# 等待服务启动
-echo "等待服务启动..."
-sleep 30
+# 构建和启动服务
+deploy_services() {
+    echo "🔧 构建和启动服务..."
+    
+    # 复制环境变量文件
+    cp .env.production .env
+    
+    # 构建并启动服务
+    docker-compose -f docker-compose.prod.yml build --no-cache
+    docker-compose -f docker-compose.prod.yml up -d
+    
+    echo "⏰ 等待服务启动..."
+    sleep 30
+}
+
+# 初始化数据库
+init_database() {
+    echo "🗄️ 初始化数据库..."
+    
+    # 等待MySQL启动
+    echo "等待MySQL启动..."
+    until docker exec nvh_mysql mysqladmin ping -h localhost --silent; do
+        echo "MySQL还未就绪，等待5秒..."
+        sleep 5
+    done
+    
+    # 运行数据库迁移
+    echo "执行数据库迁移..."
+    docker exec nvh_backend python manage.py migrate
+    
+    # 创建超级用户（可选）
+    echo "创建超级用户（可选，按Ctrl+C跳过）..."
+    docker exec -it nvh_backend python manage.py createsuperuser || true
+    
+    # 收集静态文件
+    echo "收集静态文件..."
+    docker exec nvh_backend python manage.py collectstatic --noinput
+}
 
 # 检查服务状态
-echo "检查服务状态..."
-docker-compose -f docker-compose.prod.yml ps
+check_services() {
+    echo "🔍 检查服务状态..."
+    docker-compose -f docker-compose.prod.yml ps
+    
+    echo ""
+    echo "🌐 服务访问地址："
+    echo "前端应用: http://117.72.42.68"
+    echo "后端API: http://117.72.42.68/api"
+    echo "管理后台: http://117.72.42.68/admin"
+    echo ""
+    
+    # 健康检查
+    echo "🏥 执行健康检查..."
+    sleep 5
+    
+    if curl -f http://117.72.42.68/health &> /dev/null; then
+        echo "✅ 服务部署成功！"
+    else
+        echo "⚠️  健康检查失败，请检查服务状态"
+        echo "查看日志: docker-compose -f docker-compose.prod.yml logs"
+    fi
+}
 
-# 显示日志
-echo "显示最近的日志..."
-docker-compose -f docker-compose.prod.yml logs --tail=50
+# 主函数
+main() {
+    check_requirements
+    stop_services
+    cleanup_images
+    deploy_services
+    init_database
+    check_services
+    
+    echo ""
+    echo "🎉 部署完成！"
+    echo ""
+    echo "📝 常用命令："
+    echo "查看日志: docker-compose -f docker-compose.prod.yml logs -f"
+    echo "重启服务: docker-compose -f docker-compose.prod.yml restart"
+    echo "停止服务: docker-compose -f docker-compose.prod.yml down"
+    echo "更新服务: ./deploy.sh"
+}
 
-echo "部署完成！"
-echo "前端访问地址: http://117.72.42.68"
-echo "后端 API 地址: http://117.72.42.68/api/"
-echo "Django 管理界面: http://117.72.42.68/admin/"
+# 执行主函数
+main "$@"
