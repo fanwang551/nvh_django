@@ -1,39 +1,33 @@
-# 使用Python官方镜像作为基础镜像
-FROM python:3.9-slim
+# 强制用 bookworm 版，避免 sid 混入
+FROM python:3.11-slim-bookworm AS backend
 
-# 设置工作目录
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    DEBIAN_FRONTEND=noninteractive
+
 WORKDIR /app
 
-# 设置环境变量
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+# 用清华源 (只保留一个，避免冲突)
+RUN rm -f /etc/apt/sources.list.d/* \
+    && echo "deb http://mirrors.tuna.tsinghua.edu.cn/debian bookworm main contrib non-free non-free-firmware" > /etc/apt/sources.list \
+    && echo "deb http://mirrors.tuna.tsinghua.edu.cn/debian-security bookworm-security main contrib non-free non-free-firmware" >> /etc/apt/sources.list
 
-# 安装系统依赖
+# 可选：强制锁定 bookworm，防止拉 unstable 包
+RUN echo "Package: *\nPin: release n=bookworm\nPin-Priority: 1001" > /etc/apt/preferences.d/bookworm
+
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        gcc \
-        g++ \
-        default-libmysqlclient-dev \
-        pkg-config \
+       gcc g++ libmariadb-dev pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
-# 复制requirements文件
-COPY requirements.txt /app/
+COPY requirements.txt .
+RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
 
-# 安装Python依赖
-RUN pip install --no-cache-dir -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+COPY . .
 
-# 复制项目代码
-COPY . /app/
+RUN mkdir -p /app/media /app/staticfiles \
+    && python manage.py collectstatic --noinput || true
 
-# 收集静态文件
-RUN python manage.py collectstatic --noinput
-
-# 创建目录
-RUN mkdir -p /app/media /app/staticfiles
-
-# 暴露端口
 EXPOSE 8000
-
-# 启动命令
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "4", "--timeout", "120", "nvh_backend.wsgi:application"]
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
