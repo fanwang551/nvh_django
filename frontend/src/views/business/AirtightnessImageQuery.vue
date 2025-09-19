@@ -216,17 +216,13 @@ const handleReset = () => {
 
 // 生命周期
 onMounted(async () => {
-  // 初始化页面数据
+  // 只初始化页面数据（加载车型列表），不加载图片
   await store.initializePageData()
-  // 如果没有数据，加载所有图片
-  if (store.imageDataList.length === 0) {
-    await loadAirtightnessImages()
-  }
 })
 
 // 标签页激活时
 onActivated(async () => {
-  // 如果车型列表为空，重新加载
+  // 如果车型列表为空，重新加载车型列表，但不加载图片
   if (store.vehicleModelOptions.length === 0) {
     await store.initializePageData()
   }

@@ -91,16 +91,16 @@
         stripe
         :header-cell-style="{ backgroundColor: '#fafafa', color: '#606266', fontWeight: '600', fontSize: '14px' }"
       >
-        <el-table-column prop="component_category" label="零件分类" width="120" />
-        <el-table-column prop="component_name" label="零件名称" width="160" />
-        <el-table-column prop="mode_shape_description" label="模态振型描述" width="200" />
-        <el-table-column prop="frequency" label="频率(Hz)" width="130" align="center">
+        <el-table-column prop="component_category" label="零件分类" min-width="120" />
+        <el-table-column prop="component_name" label="零件名称" min-width="160" />
+        <el-table-column prop="mode_shape_description" label="模态振型描述" min-width="200" show-overflow-tooltip />
+        <el-table-column prop="frequency" label="频率(Hz)" min-width="130" align="center">
           <template #default="scope">
             <span class="frequency-value">{{ scope.row.frequency }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="damping_ratio" label="阻尼比" width="110" align="center" />
-        <el-table-column label="操作" width="130" align="center">
+        <el-table-column prop="damping_ratio" label="阻尼比" min-width="110" align="center" />
+        <el-table-column label="操作" width="130" align="center" fixed="right">
           <template #default="scope">
             <el-button
               type="primary"
@@ -401,6 +401,16 @@ onDeactivated(() => {
 .result-table {
   border-radius: 6px;
   overflow: hidden;
+  width: 100%;
+}
+
+:deep(.result-table .el-table__body-wrapper) {
+  overflow-x: auto;
+}
+
+:deep(.result-table .el-table) {
+  width: 100% !important;
+  min-width: 100%;
 }
 
 :deep(.el-table) {
