@@ -124,7 +124,17 @@ const addBusinessTab = (routePath) => {
 
   const tabConfig = businessTabConfig[routePath]
   if (tabConfig) {
-    // 检查标签页是否已存在
+    // 确保业务中心标签存在
+    const businessTabExists = openTabs.find(tab => tab.name === 'business')
+    if (!businessTabExists) {
+      openTabs.push({
+        name: 'business',
+        title: '业务中心',
+        closable: true
+      })
+    }
+    
+    // 检查子页面标签是否已存在
     const existingTab = openTabs.find(tab => tab.name === tabConfig.name)
     if (!existingTab) {
       openTabs.push({
@@ -192,8 +202,66 @@ const handleCollapseChange = (collapsed) => {
 watch(() => route.path, (newPath) => {
   if (newPath.startsWith('/business/')) {
     addBusinessTab(newPath)
+  } else if (newPath === '/business') {
+    // 如果是业务中心主页面，确保业务中心标签存在并激活
+    const existingTab = openTabs.find(tab => tab.name === 'business')
+    if (!existingTab) {
+      openTabs.push({
+        name: 'business',
+        title: '业务中心',
+        closable: true
+      })
+    }
+    activeTab.value = 'business'
   }
 }, { immediate: true })
+
+// 页面加载时根据当前路由初始化标签页状态
+const initializeTabsFromRoute = () => {
+  const currentPath = route.path
+  
+  if (currentPath === '/business') {
+    // 业务中心主页面
+    const existingTab = openTabs.find(tab => tab.name === 'business')
+    if (!existingTab) {
+      openTabs.push({
+        name: 'business',
+        title: '业务中心',
+        closable: true
+      })
+    }
+    activeTab.value = 'business'
+  } else if (currentPath.startsWith('/business/')) {
+    // 业务子页面
+    addBusinessTab(currentPath)
+  } else if (currentPath === '/permission') {
+    const existingTab = openTabs.find(tab => tab.name === 'permission')
+    if (!existingTab) {
+      openTabs.push({
+        name: 'permission',
+        title: '权限管理',
+        closable: true
+      })
+    }
+    activeTab.value = 'permission'
+  } else if (currentPath === '/others') {
+    const existingTab = openTabs.find(tab => tab.name === 'others')
+    if (!existingTab) {
+      openTabs.push({
+        name: 'others',
+        title: '其他',
+        closable: true
+      })
+    }
+    activeTab.value = 'others'
+  } else {
+    // 默认首页
+    activeTab.value = 'home'
+  }
+}
+
+// 组件挂载时初始化标签页
+initializeTabsFromRoute()
 </script>
 
 <style scoped>

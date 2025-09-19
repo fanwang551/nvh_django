@@ -74,7 +74,7 @@ def component_list(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([])
 def modal_data_query(request):
     """模态数据查询（支持多零件筛选）"""
     try:
@@ -129,7 +129,7 @@ def modal_data_query(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([])
 def modal_data_statistics(request):
     """模态数据统计信息"""
     try:
