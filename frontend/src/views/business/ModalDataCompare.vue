@@ -472,7 +472,7 @@ const renderChart = () => {
         color: '#303133'
       },
       axisLabel: {
-        rotate: 45,
+        rotate: 0,
         interval: 0,
         fontSize: 14,
         fontWeight: 'bold',
