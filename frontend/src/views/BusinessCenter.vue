@@ -74,6 +74,29 @@
           </div>
         </div>
       </el-collapse-item>
+
+      <!-- 车轮性能模块 -->
+      <el-collapse-item name="wheel" class="group-item">
+        <template #title>
+          <h3 class="group-title">车轮性能模块</h3>
+        </template>
+        <div class="group-divider"></div>
+        <div class="modules-grid">
+          <div
+            v-for="module in wheelPerformanceModules"
+            :key="module.name"
+            class="module-card"
+            @click="openModule(module)"
+          >
+            <div class="module-icon">
+              <el-icon :size="20">
+                <component :is="module.icon" />
+              </el-icon>
+            </div>
+            <div class="module-title">{{ module.title }}</div>
+          </div>
+        </div>
+      </el-collapse-item>
     </el-collapse>
   </div>
 </template>
@@ -88,13 +111,14 @@ import {
   Monitor,
   Picture,
   MagicStick,
-  Setting
+  Setting,
+  Odometer
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
 
 // 控制折叠面板展开状态
-const activeGroups = ref(['modal', 'sound', 'dynamic'])
+const activeGroups = ref(['modal', 'sound', 'dynamic', 'wheel'])
 
 // 模态和气密性模块
 const modalAirtightnessModules = ref([
@@ -170,6 +194,15 @@ const dynamicStiffnessModules = ref([
     name: 'suspension-isolation-query',
     title: '整车悬架隔振率查询',
     icon: Setting
+  }
+])
+
+// 车轮性能模块
+const wheelPerformanceModules = ref([
+  {
+    name: 'wheel-performance-query',
+    title: '车轮性能查询',
+    icon: Odometer
   }
 ])
 

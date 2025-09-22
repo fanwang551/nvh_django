@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+﻿import { createRouter, createWebHistory } from 'vue-router'
 import keycloak from '@/utils/keycloak'
 
 // Import views
@@ -16,6 +16,7 @@ import AirtightnessImageQuery from '@/views/business/AirtightnessImageQuery.vue'
 import SoundInsulationCompare from '@/views/business/SoundInsulationCompare.vue'
 import VehicleSoundInsulationQuery from '@/views/business/VehicleSoundInsulationQuery.vue'
 import VehicleReverberationQuery from '@/views/business/VehicleReverberationQuery.vue'
+import WheelPerformanceQuery from '@/views/business/WheelPerformanceQuery.vue'
 import SoundAbsorptionQuery from '@/views/business/SoundAbsorptionQuery.vue'
 import SoundInsulationCoefficientQuery from '@/views/business/SoundInsulationCoefficientQuery.vue'
 import MaterialPorosityFlowResistanceQuery from '@/views/business/MaterialPorosityFlowResistanceQuery.vue'
@@ -76,6 +77,12 @@ const routes = [
     path: '/business/vehicle-reverberation-query',
     name: 'VehicleReverberationQuery',
     component: VehicleReverberationQuery,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/business/wheel-performance-query',
+    name: 'WheelPerformanceQuery',
+    component: WheelPerformanceQuery,
     meta: { requiresAuth: true }
   },
   {
