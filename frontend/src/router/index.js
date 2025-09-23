@@ -90,7 +90,7 @@ const routes = [
     path: '/business/ntf-query',
     name: 'NTFQuery',
     component: NTFQuery,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, title: 'NTF查询' }
   },
   {
     path: '/business/sound-absorption-query',
@@ -163,6 +163,10 @@ router.beforeEach((to, from, next) => {
     }
   } else {
     next()
+  }
+  // 设置页面标题用于浏览器标签/潜在的标签视图
+  if (to.meta && to.meta.title) {
+    document.title = to.meta.title
   }
 })
 

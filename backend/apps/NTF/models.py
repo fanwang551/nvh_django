@@ -33,6 +33,15 @@ class NTFInfo(models.Model):
         return f"{self.vehicle_model.cle_model_code} - {self.test_time:%Y-%m-%d}"
 
 
+def _default_ntf_curve() -> dict:
+    return {
+        'frequency': [],
+        'x_values': [],
+        'y_values': [],
+        'z_values': [],
+    }
+
+
 class NTFTestResult(models.Model):
     """NTF test result per measurement point with X/Y/Z directions."""
 
@@ -50,8 +59,10 @@ class NTFTestResult(models.Model):
     x_middle_row_value = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='X方向中排(dB)')
     x_rear_row_value = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='X方向后排(dB)')
 
-    # 单一曲线：每个测点仅一份曲线数据
-    ntf_curve = models.JSONField(default=dict, blank=True, verbose_name='NTF原始数据')
+    # 单一曲线：每个测点包含 XYZ 三个方向数据
+    # 结构：{frequency: [], x_values: [], y_values: [], z_values: []}
+    # 兼容历史数据：若为 {frequency: [], values: []}，序列化层做兼容处理
+    ntf_curve = models.JSONField(default=_default_ntf_curve, blank=True, verbose_name='NTF原始数据')
 
     # Y 方向
     y_target_value = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='Y方向目标(dB)')

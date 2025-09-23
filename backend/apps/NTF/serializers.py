@@ -121,12 +121,35 @@ class NTFInfoDetailSerializer(serializers.ModelSerializer):
         for result in obj.test_results.all().order_by('measurement_point'):
             curve = result.ntf_curve or {}
             frequencies = curve.get('frequency') or []
-            values = curve.get('values') or []
             if not frequency_axis and frequencies:
                 frequency_axis = [float(f) for f in frequencies]
-            if values:
-                points_axis.append(f"{result.measurement_point}")
-                matrix.append([float(v) for v in values])
+
+            # 优先新结构：x_values / y_values / z_values
+            x_vals = curve.get('x_values') or []
+            y_vals = curve.get('y_values') or []
+            z_vals = curve.get('z_values') or []
+
+            # 热力图展示 X、Y、Z 三个方向
+            added_any = False
+            if x_vals:
+                points_axis.append(f"{result.measurement_point}_X")
+                matrix.append([float(v) for v in x_vals])
+                added_any = True
+            if y_vals:
+                points_axis.append(f"{result.measurement_point}_Y")
+                matrix.append([float(v) for v in y_vals])
+                added_any = True
+            if z_vals:
+                points_axis.append(f"{result.measurement_point}_Z")
+                matrix.append([float(v) for v in z_vals])
+                added_any = True
+
+            # 兼容历史数据：旧结构 {frequency: [], values: []}
+            if not added_any:
+                old_values = curve.get('values') or []
+                if old_values:
+                    points_axis.append(f"{result.measurement_point}")
+                    matrix.append([float(v) for v in old_values])
 
         return {
             'frequency': frequency_axis,

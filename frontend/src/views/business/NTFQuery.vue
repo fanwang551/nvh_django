@@ -98,9 +98,14 @@
         border
         stripe
         class="result-table"
+        :span-method="tableSpanMethod"
       >
         <el-table-column prop="measurement_point" label="测点" min-width="140" />
-        <el-table-column prop="direction_label" label="方向" min-width="100" />
+        <el-table-column label="方向" min-width="100">
+          <template #default="{ row }">
+            {{ getDirectionLabel(row) }}
+          </template>
+        </el-table-column>
         <el-table-column label="目标" min-width="120">
           <template #default="{ row }">
             <span :class="getValueClass(row.target)">{{ formatValue(row.target) }}</span>
@@ -140,6 +145,11 @@ import { HeatmapChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, VisualMapComponent, TitleComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 import { useNTFQueryStore } from '@/store'
+
+// 确保该页面在标签/keep-alive中以独立名称出现
+defineOptions({
+  name: 'NTFQuery'
+})
 
 const VALUE_LEVEL = {
   HIGH: 'high',
@@ -204,6 +214,48 @@ function getValueClass(value) {
     return 'ntf-cell'
   }
   return `ntf-cell ntf-cell--${level}`
+}
+
+// 合并“测点”列的行：将同一测点的三行(X/Y/Z)合并为一个单元格
+const measurementPointSpans = computed(() => {
+  const rows = Array.isArray(tableRows.value) ? tableRows.value : []
+  const spans = new Array(rows.length).fill(0)
+  let i = 0
+  while (i < rows.length) {
+    const current = rows[i]?.measurement_point
+    let count = 1
+    let j = i + 1
+    while (j < rows.length && rows[j]?.measurement_point === current) {
+      count += 1
+      j += 1
+    }
+    spans[i] = count
+    for (let k = i + 1; k < j; k++) {
+      spans[k] = 0
+    }
+    i = j
+  }
+  return spans
+})
+
+function tableSpanMethod({ column, rowIndex }) {
+  if (column?.property === 'measurement_point') {
+    const span = measurementPointSpans.value?.[rowIndex] ?? 1
+    if (!span) {
+      return { rowspan: 0, colspan: 0 }
+    }
+    return { rowspan: span, colspan: 1 }
+  }
+  return { rowspan: 1, colspan: 1 }
+}
+
+// 方向仅显示 X/Y/Z，不带“方向”字样
+function getDirectionLabel(row) {
+  if (!row) return '-'
+  const raw = (row.direction ?? row.direction_label ?? '').toString()
+  if (!raw) return '-'
+  const m = raw.toUpperCase().match(/[XYZ]/)
+  return m ? m[0] : raw
 }
 
 const levelStats = computed(() => {
@@ -279,7 +331,8 @@ function renderHeatmap() {
   }
 
   const data = buildHeatmapSeriesData()
-  const valueRange = computeHeatmapRange()
+  // 固定可视化范围到 49-69，便于分段颜色均匀分布
+  const valueRange = { min: 49, max: 69 }
 
   const option = {
     title: {
@@ -322,15 +375,26 @@ function renderHeatmap() {
       }
     },
     visualMap: {
+      type: 'piecewise',
       min: valueRange.min,
       max: valueRange.max,
       orient: 'vertical',
       right: 10,
       top: 'center',
-      calculable: true,
-      inRange: {
-        color: ['#33cc33', '#ffeb3b', '#f44336']
-      }
+      align: 'auto',
+      itemWidth: 18,
+      itemHeight: 10,
+      textGap: 6,
+      pieces: [
+        { gt: 69, color: '#b71c1c', label: '> 69' },
+        { gt: 66, lte: 69, color: '#e53935', label: '66-69' },  // 红
+        { gt: 63, lte: 66, color: '#fb8c00', label: '63-66' },  // 橙
+        { gt: 60, lte: 63, color: '#fdd835', label: '60-63' },  // 黄
+        { gt: 57, lte: 60, color: '#66bb6a', label: '57-60' },  // 绿
+        { gt: 53, lte: 57, color: '#42a5f5', label: '53-57' },  // 蓝
+        { gt: 49, lte: 53, color: '#3949ab', label: '49-53' },  // 靛
+        { lte: 49, color: '#1a237e', label: '≤ 49' }
+      ]
     },
     series: [
       {
@@ -506,4 +570,3 @@ onBeforeUnmount(() => {
   margin-right: 4px;
 }
 </style>
-

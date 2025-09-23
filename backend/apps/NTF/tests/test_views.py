@@ -47,7 +47,9 @@ class NTFViewsTestCase(APITestCase):
             y_rear_row_value=63.5,
             ntf_curve={
                 'frequency': [20, 40, 60],
-                'values': [59.0, 61.0, 63.0],
+                'x_values': [59.0, 61.0, 63.0],
+                'y_values': [58.0, 60.0, 62.0],
+                'z_values': [57.0, 59.0, 61.0],
             },
         )
 
@@ -78,9 +80,9 @@ class NTFViewsTestCase(APITestCase):
 
         heatmap = payload['heatmap']
         self.assertEqual(heatmap['frequency'], [20.0, 40.0, 60.0])
-        self.assertEqual(heatmap['points'], ['P1'])
-        # 单测点单曲线
-        self.assertEqual(len(heatmap['matrix']), 1)
+        self.assertEqual(heatmap['points'], ['P1_X', 'P1_Y', 'P1_Z'])
+        # 单测点三曲线（X/Y/Z）
+        self.assertEqual(len(heatmap['matrix']), 3)
 
     def test_ntf_detail_handles_missing_vehicle(self):
         url = "/api/NTF/infos/by-vehicle/9999/"
