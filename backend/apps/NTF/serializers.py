@@ -31,6 +31,7 @@ class NTFInfoDetailSerializer(serializers.ModelSerializer):
     seat_columns = serializers.SerializerMethodField()
     results = serializers.SerializerMethodField()
     heatmap = serializers.SerializerMethodField()
+    point_images = serializers.SerializerMethodField()
 
     class Meta:
         model = NTFInfo
@@ -45,6 +46,7 @@ class NTFInfoDetailSerializer(serializers.ModelSerializer):
             'seat_count',
             'development_stage',
             'images',
+            'point_images',
             'seat_columns',
             'results',
             'heatmap',
@@ -156,6 +158,16 @@ class NTFInfoDetailSerializer(serializers.ModelSerializer):
             'points': points_axis,
             'matrix': matrix,
         }
+
+    def get_point_images(self, obj: NTFInfo) -> List[Dict[str, str]]:
+        data: List[Dict[str, str]] = []
+        for result in obj.test_results.all().order_by('measurement_point'):
+            if getattr(result, 'layout_image_url', None):
+                data.append({
+                    'measurement_point': result.measurement_point,
+                    'url': result.layout_image_url,
+                })
+        return data
 
 
 class NTFInfoCreateUpdateSerializer(serializers.ModelSerializer):

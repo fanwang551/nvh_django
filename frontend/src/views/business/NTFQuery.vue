@@ -25,7 +25,9 @@
           </el-select>
         </el-form-item>
       </el-form>
-    </el-card>
+  </el-card>
+
+  
 
     <el-alert v-if="error" type="error" :title="error" show-icon />
 
@@ -61,9 +63,9 @@
             <div class="image-title">{{ slot.label }}</div>
             <el-image
               v-if="detail.images?.[slot.key]"
-              :src="detail.images?.[slot.key]"
+              :src="getImageUrl(detail.images?.[slot.key])"
               fit="cover"
-              :preview-src-list="[detail.images?.[slot.key]]"
+              :preview-src-list="[getImageUrl(detail.images?.[slot.key])]"
             >
               <template #error>
                 <div class="image-placeholder">加载失败</div>
@@ -134,6 +136,34 @@
       <div v-if="heatmap.points.length && heatmap.frequency.length" ref="heatmapRef" class="heatmap"></div>
       <el-empty v-else description="暂无热力图数据" />
     </el-card>
+
+    <el-card class="point-images-card" shadow="never">
+      <template #header>
+        <div class="card-header">
+          <span class="card-title">测点布置图</span>
+        </div>
+      </template>
+      <div v-if="pointImages && pointImages.length" class="point-images-grid">
+        <div
+          v-for="item in pointImages"
+          :key="item.measurement_point"
+          class="point-image-item"
+        >
+          <el-image
+            class="point-image"
+            :src="getImageUrl(item.url)"
+            fit="cover"
+            :preview-src-list="[getImageUrl(item.url)]"
+          >
+            <template #error>
+              <div class="image-placeholder">加载失败</div>
+            </template>
+          </el-image>
+          <div class="point-image-caption">{{ item.measurement_point }}</div>
+        </div>
+      </div>
+      <el-empty v-else description="暂无测点布置图" />
+    </el-card>
   </div>
 </template>
 
@@ -145,6 +175,7 @@ import { HeatmapChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, VisualMapComponent, TitleComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 import { useNTFQueryStore } from '@/store'
+import { getImageUrl } from '@/utils/imageService'
 
 // 确保该页面在标签/keep-alive中以独立名称出现
 defineOptions({
@@ -160,7 +191,7 @@ const VALUE_LEVEL = {
 echarts.use([HeatmapChart, GridComponent, TooltipComponent, VisualMapComponent, TitleComponent, CanvasRenderer])
 
 const store = useNTFQueryStore()
-const { vehicleOptions, detail, seatColumns, tableRows, heatmap, isLoading, error, selectedVehicleId } = storeToRefs(store)
+const { vehicleOptions, detail, seatColumns, tableRows, heatmap, isLoading, error, selectedVehicleId, pointImages } = storeToRefs(store)
 
 const localVehicleId = ref(selectedVehicleId.value)
 const heatmapRef = ref(null)
@@ -560,6 +591,32 @@ onBeforeUnmount(() => {
   background-color: #f5f7fa;
   border-radius: 8px;
   color: #909399;
+}
+
+.point-images-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+
+.point-image-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.point-image {
+  width: 100%;
+  height: 110px;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.point-image-caption {
+  font-size: 12px;
+  color: #606266;
+  text-align: center;
 }
 
 .heatmap {

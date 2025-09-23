@@ -52,6 +52,8 @@ class NTFTestResult(models.Model):
         verbose_name='NTF信息'
     )
     measurement_point = models.CharField(max_length=100, verbose_name='测点')
+    # 测点布置图 URL（用于前端展示测点布置图）
+    layout_image_url = models.CharField(max_length=255, null=True, blank=True, verbose_name='测点布置图URL')
 
     # X 方向
     x_target_value = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='X方向目标(dB)')
@@ -88,4 +90,3 @@ class NTFTestResult(models.Model):
 
     def __str__(self) -> str:
         return f"{self.ntf_info_id} - {self.measurement_point}"
-

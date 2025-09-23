@@ -15,6 +15,7 @@ export const useNTFQueryStore = defineStore('NTFQuery', {
     vehicleOptions: [],
     selectedVehicleId: null,
     detail: null,
+    pointImages: [],
     seatColumns: [],
     tableRows: [],
     heatmap: {
@@ -46,6 +47,7 @@ export const useNTFQueryStore = defineStore('NTFQuery', {
     resetData() {
       this.selectedVehicleId = null
       this.detail = null
+      this.pointImages = []
       this.seatColumns = []
       this.tableRows = []
       this.heatmap = {
@@ -77,6 +79,7 @@ export const useNTFQueryStore = defineStore('NTFQuery', {
         }
 
         this.detail = detail
+        this.pointImages = Array.isArray(detail.point_images) ? detail.point_images : []
         this.seatColumns = Array.isArray(detail.seat_columns) ? detail.seat_columns : []
         this.tableRows = Array.isArray(detail.results) ? detail.results : []
 

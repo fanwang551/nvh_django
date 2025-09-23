@@ -20,6 +20,16 @@ export default defineConfig(({ mode }) => {
           target: env.VITE_API_BASE_URL || 'http://127.0.0.1:8000',
           changeOrigin: true,
           secure: false
+        },
+        '/media': {
+          target: env.VITE_API_BASE_URL || 'http://127.0.0.1:8000',
+          changeOrigin: true,
+          secure: false
+        },
+        '/static': {
+          target: env.VITE_API_BASE_URL || 'http://127.0.0.1:8000',
+          changeOrigin: true,
+          secure: false
         }
       }
     }
