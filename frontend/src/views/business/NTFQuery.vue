@@ -413,6 +413,32 @@ function renderHeatmap() {
       }
     ]
   }
+  // 使用连续型 visualMap 实现平滑渐变
+  option.visualMap = {
+    type: 'continuous',
+    min: valueRange.min,
+    max: valueRange.max,
+    orient: 'vertical',
+    right: 10,
+    top: 'center',
+    align: 'auto',
+    itemWidth: 18,
+    itemHeight: 140,
+    textGap: 8,
+    calculable: true,
+    inRange: {
+      color: [
+        '#1a237e',
+        '#3949ab',
+        '#42a5f5',
+        '#66bb6a',
+        '#fdd835',
+        '#fb8c00',
+        '#e53935',
+        '#b71c1c'
+      ]
+    }
+  }
 
   chartInstance.setOption(option)
   chartInstance.resize()
