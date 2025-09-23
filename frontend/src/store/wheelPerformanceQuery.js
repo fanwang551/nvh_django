@@ -52,7 +52,7 @@ function normalizeForceTransferSignal(signal) {
 export const useWheelPerformanceQueryStore = defineStore('wheelPerformanceQuery', {
   state: () => ({
     filters: {
-      vehicleModelId: null
+      vehicleModelIds: []
     },
     vehicleModels: [],
     records: [],
@@ -94,8 +94,10 @@ export const useWheelPerformanceQueryStore = defineStore('wheelPerformanceQuery'
 
     buildQueryParams() {
       const params = {}
-      if (this.filters.vehicleModelId) {
-        params.vehicle_model = this.filters.vehicleModelId
+      const { vehicleModelIds } = this.filters
+
+      if (Array.isArray(vehicleModelIds) && vehicleModelIds.length > 0) {
+        params.vehicle_model_ids = vehicleModelIds.join(',')
       }
       return params
     },
@@ -143,7 +145,7 @@ export const useWheelPerformanceQueryStore = defineStore('wheelPerformanceQuery'
 
     resetFilters() {
       this.filters = {
-        vehicleModelId: null
+        vehicleModelIds: []
       }
     },
 

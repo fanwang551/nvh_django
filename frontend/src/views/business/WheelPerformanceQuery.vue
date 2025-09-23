@@ -11,10 +11,24 @@
           <el-col :span="16" >
             <el-form-item label="车型">
               <el-select
-                v-model="filters.vehicleModelId"
+                v-model="selectedVehicleModelIds"
                 placeholder="请选择车型"
+                multiple
                 clearable
+                collapse-tags
+                collapse-tags-tooltip
+                @change="handleVehicleSelectionChange"
+                style="width: 100%"
               >
+                <template #header>
+                  <el-checkbox
+                    v-model="selectAllVehicles"
+                    @change="handleSelectAllVehicles"
+                    class="select-all-checkbox"
+                  >
+                    全选
+                  </el-checkbox>
+                </template>
                 <el-option
                   v-for="item in vehicleModels"
                   :key="item.id"
@@ -202,6 +216,58 @@ echarts.use([LineChart, TooltipComponent, LegendComponent, GridComponent, Canvas
 const store = useWheelPerformanceQueryStore()
 const { filters, vehicleModels, records, chartSeries, isLoading, rimModal, forceModal } = storeToRefs(store)
 
+const selectedVehicleModelIds = computed({
+  get: () => filters.value.vehicleModelIds,
+  set: (value) => {
+    const nextValue = Array.isArray(value) ? [...value] : []
+    store.setFilters({ vehicleModelIds: nextValue })
+  }
+})
+
+const selectAllVehicles = ref(false)
+
+const syncSelectAllState = (selectedIds) => {
+  const selectableIds = vehicleModels.value.map((item) => item.id)
+
+  if (!selectableIds.length) {
+    selectAllVehicles.value = false
+    return
+  }
+
+  const selectedSet = new Set(Array.isArray(selectedIds) ? selectedIds : [])
+  const hasAll = selectableIds.every((id) => selectedSet.has(id))
+  selectAllVehicles.value = hasAll
+}
+
+const handleVehicleSelectionChange = (selectedIds) => {
+  const normalized = Array.isArray(selectedIds) ? selectedIds : []
+  syncSelectAllState(normalized)
+}
+
+const handleSelectAllVehicles = (checked) => {
+  if (checked) {
+    const allIds = vehicleModels.value.map((item) => item.id)
+    store.setFilters({ vehicleModelIds: allIds })
+  } else {
+    store.setFilters({ vehicleModelIds: [] })
+  }
+}
+
+watch(
+  vehicleModels,
+  () => {
+    syncSelectAllState(filters.value.vehicleModelIds)
+  }
+)
+
+watch(
+  () => filters.value.vehicleModelIds,
+  (newValue) => {
+    syncSelectAllState(newValue)
+  },
+  { immediate: true, deep: true }
+)
+
 const rimModalVisible = computed({
   get: () => rimModal.value.visible,
   set: (visible) => {
@@ -352,6 +418,10 @@ onBeforeUnmount(() => {
 .card-subtitle {
   font-size: 12px;
   color: #909399;
+}
+
+.select-all-checkbox {
+  margin-left: 12px;
 }
 
 .search-form {

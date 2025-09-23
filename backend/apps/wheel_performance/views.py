@@ -17,9 +17,27 @@ def wheel_performance_list(request):
     if request.method == 'GET':
         queryset = WheelPerformance.objects.select_related('vehicle_model').all()
 
-        vehicle_model = request.GET.get('vehicle_model')
-        if vehicle_model:
-            queryset = queryset.filter(vehicle_model_id=vehicle_model)
+        raw_vehicle_model_ids = request.GET.getlist('vehicle_model_ids')
+        vehicle_model_ids = []
+
+        for value in raw_vehicle_model_ids:
+            if not value:
+                continue
+            for part in value.split(','):
+                part = part.strip()
+                if not part:
+                    continue
+                try:
+                    vehicle_model_ids.append(int(part))
+                except (TypeError, ValueError):
+                    continue
+
+        if vehicle_model_ids:
+            queryset = queryset.filter(vehicle_model_id__in=vehicle_model_ids)
+        else:
+            vehicle_model = request.GET.get('vehicle_model')
+            if vehicle_model:
+                queryset = queryset.filter(vehicle_model_id=vehicle_model)
 
         queryset = queryset.order_by('vehicle_model__vehicle_model_name', 'tire_brand', 'tire_model')
         serializer = WheelPerformanceSerializer(queryset, many=True)
