@@ -1,4 +1,4 @@
-﻿import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router'
 import keycloak from '@/utils/keycloak'
 
 // Import views
@@ -17,6 +17,7 @@ import SoundInsulationCompare from '@/views/business/SoundInsulationCompare.vue'
 import VehicleSoundInsulationQuery from '@/views/business/VehicleSoundInsulationQuery.vue'
 import VehicleReverberationQuery from '@/views/business/VehicleReverberationQuery.vue'
 import WheelPerformanceQuery from '@/views/business/WheelPerformanceQuery.vue'
+import NTFQuery from '@/views/business/NTFQuery.vue'
 import SoundAbsorptionQuery from '@/views/business/SoundAbsorptionQuery.vue'
 import SoundInsulationCoefficientQuery from '@/views/business/SoundInsulationCoefficientQuery.vue'
 import MaterialPorosityFlowResistanceQuery from '@/views/business/MaterialPorosityFlowResistanceQuery.vue'
@@ -83,6 +84,12 @@ const routes = [
     path: '/business/wheel-performance-query',
     name: 'WheelPerformanceQuery',
     component: WheelPerformanceQuery,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/business/ntf-query',
+    name: 'NTFQuery',
+    component: NTFQuery,
     meta: { requiresAuth: true }
   },
   {
@@ -160,3 +167,8 @@ router.beforeEach((to, from, next) => {
 })
 
 export default router
+
+
+
+
+

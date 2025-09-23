@@ -6,7 +6,7 @@
     </div>
 
     <el-collapse v-model="activeGroups" class="business-groups">
-      <!-- 模态和气密性模块 -->
+      <!-- 模态和气密性模块-->
       <el-collapse-item name="modal" class="group-item">
         <template #title>
           <h3 class="group-title">模态和气密性模块</h3>
@@ -29,7 +29,7 @@
         </div>
       </el-collapse-item>
 
-      <!-- 吸隔声模块 -->
+      <!-- 吸隔声模块-->
       <el-collapse-item name="sound" class="group-item">
         <template #title>
           <h3 class="group-title">吸隔声模块</h3>
@@ -52,7 +52,7 @@
         </div>
       </el-collapse-item>
 
-      <!-- 动刚度模块 -->
+      <!-- 动刚度模块-->
       <el-collapse-item name="dynamic" class="group-item">
         <template #title>
           <h3 class="group-title">动刚度模块</h3>
@@ -203,6 +203,11 @@ const wheelPerformanceModules = ref([
     name: 'wheel-performance-query',
     title: '车轮性能查询',
     icon: Odometer
+  },
+  {
+    name: 'ntf-query',
+    title: 'NTF 查询',
+    icon: TrendCharts
   }
 ])
 
@@ -264,7 +269,7 @@ const openModule = (module) => {
   max-width: 100%;
 }
 
-/* 响应式：最多6列 */
+/* 响应式：最多6列/
 @media (min-width: 1080px) {
   .modules-grid {
     grid-template-columns: repeat(6, 1fr);
@@ -351,3 +356,5 @@ const openModule = (module) => {
   border: none;
 }
 </style>
+
+

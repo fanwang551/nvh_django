@@ -1,4 +1,4 @@
-﻿"""
+"""
 URL configuration for nvh_backend project.
 """
 from django.contrib import admin
@@ -21,9 +21,11 @@ urlpatterns = [
     path('api/sound-insulation/', include('apps.sound_module.urls')),
     path('api/dynamic-stiffness/', include('apps.dynamic_stiffness.urls')),
     path('api/wheel-performance/', include('apps.wheel_performance.urls')),
+    path('api/NTF/', include('apps.NTF.urls')),
     path('oidc/', include('mozilla_django_oidc.urls')),
 ]
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+

@@ -39,6 +39,7 @@ LOCAL_APPS = [
     'apps.sound_module',
     'apps.dynamic_stiffness',
     'apps.wheel_performance',
+    'apps.NTF',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -174,8 +175,8 @@ OIDC_OP_LOGOUT_ENDPOINT = config('OIDC_OP_LOGOUT_ENDPOINT', default='https://acc
 # OIDC settings
 OIDC_RP_SIGN_ALGO = 'RS256'
 OIDC_RP_SCOPES = 'openid profile email'
-OIDC_CREATE_USER = False  # 不自动创建用�?
-OIDC_UPDATE_USER = False  # 不自动更新用户信�?
+OIDC_CREATE_USER = False  # 不自动创建用户
+OIDC_UPDATE_USER = False  # 不自动更新用户信息
 
 # Session settings
 OIDC_RENEW_ID_TOKEN_EXPIRY_SECONDS = 36000
