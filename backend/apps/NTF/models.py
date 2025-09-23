@@ -34,13 +34,7 @@ class NTFInfo(models.Model):
 
 
 class NTFTestResult(models.Model):
-    """NTF test result row."""
-
-    DIRECTION_CHOICES = [
-        ('X', 'X方向'),
-        ('Y', 'Y方向'),
-        ('Z', 'Z方向'),
-    ]
+    """NTF test result per measurement point with X/Y/Z directions."""
 
     ntf_info = models.ForeignKey(
         NTFInfo,
@@ -49,13 +43,28 @@ class NTFTestResult(models.Model):
         verbose_name='NTF信息'
     )
     measurement_point = models.CharField(max_length=100, verbose_name='测点')
-    direction = models.CharField(max_length=1, choices=DIRECTION_CHOICES, verbose_name='方向')
-    target_value = models.DecimalField(max_digits=6, decimal_places=2, verbose_name='目标值(dB)')
-    front_row_value = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='前排值(dB)')
-    middle_row_value = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='中排值(dB)')
-    rear_row_value = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='后排值(dB)')
-    # ntf_curve expects {'frequency': [...], 'values': [...]} for echarts heatmap
-    ntf_curve = models.JSONField(default=dict, verbose_name='NTF原始数据')
+
+    # X 方向
+    x_target_value = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='X方向目标(dB)')
+    x_front_row_value = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='X方向前排(dB)')
+    x_middle_row_value = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='X方向中排(dB)')
+    x_rear_row_value = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='X方向后排(dB)')
+
+    # 单一曲线：每个测点仅一份曲线数据
+    ntf_curve = models.JSONField(default=dict, blank=True, verbose_name='NTF原始数据')
+
+    # Y 方向
+    y_target_value = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='Y方向目标(dB)')
+    y_front_row_value = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='Y方向前排(dB)')
+    y_middle_row_value = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='Y方向中排(dB)')
+    y_rear_row_value = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='Y方向后排(dB)')
+
+    # Z 方向
+    z_target_value = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='Z方向目标(dB)')
+    z_front_row_value = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='Z方向前排(dB)')
+    z_middle_row_value = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='Z方向中排(dB)')
+    z_rear_row_value = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='Z方向后排(dB)')
+
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
 
@@ -63,16 +72,9 @@ class NTFTestResult(models.Model):
         db_table = 'NTF_test_result'
         verbose_name = 'NTF测试结果'
         verbose_name_plural = 'NTF测试结果'
-        unique_together = ('ntf_info', 'measurement_point', 'direction')
-        ordering = ['measurement_point', 'direction']
+        unique_together = ('ntf_info', 'measurement_point')
+        ordering = ['measurement_point']
 
     def __str__(self) -> str:
-        return f"{self.ntf_info_id} - {self.measurement_point} - {self.direction}"
+        return f"{self.ntf_info_id} - {self.measurement_point}"
 
-    @property
-    def frequency(self):
-        return self.ntf_curve.get('frequency', [])
-
-    @property
-    def values(self):
-        return self.ntf_curve.get('values', [])

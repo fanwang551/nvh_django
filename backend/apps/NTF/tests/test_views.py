@@ -33,20 +33,23 @@ class NTFViewsTestCase(APITestCase):
             development_stage='SOP'
         )
 
-        for direction, values in [('X', [58.0, 60.0, 62.5]), ('Y', [59.0, 61.0, 63.0])]:
-            NTFTestResult.objects.create(
-                ntf_info=info,
-                measurement_point='P1',
-                direction=direction,
-                target_value=60.0,
-                front_row_value=61.0,
-                middle_row_value=62.0,
-                rear_row_value=63.5,
-                ntf_curve={
-                    'frequency': [20, 40, 60],
-                    'values': values,
-                }
-            )
+        # Consolidated XYZ record for measurement point P1 (单曲线)
+        NTFTestResult.objects.create(
+            ntf_info=info,
+            measurement_point='P1',
+            x_target_value=60.0,
+            x_front_row_value=61.0,
+            x_middle_row_value=62.0,
+            x_rear_row_value=63.5,
+            y_target_value=60.0,
+            y_front_row_value=61.0,
+            y_middle_row_value=62.0,
+            y_rear_row_value=63.5,
+            ntf_curve={
+                'frequency': [20, 40, 60],
+                'values': [59.0, 61.0, 63.0],
+            },
+        )
 
         return info
 
@@ -65,17 +68,19 @@ class NTFViewsTestCase(APITestCase):
         seat_keys = [column['key'] for column in payload['seat_columns']]
         self.assertListEqual(seat_keys, ['front', 'middle', 'rear'])
 
-        self.assertEqual(len(payload['results']), latest.test_results.count())
+        # 每条测试结果包含 X/Y/Z 三行（此处创建了一条，预期 3 行）
+        self.assertEqual(len(payload['results']), latest.test_results.count() * 3)
         first_row = payload['results'][0]
         self.assertEqual(first_row['measurement_point'], 'P1')
-        self.assertIn(first_row['direction'], {'X', 'Y'})
+        self.assertIn(first_row['direction'], {'X', 'Y', 'Z'})
         self.assertIn('front', first_row)
         self.assertEqual(payload['images']['front'], latest.front_row_image)
 
         heatmap = payload['heatmap']
         self.assertEqual(heatmap['frequency'], [20.0, 40.0, 60.0])
-        self.assertTrue(all(point.startswith('P1-') for point in heatmap['points']))
-        self.assertEqual(len(heatmap['matrix']), latest.test_results.count())
+        self.assertEqual(heatmap['points'], ['P1'])
+        # 单测点单曲线
+        self.assertEqual(len(heatmap['matrix']), 1)
 
     def test_ntf_detail_handles_missing_vehicle(self):
         url = "/api/NTF/infos/by-vehicle/9999/"

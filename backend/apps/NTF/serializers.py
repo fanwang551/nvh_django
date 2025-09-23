@@ -25,22 +25,6 @@ class NTFInfoListSerializer(serializers.ModelSerializer):
         )
 
 
-class NTFTestResultTableSerializer(serializers.ModelSerializer):
-    direction_label = serializers.CharField(source='get_direction_display', read_only=True)
-
-    class Meta:
-        model = NTFTestResult
-        fields = (
-            'measurement_point',
-            'direction',
-            'direction_label',
-            'target_value',
-            'front_row_value',
-            'middle_row_value',
-            'rear_row_value',
-        )
-
-
 class NTFInfoDetailSerializer(serializers.ModelSerializer):
     vehicle = serializers.SerializerMethodField()
     images = serializers.SerializerMethodField()
@@ -105,18 +89,28 @@ class NTFInfoDetailSerializer(serializers.ModelSerializer):
         seat_layout = self._seat_layout(obj.seat_count)
         seats = [seat['key'] for seat in seat_layout]
         data: List[Dict[str, object]] = []
-        for result in obj.test_results.all().order_by('measurement_point', 'direction'):
-            row = {
-                'measurement_point': result.measurement_point,
-                'direction': result.direction,
-                'direction_label': result.get_direction_display(),
-                'target': self._clean_decimal(result.target_value),
-                'front': self._clean_decimal(result.front_row_value),
-                'middle': self._clean_decimal(result.middle_row_value),
-                'rear': self._clean_decimal(result.rear_row_value),
-            }
-            row['available_columns'] = seats
-            data.append(row)
+        direction_map = [
+            ('X', 'X方向', 'x'),
+            ('Y', 'Y方向', 'y'),
+            ('Z', 'Z方向', 'z'),
+        ]
+        for result in obj.test_results.all().order_by('measurement_point'):
+            for code, label, prefix in direction_map:
+                target = getattr(result, f"{prefix}_target_value")
+                front = getattr(result, f"{prefix}_front_row_value")
+                middle = getattr(result, f"{prefix}_middle_row_value")
+                rear = getattr(result, f"{prefix}_rear_row_value")
+                row = {
+                    'measurement_point': result.measurement_point,
+                    'direction': code,
+                    'direction_label': label,
+                    'target': self._clean_decimal(target),
+                    'front': self._clean_decimal(front),
+                    'middle': self._clean_decimal(middle),
+                    'rear': self._clean_decimal(rear),
+                    'available_columns': seats,
+                }
+                data.append(row)
         return data
 
     def get_heatmap(self, obj: NTFInfo) -> Dict[str, object]:
@@ -124,14 +118,15 @@ class NTFInfoDetailSerializer(serializers.ModelSerializer):
         points_axis: List[str] = []
         matrix: List[List[float]] = []
 
-        for result in obj.test_results.all().order_by('measurement_point', 'direction'):
+        for result in obj.test_results.all().order_by('measurement_point'):
             curve = result.ntf_curve or {}
             frequencies = curve.get('frequency') or []
             values = curve.get('values') or []
             if not frequency_axis and frequencies:
                 frequency_axis = [float(f) for f in frequencies]
-            points_axis.append(f"{result.measurement_point}-{result.direction}")
-            matrix.append([float(v) for v in values])
+            if values:
+                points_axis.append(f"{result.measurement_point}")
+                matrix.append([float(v) for v in values])
 
         return {
             'frequency': frequency_axis,

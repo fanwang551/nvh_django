@@ -79,6 +79,17 @@
       <template #header>
         <div class="card-header">
           <span class="card-title">测试结果</span>
+          <div v-if="tableRows.length && levelStats.total > 0" class="level-stats">
+            <span class="level-item ntf-cell ntf-cell--low">
+              <strong>&lt;60</strong>：{{ levelStats.low.percent }}%
+            </span>
+            <span class="level-item ntf-cell ntf-cell--medium">
+              <strong>60-65</strong>：{{ levelStats.medium.percent }}%
+            </span>
+            <span class="level-item ntf-cell ntf-cell--high">
+              <strong>&gt;65</strong>：{{ levelStats.high.percent }}%
+            </span>
+          </div>
         </div>
       </template>
       <el-table
@@ -194,6 +205,35 @@ function getValueClass(value) {
   }
   return `ntf-cell ntf-cell--${level}`
 }
+
+const levelStats = computed(() => {
+  const stats = {
+    total: 0,
+    low: { count: 0, percent: 0 },
+    medium: { count: 0, percent: 0 },
+    high: { count: 0, percent: 0 }
+  }
+  const seatKeys = Array.isArray(seatColumns.value) ? seatColumns.value.map((c) => c.key) : []
+  if (!Array.isArray(tableRows.value) || !seatKeys.length) {
+    return stats
+  }
+  for (const row of tableRows.value) {
+    for (const key of seatKeys) {
+      const v = Number(row?.[key])
+      if (!Number.isFinite(v)) continue
+      stats.total += 1
+      if (v > 65) stats.high.count += 1
+      else if (v >= 60) stats.medium.count += 1
+      else stats.low.count += 1
+    }
+  }
+  if (stats.total > 0) {
+    stats.low.percent = Math.round((stats.low.count / stats.total) * 100)
+    stats.medium.percent = Math.round((stats.medium.count / stats.total) * 100)
+    stats.high.percent = Math.round((stats.high.count / stats.total) * 100)
+  }
+  return stats
+})
 
 function buildHeatmapSeriesData() {
   if (!heatmap.value?.matrix?.length) {
@@ -456,7 +496,14 @@ onBeforeUnmount(() => {
 .ntf-cell--low {
   color: #67c23a;
 }
+
+.level-stats {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.level-item strong {
+  margin-right: 4px;
+}
 </style>
-
-
 
