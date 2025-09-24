@@ -34,7 +34,6 @@ stop_services() {
 cleanup_images() {
     echo "🧹 清理旧镜像..."
     docker system prune -f
-    docker volume prune -f
 }
 
 # 构建和启动服务
