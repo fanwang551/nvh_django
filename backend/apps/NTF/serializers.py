@@ -1,5 +1,6 @@
 from decimal import Decimal
 from typing import Dict, List
+import math
 
 from rest_framework import serializers
 
@@ -53,10 +54,40 @@ class NTFInfoDetailSerializer(serializers.ModelSerializer):
         )
 
     @staticmethod
+    def _is_finite_number(value) -> bool:
+        try:
+            f = float(value)
+            return math.isfinite(f)
+        except (TypeError, ValueError):
+            return False
+
+    @staticmethod
+    def _to_float(value):
+        """Safely convert to float; return None if not finite."""
+        try:
+            f = float(value)
+            return f if math.isfinite(f) else None
+        except (TypeError, ValueError):
+            return None
+
+    @staticmethod
+    def _to_float_list(values, limit_len: int | None = None):
+        arr = []
+        for v in values or []:
+            f = NTFInfoDetailSerializer._to_float(v)
+            if f is not None:
+                arr.append(f)
+        if limit_len is not None:
+            arr = arr[:limit_len]
+        return arr
+
+    @staticmethod
     def _clean_decimal(value):
-        if isinstance(value, Decimal):
-            return float(value)
-        return value
+        # Accept Decimal or numeric-like values; return None for non-finite
+        if isinstance(value, Decimal) or isinstance(value, (int, float, str)):
+            f = NTFInfoDetailSerializer._to_float(value)
+            return f
+        return None
 
     @staticmethod
     def _seat_layout(seat_count: int) -> List[Dict[str, str]]:
@@ -124,34 +155,43 @@ class NTFInfoDetailSerializer(serializers.ModelSerializer):
             curve = result.ntf_curve or {}
             frequencies = curve.get('frequency') or []
             if not frequency_axis and frequencies:
-                frequency_axis = [float(f) for f in frequencies]
+                frequency_axis = self._to_float_list(frequencies)
 
             # 优先新结构：x_values / y_values / z_values
             x_vals = curve.get('x_values') or []
             y_vals = curve.get('y_values') or []
             z_vals = curve.get('z_values') or []
+            expected_len = len(frequency_axis) if frequency_axis else None
 
             # 热力图展示 X、Y、Z 三个方向
             added_any = False
             if x_vals:
-                points_axis.append(f"{result.measurement_point}_X")
-                matrix.append([float(v) for v in x_vals])
-                added_any = True
+                row = self._to_float_list(x_vals, expected_len)
+                if row:
+                    points_axis.append(f"{result.measurement_point}_X")
+                    matrix.append(row)
+                    added_any = True
             if y_vals:
-                points_axis.append(f"{result.measurement_point}_Y")
-                matrix.append([float(v) for v in y_vals])
-                added_any = True
+                row = self._to_float_list(y_vals, expected_len)
+                if row:
+                    points_axis.append(f"{result.measurement_point}_Y")
+                    matrix.append(row)
+                    added_any = True
             if z_vals:
-                points_axis.append(f"{result.measurement_point}_Z")
-                matrix.append([float(v) for v in z_vals])
-                added_any = True
+                row = self._to_float_list(z_vals, expected_len)
+                if row:
+                    points_axis.append(f"{result.measurement_point}_Z")
+                    matrix.append(row)
+                    added_any = True
 
             # 兼容历史数据：旧结构 {frequency: [], values: []}
             if not added_any:
                 old_values = curve.get('values') or []
                 if old_values:
-                    points_axis.append(f"{result.measurement_point}")
-                    matrix.append([float(v) for v in old_values])
+                    row = self._to_float_list(old_values, expected_len)
+                    if row:
+                        points_axis.append(f"{result.measurement_point}")
+                        matrix.append(row)
 
         return {
             'frequency': frequency_axis,
