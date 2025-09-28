@@ -76,8 +76,8 @@ export const useWheelPerformanceQueryStore = defineStore('wheelPerformanceQuery'
 
   actions: {
     async initialize() {
+      // 仅初始化车型列表，避免在未选择车型时自动加载数据
       await this.fetchVehicleModels()
-      await this.fetchRecords()
     },
 
     async fetchVehicleModels() {
@@ -106,6 +106,14 @@ export const useWheelPerformanceQueryStore = defineStore('wheelPerformanceQuery'
       try {
         this.isLoading = true
         this.error = null
+
+        // 未选择车型时，不发起请求并清空数据/曲线
+        const { vehicleModelIds } = this.filters
+        if (!Array.isArray(vehicleModelIds) || vehicleModelIds.length === 0) {
+          this.records = []
+          this.chartSeries = []
+          return []
+        }
 
         const response = await wheelPerformanceApi.getWheelPerformanceList(
           this.buildQueryParams()
