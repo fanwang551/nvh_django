@@ -6,10 +6,10 @@ from .models import NTFInfo, NTFTestResult
 @admin.register(NTFInfo)
 class NTFInfoAdmin(admin.ModelAdmin):
     list_display = (
-        'id', 'vehicle_model', 'tester', 'test_time', 'location', 'seat_count', 'development_stage'
+        'id', 'vehicle_model', 'tester', 'test_time', 'location'
     )
     search_fields = ('vehicle_model__cle_model_code', 'tester', 'location')
-    list_filter = ('development_stage', 'seat_count', 'sunroof_type', 'suspension_type')
+    list_filter = ('test_time',)
 
 
 @admin.register(NTFTestResult)

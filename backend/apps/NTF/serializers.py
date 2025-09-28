@@ -21,8 +21,6 @@ class NTFInfoListSerializer(serializers.ModelSerializer):
             'tester',
             'test_time',
             'location',
-            'seat_count',
-            'development_stage',
         )
 
 
@@ -41,10 +39,6 @@ class NTFInfoDetailSerializer(serializers.ModelSerializer):
             'tester',
             'test_time',
             'location',
-            'sunroof_type',
-            'suspension_type',
-            'seat_count',
-            'development_stage',
             'point_images',
             'seat_columns',
             'results',
@@ -104,13 +98,18 @@ class NTFInfoDetailSerializer(serializers.ModelSerializer):
             'name': vehicle.vehicle_model_name,
             'vin': vehicle.vin,
             'drive_type': vehicle.drive_type,
+            'production_year': vehicle.production_year,
+            'energy_type': getattr(vehicle, 'energy_type', None),
+            'suspension_type': getattr(vehicle, 'suspension_type', None),
+            'sunroof_type': getattr(vehicle, 'sunroof_type', None),
+            'seat_count': getattr(vehicle, 'seat_count', None),
         }
 
     def get_seat_columns(self, obj: NTFInfo) -> List[Dict[str, str]]:
-        return self._seat_layout(obj.seat_count)
+        return self._seat_layout(getattr(obj.vehicle_model, 'seat_count', None))
 
     def get_results(self, obj: NTFInfo) -> List[Dict[str, object]]:
-        seat_layout = self._seat_layout(obj.seat_count)
+        seat_layout = self._seat_layout(getattr(obj.vehicle_model, 'seat_count', None))
         seats = [seat['key'] for seat in seat_layout]
         data: List[Dict[str, object]] = []
         direction_map = [

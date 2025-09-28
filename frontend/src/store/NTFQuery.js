@@ -16,6 +16,7 @@ export const useNTFQueryStore = defineStore('NTFQuery', {
     measurementPointOptions: [],
     selectedVehicleIds: [],
     selectedPoints: [],
+    vehicleCards: [],
     seatColumns: [],
     tableRows: [],
     heatmap: {
@@ -48,6 +49,7 @@ export const useNTFQueryStore = defineStore('NTFQuery', {
       this.seatColumns = []
       this.tableRows = []
       this.heatmap = { frequency: [], points: [], matrix: [] }
+      this.vehicleCards = []
       this.error = null
     },
 
@@ -82,6 +84,7 @@ export const useNTFQueryStore = defineStore('NTFQuery', {
         const data = res.data || {}
         this.seatColumns = Array.isArray(data.seat_columns) ? data.seat_columns : []
         this.tableRows = Array.isArray(data.results) ? data.results : []
+        this.vehicleCards = Array.isArray(data.vehicles) ? data.vehicles : []
         const heatmap = data.heatmap || {}
         this.heatmap = {
           frequency: Array.isArray(heatmap.frequency) ? heatmap.frequency.map((x) => Number(x)) : [],

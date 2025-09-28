@@ -123,9 +123,9 @@ def ntf_query(request):
             'heatmap': {'frequency': [], 'points': [], 'matrix': []},
         }, message='未找到匹配的NTF数据')
 
-    # Determine unified seat columns across all selected vehicles
-    has_middle = any(info.seat_count and info.seat_count > 5 for info in infos)
-    has_rear = any(info.seat_count and info.seat_count >= 3 for info in infos)
+    # Determine unified seat columns across all selected vehicles（来自 VehicleModel）
+    has_middle = any(getattr(info.vehicle_model, 'seat_count', None) and info.vehicle_model.seat_count > 5 for info in infos)
+    has_rear = any(getattr(info.vehicle_model, 'seat_count', None) and info.vehicle_model.seat_count >= 3 for info in infos)
     seat_columns = [{'key': 'front', 'label': '前排'}]
     if has_middle:
         seat_columns.append({'key': 'middle', 'label': '中排'})
@@ -134,13 +134,31 @@ def ntf_query(request):
 
     # Build results table rows and heatmap
     results_rows = []
+    vehicle_cards = []
     frequency_axis = []
     heat_points = []
     heat_matrix = []
 
     for info in infos:
-        vehicle_name = info.vehicle_model.vehicle_model_name
-        vehicle_code = info.vehicle_model.cle_model_code
+        vm = info.vehicle_model
+        vehicle_name = vm.vehicle_model_name
+        vehicle_code = vm.cle_model_code
+
+        # 车辆信息卡片
+        vehicle_cards.append({
+            'vehicle_id': vm.id,
+            'vehicle_model_name': vm.vehicle_model_name,
+            'vehicle_model_code': vm.cle_model_code,
+            'vin': vm.vin,
+            'production_year': vm.production_year,
+            'energy_type': getattr(vm, 'energy_type', None),
+            'suspension_type': getattr(vm, 'suspension_type', None),
+            'sunroof_type': getattr(vm, 'sunroof_type', None),
+            'seat_count': getattr(vm, 'seat_count', None),
+            'tester': info.tester,
+            'location': info.location,
+            'test_time': info.test_time,
+        })
 
         result_qs = info.test_results.all().order_by('measurement_point')
         if point_list:
@@ -159,7 +177,8 @@ def ntf_query(request):
                     'front': getattr(res, f'{prefix}_front_row_value'),
                     'middle': getattr(res, f'{prefix}_middle_row_value'),
                     'rear': getattr(res, f'{prefix}_rear_row_value'),
-                    'available_columns': [c['key'] for c in _seat_layout(info.seat_count)],
+                    'available_columns': [c['key'] for c in _seat_layout(getattr(vm, 'seat_count', None))],
+                    'layout_image_url': getattr(res, 'layout_image_url', None),
                 }
                 results_rows.append(row)
 
@@ -199,6 +218,7 @@ def ntf_query(request):
 
     data = {
         'seat_columns': seat_columns,
+        'vehicles': vehicle_cards,
         'results': results_rows,
         'heatmap': {
             'frequency': frequency_axis,

@@ -2,7 +2,7 @@ from django.db import models
 
 
 class NTFInfo(models.Model):
-    """NTF test metadata."""
+    """NTF 测试元数据"""
 
     vehicle_model = models.ForeignKey(
         'modal.VehicleModel',
@@ -13,10 +13,7 @@ class NTFInfo(models.Model):
     tester = models.CharField(max_length=50, verbose_name='测试人员')
     test_time = models.DateTimeField(verbose_name='测试时间')
     location = models.CharField(max_length=100, verbose_name='测试地点')
-    sunroof_type = models.CharField(max_length=50, verbose_name='天窗形式')
-    suspension_type = models.CharField(max_length=50, verbose_name='悬挂形式')
-    seat_count = models.PositiveSmallIntegerField(verbose_name='座位数')
-    development_stage = models.CharField(max_length=50, verbose_name='开发阶段')
+
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
 
@@ -27,7 +24,8 @@ class NTFInfo(models.Model):
         ordering = ['-test_time']
 
     def __str__(self) -> str:
-        return f"{self.vehicle_model.cle_model_code} - {self.test_time:%Y-%m-%d}"
+        code = getattr(self.vehicle_model, 'cle_model_code', None) or ''
+        return f"{code} - {self.test_time:%Y-%m-%d}"
 
 
 def _default_ntf_curve() -> dict:
@@ -40,7 +38,7 @@ def _default_ntf_curve() -> dict:
 
 
 class NTFTestResult(models.Model):
-    """NTF test result per measurement point with X/Y/Z directions."""
+    """NTF 测试结果：每个测点包含 X/Y/Z 三个方向"""
 
     ntf_info = models.ForeignKey(
         NTFInfo,
@@ -49,7 +47,7 @@ class NTFTestResult(models.Model):
         verbose_name='NTF信息'
     )
     measurement_point = models.CharField(max_length=100, verbose_name='测点')
-    # 测点布置图 URL（用于前端展示测点布置图）
+    # 测点布置图 URL（用于前端弹窗展示）
     layout_image_url = models.CharField(max_length=255, null=True, blank=True, verbose_name='测点布置图URL')
 
     # X 方向
@@ -87,3 +85,4 @@ class NTFTestResult(models.Model):
 
     def __str__(self) -> str:
         return f"{self.ntf_info_id} - {self.measurement_point}"
+

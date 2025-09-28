@@ -43,6 +43,31 @@
 
     <el-alert v-if="error" type="error" :title="error" show-icon />
 
+    <!-- 车辆基本信息卡片 -->
+    <el-card v-if="vehicleCards.length" class="vehicle-info-card" shadow="never">
+      <template #header>
+        <div class="card-header">
+          <span class="card-title">车辆基本信息</span>
+        </div>
+      </template>
+      <div class="vehicle-card-list">
+        <el-card v-for="v in vehicleCards" :key="v.vehicle_id" class="vehicle-card" shadow="never">
+          <div class="vehicle-card-title">{{ v.vehicle_model_name }}（{{ v.vehicle_model_code || '-' }}）</div>
+          <div class="vehicle-card-rows">
+            <div class="vehicle-card-row"><span class="label">VIN</span><span class="value">{{ v.vin || '-' }}</span></div>
+            <div class="vehicle-card-row"><span class="label">生产时间</span><span class="value">{{ v.production_year || '-' }}</span></div>
+            <div class="vehicle-card-row"><span class="label">能源形式</span><span class="value">{{ v.energy_type || '-' }}</span></div>
+            <div class="vehicle-card-row"><span class="label">悬挂形式</span><span class="value">{{ v.suspension_type || '-' }}</span></div>
+            <div class="vehicle-card-row"><span class="label">天窗形式</span><span class="value">{{ v.sunroof_type || '-' }}</span></div>
+            <div class="vehicle-card-row"><span class="label">座位数</span><span class="value">{{ v.seat_count ?? '-' }}</span></div>
+            <div class="vehicle-card-row"><span class="label">测试人员</span><span class="value">{{ v.tester }}</span></div>
+            <div class="vehicle-card-row"><span class="label">测试地点</span><span class="value">{{ v.location }}</span></div>
+            <div class="vehicle-card-row"><span class="label">测试时间</span><span class="value">{{ formatDateTime(v.test_time) }}</span></div>
+          </div>
+        </el-card>
+      </div>
+    </el-card>
+
     <el-card class="table-card" shadow="never">
       <template #header>
         <div class="card-header">
@@ -90,6 +115,11 @@
             <span :class="getValueClass(row[column.key])">{{ formatValue(row[column.key]) }}</span>
           </template>
         </el-table-column>
+        <el-table-column label="操作" min-width="120">
+          <template #default="{ row }">
+            <el-button type="primary" link size="small" :disabled="!row.layout_image_url" @click="openLayout(row.layout_image_url)">查看布置图</el-button>
+          </template>
+        </el-table-column>
       </el-table>
       <el-empty v-else description="暂无测试结果数据" />
     </el-card>
@@ -106,6 +136,19 @@
       <el-empty v-else description="暂无热力图数据" />
     </el-card>
   </div>
+
+  <!-- 布置图弹窗 -->
+  <el-dialog v-model="layoutDialogVisible" title="测点布置图" width="60%">
+    <div v-if="layoutImageUrl" style="text-align:center">
+      <img :src="layoutImageUrl" alt="layout" style="max-width:100%; max-height:70vh; object-fit:contain;" />
+    </div>
+    <el-empty v-else description="暂无布置图" />
+    <template #footer>
+      <span class="dialog-footer">
+        <el-button @click="layoutDialogVisible = false">关闭</el-button>
+      </span>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup>
@@ -124,7 +167,7 @@ const VALUE_LEVEL = { HIGH: 'high', MEDIUM: 'medium', LOW: 'low' }
 echarts.use([HeatmapChart, GridComponent, TooltipComponent, VisualMapComponent, TitleComponent, CanvasRenderer])
 
 const store = useNTFQueryStore()
-const { vehicleOptions, measurementPointOptions, seatColumns, tableRows, heatmap, isLoading, error } = storeToRefs(store)
+const { vehicleOptions, measurementPointOptions, seatColumns, tableRows, heatmap, isLoading, error, vehicleCards } = storeToRefs(store)
 
 const localVehicleIds = ref([])
 const localPoints = ref([])
@@ -144,6 +187,17 @@ function formatValue(value) {
   const numeric = Number(value)
   if (Number.isNaN(numeric)) return value
   return numeric.toFixed(2)
+}
+
+function formatDateTime(value) {
+  if (!value) return '-'
+  try {
+    const d = new Date(value)
+    if (Number.isNaN(d.getTime())) return value
+    return d.toLocaleString()
+  } catch (_) {
+    return value
+  }
 }
 
 function classifyValue(value) {
@@ -307,6 +361,14 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', handleResize)
   if (chartInstance) { chartInstance.dispose(); chartInstance = null }
 })
+
+// 操作列：测点布置图弹窗
+const layoutImageUrl = ref('')
+const layoutDialogVisible = ref(false)
+function openLayout(url) {
+  layoutImageUrl.value = url || ''
+  layoutDialogVisible.value = !!layoutImageUrl.value
+}
 </script>
 
 <style scoped>
@@ -322,4 +384,24 @@ onBeforeUnmount(() => {
 .ntf-cell--low { color: #67c23a; }
 .level-stats { display: flex; gap: 12px; align-items: center; }
 .level-item strong { margin-right: 4px; }
+
+/* 车辆信息卡片样式 */
+.vehicle-info-card { }
+/* 两列布局，适配常见两车型场景，更扁平 */
+.vehicle-card-list { display: grid; grid-template-columns: repeat(2, minmax(360px, 1fr)); gap: 12px; }
+.vehicle-card { font-size: 13px; }
+.vehicle-card :deep(.el-card__body) { padding: 10px 12px; }
+.vehicle-card-title { font-weight: 600; margin-bottom: 6px; line-height: 1.4; }
+/* 卡片内部信息两列网格，压缩高度 */
+.vehicle-card-rows { display: grid; grid-template-columns: repeat(2, minmax(220px, 1fr)); column-gap: 16px; row-gap: 6px; }
+.vehicle-card-row { display: grid; grid-template-columns: 80px 1fr; align-items: center; line-height: 1.4; }
+.vehicle-card-row .label { color: #606266; }
+.vehicle-card-row .value { color: #303133; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* 小屏降级为单列，保证可读性 */
+@media (max-width: 992px) {
+  .vehicle-card-list { grid-template-columns: 1fr; }
+  .vehicle-card-rows { grid-template-columns: 1fr; }
+  .vehicle-card-row { grid-template-columns: 90px 1fr; }
+}
 </style>
