@@ -96,7 +96,7 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="force_transfer_first_peak" label="力传递峰值" min-width="200">
+        <el-table-column prop="force_transfer_first_peak" label="力传递率一阶峰值（Hz）" min-width="200">
           <template #default="{ row }">
             <div class="table-metric-cell">
               <span class="metric-value">{{ row.force_transfer_first_peak }}</span>
@@ -321,17 +321,21 @@ watch(
         trigger: 'axis'
       },
       legend: {
-        type: 'scroll'
+        type: 'scroll',
+        top: 0,
+        left: 'center'
       },
       grid: {
         left: '3%',
         right: '4%',
-        bottom: '3%',
+        bottom: 40,
         containLabel: true
       },
       xAxis: {
         type: 'value',
-        name: '频率 (Hz)'
+        name: '频率（Hz）',
+        nameLocation: 'middle',
+        nameGap: 30
       },
       yAxis: {
         type: 'value',
