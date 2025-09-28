@@ -28,7 +28,6 @@ class NTFInfoListSerializer(serializers.ModelSerializer):
 
 class NTFInfoDetailSerializer(serializers.ModelSerializer):
     vehicle = serializers.SerializerMethodField()
-    images = serializers.SerializerMethodField()
     seat_columns = serializers.SerializerMethodField()
     results = serializers.SerializerMethodField()
     heatmap = serializers.SerializerMethodField()
@@ -46,7 +45,6 @@ class NTFInfoDetailSerializer(serializers.ModelSerializer):
             'suspension_type',
             'seat_count',
             'development_stage',
-            'images',
             'point_images',
             'seat_columns',
             'results',
@@ -106,13 +104,6 @@ class NTFInfoDetailSerializer(serializers.ModelSerializer):
             'name': vehicle.vehicle_model_name,
             'vin': vehicle.vin,
             'drive_type': vehicle.drive_type,
-        }
-
-    def get_images(self, obj: NTFInfo) -> Dict[str, str]:
-        return {
-            'front': obj.front_row_image,
-            'middle': obj.middle_row_image,
-            'rear': obj.rear_row_image,
         }
 
     def get_seat_columns(self, obj: NTFInfo) -> List[Dict[str, str]]:

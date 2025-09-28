@@ -27,9 +27,6 @@ class NTFViewsTestCase(APITestCase):
             sunroof_type='全景天窗',
             suspension_type='麦弗逊',
             seat_count=seat_count,
-            front_row_image='http://example.com/front.jpg',
-            middle_row_image='http://example.com/middle.jpg',
-            rear_row_image='http://example.com/rear.jpg',
             development_stage='SOP'
         )
 
@@ -76,7 +73,6 @@ class NTFViewsTestCase(APITestCase):
         self.assertEqual(first_row['measurement_point'], 'P1')
         self.assertIn(first_row['direction'], {'X', 'Y', 'Z'})
         self.assertIn('front', first_row)
-        self.assertEqual(payload['images']['front'], latest.front_row_image)
 
         heatmap = payload['heatmap']
         self.assertEqual(heatmap['frequency'], [20.0, 40.0, 60.0])

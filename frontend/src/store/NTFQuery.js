@@ -13,9 +13,9 @@ function normalizeHeatmapMatrix(matrix = []) {
 export const useNTFQueryStore = defineStore('NTFQuery', {
   state: () => ({
     vehicleOptions: [],
-    selectedVehicleId: null,
-    detail: null,
-    pointImages: [],
+    measurementPointOptions: [],
+    selectedVehicleIds: [],
+    selectedPoints: [],
     seatColumns: [],
     tableRows: [],
     heatmap: {
@@ -28,7 +28,7 @@ export const useNTFQueryStore = defineStore('NTFQuery', {
   }),
 
   getters: {
-    hasData: (state) => Boolean(state.detail && state.tableRows.length > 0)
+    hasData: (state) => state.tableRows.length > 0
   },
 
   actions: {
@@ -45,54 +45,52 @@ export const useNTFQueryStore = defineStore('NTFQuery', {
     },
 
     resetData() {
-      this.selectedVehicleId = null
-      this.detail = null
-      this.pointImages = []
       this.seatColumns = []
       this.tableRows = []
-      this.heatmap = {
-        frequency: [],
-        points: [],
-        matrix: []
-      }
+      this.heatmap = { frequency: [], points: [], matrix: [] }
       this.error = null
     },
 
-    async loadByVehicle(vehicleId) {
-      if (!vehicleId) {
-        this.selectedVehicleId = null
+    async fetchMeasurementPoints() {
+      const ids = Array.isArray(this.selectedVehicleIds) && this.selectedVehicleIds.length
+        ? this.selectedVehicleIds.join(',')
+        : ''
+      try {
+        const res = await NtfApi.getMeasurementPoints(ids ? { vehicle_ids: ids } : {})
+        this.measurementPointOptions = Array.isArray(res.data) ? res.data : []
+        return this.measurementPointOptions
+      } catch (error) {
+        console.error('加载测点列表失败', error)
+        this.measurementPointOptions = []
+        throw error
+      }
+    },
+
+    async multiQuery() {
+      if (!Array.isArray(this.selectedVehicleIds) || this.selectedVehicleIds.length === 0) {
         this.resetData()
         return null
       }
-
       try {
         this.isLoading = true
         this.error = null
-        this.selectedVehicleId = vehicleId
-
-        const response = await NtfApi.getDetailByVehicle(vehicleId)
-        const detail = response.data || null
-
-        if (!detail) {
-          this.resetData()
-          return null
+        const params = { vehicle_ids: this.selectedVehicleIds.join(',') }
+        if (Array.isArray(this.selectedPoints) && this.selectedPoints.length) {
+          params.points = this.selectedPoints.join(',')
         }
-
-        this.detail = detail
-        this.pointImages = Array.isArray(detail.point_images) ? detail.point_images : []
-        this.seatColumns = Array.isArray(detail.seat_columns) ? detail.seat_columns : []
-        this.tableRows = Array.isArray(detail.results) ? detail.results : []
-
-        const heatmap = detail.heatmap || {}
+        const res = await NtfApi.multiQuery(params)
+        const data = res.data || {}
+        this.seatColumns = Array.isArray(data.seat_columns) ? data.seat_columns : []
+        this.tableRows = Array.isArray(data.results) ? data.results : []
+        const heatmap = data.heatmap || {}
         this.heatmap = {
-          frequency: Array.isArray(heatmap.frequency) ? heatmap.frequency.map((item) => Number(item)) : [],
+          frequency: Array.isArray(heatmap.frequency) ? heatmap.frequency.map((x) => Number(x)) : [],
           points: Array.isArray(heatmap.points) ? heatmap.points : [],
           matrix: normalizeHeatmapMatrix(heatmap.matrix)
         }
-
-        return detail
+        return data
       } catch (error) {
-        console.error('加载NTF详情失败', error)
+        console.error('加载NTF综合查询失败', error)
         this.error = error.message || '加载失败'
         this.resetData()
         throw error

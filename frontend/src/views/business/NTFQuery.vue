@@ -9,11 +9,12 @@
       <el-form label-width="80px" class="filter-form">
         <el-form-item label="车型">
           <el-select
-            v-model="localVehicleId"
-            placeholder="请选择车型"
+            v-model="localVehicleIds"
+            placeholder="请选择车型（可多选）"
+            multiple
             filterable
             clearable
-            :loading="isLoading && !localVehicleId"
+            :loading="isLoading && !localVehicleIds.length"
             @change="handleVehicleChange"
           >
             <el-option
@@ -24,58 +25,23 @@
             />
           </el-select>
         </el-form-item>
+        <el-form-item label="测点">
+          <el-select
+            v-model="localPoints"
+            placeholder="请选择测点（可多选）"
+            multiple
+            filterable
+            clearable
+            :loading="isLoading && !localPoints.length"
+            @change="handlePointsChange"
+          >
+            <el-option v-for="p in measurementPointOptions" :key="p" :label="p" :value="p" />
+          </el-select>
+        </el-form-item>
       </el-form>
-  </el-card>
-
-  
+    </el-card>
 
     <el-alert v-if="error" type="error" :title="error" show-icon />
-
-    <el-card v-loading="isLoading" class="info-card" shadow="never">
-      <template #header>
-        <div class="card-header">
-          <span class="card-title">测试信息</span>
-          <el-tag v-if="detail?.development_stage" effect="plain">{{ detail.development_stage }}</el-tag>
-        </div>
-      </template>
-      <el-empty v-if="!detail" description="请选择车型查看测试信息" />
-      <div v-else class="info-content">
-        <el-descriptions :column="3" border>
-          <el-descriptions-item label="测试人员">{{ detail.tester || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="测试时间">{{ formatDateTime(detail.test_time) }}</el-descriptions-item>
-          <el-descriptions-item label="测试地点">{{ detail.location || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="车型码">
-            <span>{{ detail.vehicle?.code || '-' }}</span>
-          </el-descriptions-item>
-          <el-descriptions-item label="VIN码">
-            <span>{{ detail.vehicle?.vin || '-' }}</span>
-          </el-descriptions-item>
-          <el-descriptions-item label="驱动方式">
-            <span>{{ detail.vehicle?.drive_type || '-' }}</span>
-          </el-descriptions-item>
-          <el-descriptions-item label="悬挂形式">{{ detail.suspension_type || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="天窗形式">{{ detail.sunroof_type || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="座位数">{{ detail.seat_count || '-' }}</el-descriptions-item>
-        </el-descriptions>
-
-        <div class="image-gallery">
-          <div v-for="slot in imageSlots" :key="slot.key" class="image-item">
-            <div class="image-title">{{ slot.label }}</div>
-            <el-image
-              v-if="detail.images?.[slot.key]"
-              :src="getImageUrl(detail.images?.[slot.key])"
-              fit="cover"
-              :preview-src-list="[getImageUrl(detail.images?.[slot.key])]"
-            >
-              <template #error>
-                <div class="image-placeholder">加载失败</div>
-              </template>
-            </el-image>
-            <div v-else class="image-placeholder">暂无图片</div>
-          </div>
-        </div>
-      </div>
-    </el-card>
 
     <el-card class="table-card" shadow="never">
       <template #header>
@@ -102,6 +68,7 @@
         class="result-table"
         :span-method="tableSpanMethod"
       >
+        <el-table-column prop="vehicle_model_name" label="车型" min-width="160" />
         <el-table-column prop="measurement_point" label="测点" min-width="140" />
         <el-table-column label="方向" min-width="100">
           <template #default="{ row }">
@@ -133,36 +100,10 @@
           <span class="card-title">NTF Function Map 热力图</span>
         </div>
       </template>
-      <div v-if="heatmap.points.length && heatmap.frequency.length" ref="heatmapRef" class="heatmap"></div>
-      <el-empty v-else description="暂无热力图数据" />
-    </el-card>
-
-    <el-card class="point-images-card" shadow="never">
-      <template #header>
-        <div class="card-header">
-          <span class="card-title">测点布置图</span>
-        </div>
-      </template>
-      <div v-if="pointImages && pointImages.length" class="point-images-grid">
-        <div
-          v-for="item in pointImages"
-          :key="item.measurement_point"
-          class="point-image-item"
-        >
-          <el-image
-            class="point-image"
-            :src="getImageUrl(item.url)"
-            fit="cover"
-            :preview-src-list="[getImageUrl(item.url)]"
-          >
-            <template #error>
-              <div class="image-placeholder">加载失败</div>
-            </template>
-          </el-image>
-          <div class="point-image-caption">{{ item.measurement_point }}</div>
-        </div>
+      <div v-if="heatmap.points.length && heatmap.frequency.length">
+        <div ref="heatmapRef" class="heatmap" :style="{ height: heatmapHeight + 'px' }"></div>
       </div>
-      <el-empty v-else description="暂无测点布置图" />
+      <el-empty v-else description="暂无热力图数据" />
     </el-card>
   </div>
 </template>
@@ -175,112 +116,68 @@ import { HeatmapChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, VisualMapComponent, TitleComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 import { useNTFQueryStore } from '@/store'
-import { getImageUrl } from '@/utils/imageService'
 
-// 确保该页面在标签/keep-alive中以独立名称出现
-defineOptions({
-  name: 'NTFQuery'
-})
+defineOptions({ name: 'NTFQuery' })
 
-const VALUE_LEVEL = {
-  HIGH: 'high',
-  MEDIUM: 'medium',
-  LOW: 'low'
-}
+const VALUE_LEVEL = { HIGH: 'high', MEDIUM: 'medium', LOW: 'low' }
 
 echarts.use([HeatmapChart, GridComponent, TooltipComponent, VisualMapComponent, TitleComponent, CanvasRenderer])
 
 const store = useNTFQueryStore()
-const { vehicleOptions, detail, seatColumns, tableRows, heatmap, isLoading, error, selectedVehicleId, pointImages } = storeToRefs(store)
+const { vehicleOptions, measurementPointOptions, seatColumns, tableRows, heatmap, isLoading, error } = storeToRefs(store)
 
-const localVehicleId = ref(selectedVehicleId.value)
+const localVehicleIds = ref([])
+const localPoints = ref([])
 const heatmapRef = ref(null)
 let chartInstance = null
 
-const imageSlots = computed(() => [
-  { key: 'front', label: '前排测试图片' },
-  { key: 'middle', label: '中排测试图片' },
-  { key: 'rear', label: '后排测试图片' }
-])
-
-function formatDateTime(value) {
-  if (!value) {
-    return '-'
-  }
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) {
-    return value
-  }
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
-}
+// 动态计算热力图容器高度：确保每个测点有足够行高，超出容器时外层可滚动
+const heatmapHeight = computed(() => {
+  const rows = Array.isArray(heatmap.value?.points) ? heatmap.value.points.length : 0
+  const BASE_OFFSET = 110 // 顶/底部 grid 留白等
+  const ROW_HEIGHT = 20   // 每个测点期望行高
+  return Math.max(420, BASE_OFFSET + rows * ROW_HEIGHT)
+})
 
 function formatValue(value) {
-  if (value === null || value === undefined || value === '') {
-    return '-'
-  }
+  if (value === null || value === undefined || value === '') return '-'
   const numeric = Number(value)
-  if (Number.isNaN(numeric)) {
-    return value
-  }
+  if (Number.isNaN(numeric)) return value
   return numeric.toFixed(2)
 }
 
 function classifyValue(value) {
   const numeric = Number(value)
-  if (!Number.isFinite(numeric)) {
-    return null
-  }
-  if (numeric > 65) {
-    return VALUE_LEVEL.HIGH
-  }
-  if (numeric >= 60) {
-    return VALUE_LEVEL.MEDIUM
-  }
+  if (!Number.isFinite(numeric)) return null
+  if (numeric > 65) return VALUE_LEVEL.HIGH
+  if (numeric >= 60) return VALUE_LEVEL.MEDIUM
   return VALUE_LEVEL.LOW
 }
 
 function getValueClass(value) {
   const level = classifyValue(value)
-  if (!level) {
-    return 'ntf-cell'
-  }
-  return `ntf-cell ntf-cell--${level}`
+  return level ? `ntf-cell ntf-cell--${level}` : 'ntf-cell'
 }
 
-// 合并“测点”列的行：将同一测点的三行(X/Y/Z)合并为一个单元格
-const measurementPointSpans = computed(() => {
-  const rows = Array.isArray(tableRows.value) ? tableRows.value : []
-  const spans = new Array(rows.length).fill(0)
-  let i = 0
-  while (i < rows.length) {
-    const current = rows[i]?.measurement_point
-    let count = 1
-    let j = i + 1
-    while (j < rows.length && rows[j]?.measurement_point === current) {
-      count += 1
-      j += 1
-    }
-    spans[i] = count
-    for (let k = i + 1; k < j; k++) {
-      spans[k] = 0
-    }
-    i = j
-  }
-  return spans
-})
-
 function tableSpanMethod({ column, rowIndex }) {
-  if (column?.property === 'measurement_point') {
-    const span = measurementPointSpans.value?.[rowIndex] ?? 1
-    if (!span) {
-      return { rowspan: 0, colspan: 0 }
+  const rows = Array.isArray(tableRows.value) ? tableRows.value : []
+  if (!column || !rows.length) return { rowspan: 1, colspan: 1 }
+  const groupKey = (r) => `${r.vehicle_model_name}__${r.measurement_point}`
+  const currentKey = groupKey(rows[rowIndex])
+  if (column.property === 'vehicle_model_name' || column.property === 'measurement_point') {
+    const isStart = rowIndex === 0 || groupKey(rows[rowIndex - 1]) !== currentKey
+    if (!isStart) return { rowspan: 0, colspan: 0 }
+    let count = 1
+    let i = rowIndex + 1
+    while (i < rows.length && groupKey(rows[i]) === currentKey) {
+      count += 1
+      i += 1
     }
-    return { rowspan: span, colspan: 1 }
+    return { rowspan: count, colspan: 1 }
   }
   return { rowspan: 1, colspan: 1 }
 }
 
-// 方向仅显示 X/Y/Z，不带“方向”字样
 function getDirectionLabel(row) {
   if (!row) return '-'
   const raw = (row.direction ?? row.direction_label ?? '').toString()
@@ -290,16 +187,9 @@ function getDirectionLabel(row) {
 }
 
 const levelStats = computed(() => {
-  const stats = {
-    total: 0,
-    low: { count: 0, percent: 0 },
-    medium: { count: 0, percent: 0 },
-    high: { count: 0, percent: 0 }
-  }
+  const stats = { total: 0, low: { count: 0, percent: 0 }, medium: { count: 0, percent: 0 }, high: { count: 0, percent: 0 } }
   const seatKeys = Array.isArray(seatColumns.value) ? seatColumns.value.map((c) => c.key) : []
-  if (!Array.isArray(tableRows.value) || !seatKeys.length) {
-    return stats
-  }
+  if (!Array.isArray(tableRows.value) || !seatKeys.length) return stats
   for (const row of tableRows.value) {
     for (const key of seatKeys) {
       const v = Number(row?.[key])
@@ -319,9 +209,7 @@ const levelStats = computed(() => {
 })
 
 function buildHeatmapSeriesData() {
-  if (!heatmap.value?.matrix?.length) {
-    return []
-  }
+  if (!heatmap.value?.matrix?.length) return []
   const data = []
   const matrix = heatmap.value.matrix
   matrix.forEach((row, rowIndex) => {
@@ -333,43 +221,13 @@ function buildHeatmapSeriesData() {
   return data
 }
 
-function computeHeatmapRange() {
-  const values = []
-  heatmap.value.matrix.forEach((row) => {
-    row.forEach((value) => {
-      const numeric = Number(value)
-      if (Number.isFinite(numeric)) {
-        values.push(numeric)
-      }
-    })
-  })
-  if (!values.length) {
-    return { min: 0, max: 0 }
-  }
-  return {
-    min: Math.min(...values),
-    max: Math.max(...values)
-  }
-}
-
 function renderHeatmap() {
-  if (!heatmapRef.value) {
-    return
-  }
-
-  if (!chartInstance) {
-    chartInstance = echarts.init(heatmapRef.value)
-  }
-
+  if (!heatmapRef.value) return
+  if (!chartInstance) chartInstance = echarts.init(heatmapRef.value)
   const data = buildHeatmapSeriesData()
-  // 固定可视化范围到 49-69，便于分段颜色均匀分布
-  const valueRange = { min: 49, max: 69 }
-
+  const valueRange = computeHeatmapRange()
   const option = {
-    title: {
-      left: 'center',
-      text: 'Frequency vs Measurement Point'
-    },
+    title: { left: 'center', text: 'Frequency vs Measurement Point' },
     tooltip: {
       trigger: 'item',
       formatter(params) {
@@ -380,276 +238,88 @@ function renderHeatmap() {
         return `测点：${point}<br/>频率：${frequency} Hz<br/>NTF：${displayValue}`
       }
     },
-    grid: {
-      top: 60,
-      left: 80,
-      right: 20,
-      bottom: 50
-    },
-    xAxis: {
-      type: 'category',
-      data: heatmap.value.frequency,
-      name: '频率 (Hz)',
-      nameGap: 18,
-      axisLabel: {
-        fontSize: 10,
-        rotate: 45
-      }
-    },
-    yAxis: {
-      type: 'category',
-      data: heatmap.value.points,
-      name: '测点',
-      nameGap: 16,
-      axisLabel: {
-        fontSize: 12
-      }
-    },
+    grid: { top: 60, left: 80, right: 20, bottom: 50 },
+    xAxis: { type: 'category', data: heatmap.value.frequency, name: '频率 (Hz)', nameGap: 18, axisLabel: { fontSize: 10, rotate: 45 } },
+    yAxis: { type: 'category', data: heatmap.value.points, name: '测点', nameGap: 16, axisLabel: { fontSize: 12 } },
     visualMap: {
-      type: 'piecewise',
       min: valueRange.min,
       max: valueRange.max,
       orient: 'vertical',
       right: 10,
       top: 'center',
       align: 'auto',
-      itemWidth: 18,
-      itemHeight: 10,
-      textGap: 6,
-      pieces: [
-        { gt: 69, color: '#b71c1c', label: '> 69' },
-        { gt: 66, lte: 69, color: '#e53935', label: '66-69' },  // 红
-        { gt: 63, lte: 66, color: '#fb8c00', label: '63-66' },  // 橙
-        { gt: 60, lte: 63, color: '#fdd835', label: '60-63' },  // 黄
-        { gt: 57, lte: 60, color: '#66bb6a', label: '57-60' },  // 绿
-        { gt: 53, lte: 57, color: '#42a5f5', label: '53-57' },  // 蓝
-        { gt: 49, lte: 53, color: '#3949ab', label: '49-53' },  // 靛
-        { lte: 49, color: '#1a237e', label: '≤ 49' }
-      ]
-    },
-    series: [
-      {
-        name: 'NTF Heatmap',
-        type: 'heatmap',
-        data,
-        label: {
-          show: false
-        },
-        emphasis: {
-          itemStyle: {
-            shadowBlur: 10,
-            shadowColor: 'rgba(0, 0, 0, 0.4)'
-          }
-        }
+      calculable: true,
+      inRange: {
+        color: ['#1a237e', '#3949ab', '#42a5f5', '#66bb6a', '#fdd835', '#fb8c00', '#e53935', '#b71c1c']
       }
-    ]
+    },
+    series: [{ name: 'NTF Heatmap', type: 'heatmap', data, label: { show: false } }]
   }
-  // 使用连续型 visualMap 实现平滑渐变
-  option.visualMap = {
-    type: 'continuous',
-    min: valueRange.min,
-    max: valueRange.max,
-    orient: 'vertical',
-    right: 10,
-    top: 'center',
-    align: 'auto',
-    itemWidth: 18,
-    itemHeight: 140,
-    textGap: 8,
-    calculable: true,
-    inRange: {
-      color: [
-        '#1a237e',
-        '#3949ab',
-        '#42a5f5',
-        '#66bb6a',
-        '#fdd835',
-        '#fb8c00',
-        '#e53935',
-        '#b71c1c'
-      ]
-    }
-  }
-
   chartInstance.setOption(option)
+  // 高度变化后触发布局刷新
   chartInstance.resize()
 }
 
-const handleVehicleChange = async (value) => {
-  if (!value) {
-    store.resetData()
-    return
-  }
-  await store.loadByVehicle(value)
-  await nextTick()
-  if (heatmap.value.points.length && heatmap.value.frequency.length) {
-    renderHeatmap()
-  } else if (chartInstance) {
-    chartInstance.clear()
-  }
-}
-
-function handleResize() {
-  if (chartInstance) {
-    chartInstance.resize()
-  }
-}
-
-watch(
-    selectedVehicleId,
-    (value) => {
-      if (localVehicleId.value !== value) {
-        localVehicleId.value = value
-      }
+function computeHeatmapRange() {
+  const values = []
+  const m = heatmap.value?.matrix || []
+  for (const row of m) {
+    for (const v of row || []) {
+      const n = Number(v)
+      if (Number.isFinite(n)) values.push(n)
     }
-)
+  }
+  if (!values.length) return { min: 49, max: 69 }
+  return { min: Math.min(...values), max: Math.max(...values) }
+}
+
+function handleResize() { if (chartInstance) chartInstance.resize() }
 
 watch(
-    () => heatmap.value,
-    async (newValue) => {
-      if (!newValue) {
-        return
-      }
-      await nextTick()
-      if (newValue.points.length && newValue.frequency.length) {
-        renderHeatmap()
-      } else if (chartInstance) {
-        chartInstance.clear()
-      }
-    },
-    { deep: true }
+  () => heatmap.value,
+  async (newValue) => {
+    if (!newValue) return
+    await nextTick()
+    if (newValue.points.length && newValue.frequency.length) renderHeatmap()
+    else if (chartInstance) chartInstance.clear()
+  },
+  { deep: true }
 )
 
+async function handleVehicleChange(ids) {
+  store.selectedVehicleIds = Array.isArray(ids) ? ids : []
+  await store.fetchMeasurementPoints()
+  await store.multiQuery()
+}
+
+async function handlePointsChange(points) {
+  store.selectedPoints = Array.isArray(points) ? points : []
+  await store.multiQuery()
+}
 
 onMounted(async () => {
   await store.fetchVehicleOptions()
-  if (localVehicleId.value) {
-    await handleVehicleChange(localVehicleId.value)
-  }
+  await store.fetchMeasurementPoints()
   window.addEventListener('resize', handleResize)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', handleResize)
-  if (chartInstance) {
-    chartInstance.dispose()
-    chartInstance = null
-  }
+  if (chartInstance) { chartInstance.dispose(); chartInstance = null }
 })
 </script>
 
 <style scoped>
-.ntf-query {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.card-title {
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.filter-form {
-  max-width: 420px;
-}
-
-.info-content {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.image-gallery {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 16px;
-}
-
-.image-item {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.image-title {
-  font-weight: 500;
-  color: #606266;
-}
-
-.image-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 120px;
-  background-color: #f5f7fa;
-  border-radius: 8px;
-  color: #909399;
-}
-
-.point-images-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 12px;
-}
-
-.point-image-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-
-.point-image {
-  width: 100%;
-  height: 110px;
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.point-image-caption {
-  font-size: 12px;
-  color: #606266;
-  text-align: center;
-}
-
-.heatmap {
-  width: 100%;
-  height: 420px;
-}
-
-.result-table {
-  --el-table-border-color: #ebeef5;
-}
-
-.ntf-cell {
-  font-weight: 600;
-}
-
-.ntf-cell--high {
-  color: #f56c6c;
-}
-
-.ntf-cell--medium {
-  color: #e6a23c;
-}
-
-.ntf-cell--low {
-  color: #67c23a;
-}
-
-.level-stats {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-.level-item strong {
-  margin-right: 4px;
-}
+.ntf-query { display: flex; flex-direction: column; gap: 16px; }
+.card-header { display: flex; align-items: center; justify-content: space-between; }
+.card-title { font-size: 16px; font-weight: 600; }
+.filter-form { max-width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: center; }
+.heatmap { width: 100%; height: 420px; }
+.result-table { --el-table-border-color: #ebeef5; }
+.ntf-cell { font-weight: 600; }
+.ntf-cell--high { color: #f56c6c; }
+.ntf-cell--medium { color: #e6a23c; }
+.ntf-cell--low { color: #67c23a; }
+.level-stats { display: flex; gap: 12px; align-items: center; }
+.level-item strong { margin-right: 4px; }
 </style>
