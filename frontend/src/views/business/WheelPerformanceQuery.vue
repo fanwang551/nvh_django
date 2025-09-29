@@ -91,7 +91,7 @@
             <div class="table-metric-cell">
               <span class="metric-value">{{ row.rim_lateral_stiffness }}</span>
               <el-button type="primary" link @click="handleOpenRimModal(row)">
-                查看曲线
+                查看详情
               </el-button>
             </div>
           </template>
@@ -101,7 +101,7 @@
             <div class="table-metric-cell">
               <span class="metric-value">{{ row.force_transfer_first_peak }}</span>
               <el-button type="primary" link @click="handleOpenForceModal(row)">
-                查看曲线
+                查看测试图
               </el-button>
             </div>
           </template>
@@ -121,7 +121,7 @@
 
     <el-dialog
       v-model="rimModalVisible"
-      width="720px"
+      width="900px"
       destroy-on-close
       class="rim-modal"
       :close-on-click-modal="false"
@@ -137,7 +137,7 @@
             :class="{ 'rim-tab--active': rimModalActiveTab === 'curve' }"
             @click="handleSwitchRimTab('curve')"
           >
-            刚度曲线
+            侧向刚度曲线图
           </button>
           <button
             type="button"
@@ -145,7 +145,7 @@
             :class="{ 'rim-tab--active': rimModalActiveTab === 'image' }"
             @click="handleSwitchRimTab('image')"
           >
-            刚度图片
+            侧向刚度测试图
           </button>
         </div>
         <div class="rim-modal__body">
@@ -160,12 +160,12 @@
           </template>
           <template v-else>
             <img
-              v-if="rimModalRecord?.rim_stiffness_image_url"
-              :src="rimModalRecord.rim_stiffness_image_url"
-              alt="轮辋刚度图片"
+              v-if="rimModalRecord?.rim_stiffness_test_image_url"
+              :src="rimModalRecord.rim_stiffness_test_image_url"
+              alt="轮辋刚度测试图"
               class="rim-modal__image"
             />
-            <el-empty v-else description="暂无刚度图片" />
+            <el-empty v-else description="暂无刚度测试图" />
           </template>
         </div>
         <div class="rim-modal__caption">
@@ -177,22 +177,22 @@
 
     <el-dialog
       v-model="forceModalVisible"
-      width="720px"
+      width="900px"
       destroy-on-close
       class="force-modal"
       :close-on-click-modal="false"
     >
       <template #title>
-        <div class="modal-title">力传递曲线</div>
+        <div class="modal-title">力传递率测试图</div>
       </template>
       <div class="force-modal__content">
         <img
-          v-if="forceModalRecord?.force_transfer_curve_url"
-          :src="forceModalRecord.force_transfer_curve_url"
-          alt="力传递曲线"
+          v-if="forceModalRecord?.force_transfer_test_image_url"
+          :src="forceModalRecord.force_transfer_test_image_url"
+          alt="力传递率测试图"
           class="force-modal__image"
         />
-        <el-empty v-else description="暂无力传递曲线" />
+        <el-empty v-else description="暂无力传递率测试图" />
       </div>
       <template #footer>
         <span>{{ forceModalRecord?.vehicle_model_name }}</span>
@@ -291,6 +291,12 @@ const forceModalRecord = computed(() => forceModal.value.record)
 const chartRef = ref(null)
 let chartInstance = null
 
+// 将数值统一格式化为两位小数
+const to2 = (v) => {
+  const n = Number(v)
+  return Number.isFinite(n) ? n.toFixed(2) : v
+}
+
 const initChart = () => {
   if (!chartRef.value) {
     return
@@ -319,7 +325,19 @@ watch(
     chartInstance.setOption({
       tooltip: {
         trigger: 'axis',
-        axisPointer: { type: 'cross' }
+        axisPointer: { type: 'cross' },
+        formatter: (params) => {
+          if (!Array.isArray(params)) return ''
+          const first = params[0]
+          const xVal = Array.isArray(first?.value) ? first.value[0] : (first?.axisValue ?? '')
+          const lines = []
+          lines.push(`${to2(xVal)}`)
+          params.forEach((p) => {
+            const yVal = Array.isArray(p?.value) ? p.value[1] : p?.value
+            lines.push(`${p.marker}${p.seriesName}: ${to2(yVal)}`)
+          })
+          return lines.join('<br/>')
+        }
       },
       legend: {
         type: 'scroll',
@@ -339,7 +357,9 @@ watch(
         nameGap: 30,
         min: 0,
         max: 300,
-        splitNumber: 6
+        splitNumber: 6,
+        axisLabel: { formatter: (val) => to2(val) },
+        axisPointer: { label: { formatter: (p) => to2(p?.value) } }
       },
       yAxis: {
         type: 'value',
@@ -381,6 +401,14 @@ watch(
           chartInstance.setOption({
             xAxis: { min: 0, max: 300, name: '频率 (Hz)' },
             yAxis: { min: yMin, max: yMax, scale: true, name: '幅值 (dB)', axisLabel: { formatter: '{value}' } }
+          })
+          chartInstance.setOption({
+            yAxis: {
+              min: Number((yMin).toFixed(2)),
+              max: Number((yMax).toFixed(2)),
+              axisLabel: { formatter: (val) => to2(val) },
+              axisPointer: { label: { formatter: (p) => to2(p?.value) } }
+            }
           })
         }
       }
@@ -531,7 +559,10 @@ onBeforeUnmount(() => {
 
 .rim-modal__image {
   width: 100%;
-  height: 320px;
+  height: auto;
+  max-height: 70vh;
+  object-fit: contain;
+  display: block;
 }
 
 .rim-modal__caption {
@@ -551,7 +582,10 @@ onBeforeUnmount(() => {
 
 .force-modal__image {
   width: 100%;
-  height: 320px;
+  height: auto;
+  max-height: 70vh;
+  object-fit: contain;
+  display: block;
 }
 
 .modal-title {
