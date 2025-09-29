@@ -318,7 +318,8 @@ watch(
 
     chartInstance.setOption({
       tooltip: {
-        trigger: 'axis'
+        trigger: 'axis',
+        axisPointer: { type: 'cross' }
       },
       legend: {
         type: 'scroll',
@@ -335,7 +336,10 @@ watch(
         type: 'value',
         name: '频率（Hz）',
         nameLocation: 'middle',
-        nameGap: 30
+        nameGap: 30,
+        min: 0,
+        max: 300,
+        splitNumber: 6
       },
       yAxis: {
         type: 'value',
@@ -344,9 +348,43 @@ watch(
       series: newSeries.map((series) => ({
         ...series,
         type: 'line',
-        smooth: true
+        smooth: true,
+        showSymbol: false,
+        symbol: 'none',
+        sampling: 'lttb',
+        lineStyle: { width: 2 }
       }))
     })
+
+    // 根据当前系列数据计算合适的纵轴范围，避免纵轴过大导致曲线挤在一起
+    try {
+      const allY = []
+      newSeries.forEach((s) => {
+        const dataArr = Array.isArray(s?.data) ? s.data : []
+        dataArr.forEach((pt) => {
+          const y = Array.isArray(pt) ? Number(pt[1]) : Number(pt)
+          if (Number.isFinite(y)) allY.push(y)
+        })
+      })
+
+      if (allY.length) {
+        let minVal = Math.min(...allY)
+        let maxVal = Math.max(...allY)
+        if (Number.isFinite(minVal) && Number.isFinite(maxVal)) {
+          if (minVal === maxVal) {
+            minVal -= 1
+            maxVal += 1
+          }
+          const pad = (maxVal - minVal) * 0.1
+          const yMin = minVal - pad
+          const yMax = maxVal + pad
+          chartInstance.setOption({
+            xAxis: { min: 0, max: 300, name: '频率 (Hz)' },
+            yAxis: { min: yMin, max: yMax, scale: true, name: '幅值 (dB)', axisLabel: { formatter: '{value}' } }
+          })
+        }
+      }
+    } catch (e) {}
   },
   { deep: true }
 )
@@ -451,7 +489,7 @@ onBeforeUnmount(() => {
 
 .echarts-container {
   width: 100%;
-  height: 360px;
+  height: 520px;
 }
 
 .rim-modal__content {

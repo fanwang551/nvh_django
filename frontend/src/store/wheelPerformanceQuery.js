@@ -22,12 +22,44 @@ function normalizeForceTransferSignal(signal) {
     return []
   }
 
-  const frequencies = Array.isArray(parsedSignal.frequency) ? parsedSignal.frequency : null
-  const dBValues = Array.isArray(parsedSignal.dB)
+  const freqRaw = Array.isArray(parsedSignal.frequency) ? parsedSignal.frequency : null
+  const dbRaw = Array.isArray(parsedSignal.dB)
     ? parsedSignal.dB
     : Array.isArray(parsedSignal.db)
       ? parsedSignal.db
       : null
+
+  let frequencies = freqRaw
+  let dBValues = dbRaw
+
+  // 自动识别 frequency/dB 是否对调：
+  // - 频率应在 [0, 300]，步长约 0.5，最大值通常 >= 100
+  // - dB 幅值通常在 [-100, 100]（常见 [-30, 30] 区间）
+  if (freqRaw && dbRaw) {
+    const nFreq = freqRaw.map(Number).filter((v) => Number.isFinite(v))
+    const nDb = dbRaw.map(Number).filter((v) => Number.isFinite(v))
+    const fMax = nFreq.length ? Math.max(...nFreq) : -Infinity
+    const fMin = nFreq.length ? Math.min(...nFreq) : Infinity
+    const dMax = nDb.length ? Math.max(...nDb) : -Infinity
+    const dMin = nDb.length ? Math.min(...nDb) : Infinity
+    const fRange = fMax - fMin
+    const dRange = dMax - dMin
+
+    const looksLikeFreq = Number.isFinite(fMax) && fMax >= 80 && fMax <= 1000
+    const looksLikeDb = Number.isFinite(dMax) && dRange <= 120 && dMax <= 120 && dMin >= -120
+
+    const freqLooksDb = Number.isFinite(fMax) && fRange <= 120 && fMax <= 120 && fMin >= -120
+    const dbLooksFreq = Number.isFinite(dMax) && dMax >= 80
+
+    // 如果 frequency 像 dB 且 dB 像 frequency，则交换
+    if (!looksLikeFreq && !looksLikeDb && freqLooksDb && dbLooksFreq) {
+      frequencies = nDb
+      dBValues = nFreq
+    } else {
+      frequencies = nFreq
+      dBValues = nDb
+    }
+  }
 
   if (!frequencies || !dBValues) {
     return []
@@ -132,7 +164,22 @@ export const useWheelPerformanceQueryStore = defineStore('wheelPerformanceQuery'
 
     buildChartSeries() {
       this.chartSeries = this.records.map((record) => {
-        const seriesData = normalizeForceTransferSignal(record.force_transfer_signal)
+        const rawPairs = normalizeForceTransferSignal(record.force_transfer_signal)
+          .filter((pair) => Array.isArray(pair) && pair.length >= 2 && Number.isFinite(Number(pair[0])) && Number.isFinite(Number(pair[1])))
+
+        // 若频率最大值在 30~40 之间，视为以 0.5 为步长但单位偏小，按 10 倍缩放到 0-300 区间
+        let scaleFactor = 1
+        try {
+          const fMax = rawPairs.reduce((m, p) => (p[0] > m ? p[0] : m), -Infinity)
+          if (Number.isFinite(fMax) && fMax > 0 && fMax <= 40) {
+            scaleFactor = 10
+          }
+        } catch (e) {}
+
+        const seriesData = rawPairs
+          .map((p) => [Number(p[0]) * scaleFactor, Number(p[1])])
+          .filter((p) => p[0] >= 0 && p[0] <= 300)
+          .sort((a, b) => a[0] - b[0])
         const seriesName = [
           record.vehicle_model_name,
           record.tire_brand,
