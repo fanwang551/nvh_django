@@ -15,8 +15,7 @@ class NTFInfoAdmin(admin.ModelAdmin):
 @admin.register(NTFTestResult)
 class NTFTestResultAdmin(admin.ModelAdmin):
     list_display = (
-        'id', 'ntf_info', 'measurement_point',
-        'x_target_value', 'y_target_value', 'z_target_value'
+        'id', 'ntf_info', 'measurement_point', 'layout_image_url', 'created_at', 'updated_at'
     )
     search_fields = ('measurement_point', 'ntf_info__vehicle_model__cle_model_code')
 

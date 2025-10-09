@@ -26,7 +26,15 @@ export const NtfApi = {
   },
 
   /**
-   * 获取测点列表（可选 vehicle_ids 过滤）
+   * 获取过滤项（车型/测点/位置/方向）
+   * @param {Object} params { vehicle_ids?: string, points?: string, positions?: string, directions?: string }
+   */
+  getFilters(params = {}) {
+    return request.get('/NTF/filters/', params)
+  },
+
+  /**
+   * 获取测点列表（兼容旧逻辑，建议改用 getFilters）
    * @param {Object} params { vehicle_ids?: string }
    */
   getMeasurementPoints(params = {}) {
@@ -34,8 +42,8 @@ export const NtfApi = {
   },
 
   /**
-   * 综合查询：多个车型、多个测点
-   * @param {Object} params { vehicle_ids: string, points?: string }
+   * 综合查询：多个车型、多个测点（可选位置/方向）
+   * @param {Object} params { vehicle_ids: string, points?: string, positions?: string, directions?: string }
    */
   multiQuery(params = {}) {
     return request.get('/NTF/query/', params)
@@ -43,3 +51,4 @@ export const NtfApi = {
 }
 
 export default NtfApi
+

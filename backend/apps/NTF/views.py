@@ -1,3 +1,5 @@
+from typing import Dict, List, Optional, Set
+
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 
@@ -7,6 +9,22 @@ from apps.NTF.serializers import (
     NTFInfoListSerializer,
 )
 from utils.response import Response
+
+
+POS_LABEL = {
+    'front': '前排',
+    'middle': '中排',
+    'rear': '后排',
+}
+
+
+def _seat_layout(seat_count: int | None):
+    layout = [{'key': 'front', 'label': '前排'}]
+    if seat_count and seat_count > 5:
+        layout.append({'key': 'middle', 'label': '中排'})
+    if seat_count and seat_count >= 3:
+        layout.append({'key': 'rear', 'label': '后排'})
+    return layout
 
 
 @api_view(['GET'])
@@ -53,98 +71,114 @@ def ntf_info_by_vehicle(request, vehicle_id):
     return Response.success(data=serializer.data, message='获取车型NTF测试详情成功')
 
 
-def _seat_layout(seat_count: int):
-    layout = [{'key': 'front', 'label': '前排'}]
-    if seat_count and seat_count >= 3:
-        layout.append({'key': 'rear', 'label': '后排'})
-    if seat_count and seat_count > 5:
-        layout.insert(1, {'key': 'middle', 'label': '中排'})
-    return layout
+def _normalize_csv(value: Optional[str]) -> List[str]:
+    if not value:
+        return []
+    return [v.strip() for v in value.split(',') if v.strip()]
+
+
+def _collect_filtered_queryset(params) -> List[NTFTestResult]:
+    vehicle_ids = _normalize_csv(params.get('vehicle_ids'))
+    points = _normalize_csv(params.get('points'))
+    positions = set(_normalize_csv(params.get('positions')))
+    directions = set(_normalize_csv(params.get('directions')))
+
+    qs = NTFTestResult.objects.select_related('ntf_info__vehicle_model').all()
+    if vehicle_ids:
+        qs = qs.filter(ntf_info__vehicle_model_id__in=vehicle_ids)
+    if points:
+        qs = qs.filter(measurement_point__in=points)
+
+    results = list(qs)
+
+    def _has_branch(curve: dict, pos: str) -> bool:
+        b = (curve or {}).get(pos)
+        return bool(b)
+
+    def _has_dir(curve: dict, pos: str, d: str) -> bool:
+        b = (curve or {}).get(pos) or {}
+        values_key = f"{d}_values"
+        stats_key = d
+        has_values = bool((b.get(values_key) or []))
+        has_stats = bool(((b.get('stats') or {}).get(stats_key) or {}))
+        return has_values or has_stats
+
+    # Apply in-memory position/direction filters (JSONField, flexible)
+    if positions:
+        results = [r for r in results if any(_has_branch(r.ntf_curve, p) for p in positions)]
+    if directions:
+        results = [r for r in results if any(_has_dir(r.ntf_curve, p, d) for p in (positions or {'front','middle','rear'}) for d in directions)]
+
+    return results
 
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
-def ntf_measurement_points(request):
-    """Return distinct measurement points, optionally filtered by vehicle ids."""
-    vehicle_ids = request.GET.get('vehicle_ids')
-    qs = NTFTestResult.objects.all()
-    if vehicle_ids:
-        id_list = [int(v) for v in vehicle_ids.split(',') if v.strip().isdigit()]
-        if id_list:
-            qs = qs.filter(ntf_info__vehicle_model_id__in=id_list)
-    points = (
-        qs.order_by('measurement_point')
-        .values_list('measurement_point', flat=True)
-        .distinct()
-    )
-    return Response.success(data=list(points), message='获取测点列表成功')
+def ntf_filters(request):
+    """返回级联过滤项：车型/测点/位置/方向（根据入参收敛）。"""
+    results = _collect_filtered_queryset(request.GET)
+
+    vehicle_set: Set[int] = set()
+    vehicles_data: Dict[int, Dict[str, object]] = {}
+    points_set: Set[str] = set()
+    pos_set: Set[str] = set()
+    dir_set: Set[str] = set()
+
+    for r in results:
+        vm = r.ntf_info.vehicle_model
+        vehicle_set.add(vm.id)
+        if vm.id not in vehicles_data:
+            vehicles_data[vm.id] = {
+                'id': vm.id,
+                'vehicle_model_name': vm.vehicle_model_name,
+                'cle_model_code': vm.cle_model_code,
+            }
+        points_set.add(r.measurement_point)
+        curve = r.ntf_curve or {}
+        for pos in ('front', 'middle', 'rear'):
+            b = (curve or {}).get(pos)
+            if b:
+                pos_set.add(pos)
+                stats = (b.get('stats') or {})
+                for d in ('x', 'y', 'z'):
+                    if stats.get(d) or (b.get(f'{d}_values') or []):
+                        dir_set.add(d)
+
+    data = {
+        'vehicles': [vehicles_data[i] for i in vehicle_set],
+        'measurement_points': sorted(points_set),
+        'positions': sorted(pos_set, key=lambda x: ['front','middle','rear'].index(x) if x in ('front','middle','rear') else 9),
+        'directions': sorted(dir_set, key=lambda x: ['x','y','z'].index(x) if x in ('x','y','z') else 9),
+    }
+    return Response.success(data=data, message='获取NTF过滤项成功')
 
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def ntf_query(request):
-    """
-    Aggregate NTF results by multiple vehicles and measurement points.
-
-    Query params:
-      - vehicle_ids: comma-separated vehicle_model ids (required)
-      - points: comma-separated measurement points (optional)
-    """
-    vehicle_ids = request.GET.get('vehicle_ids')
+    """综合查询：多车型/多测点/可选位置与方向，输出结果表与热力图。"""
+    vehicle_ids = _normalize_csv(request.GET.get('vehicle_ids'))
     if not vehicle_ids:
         return Response.bad_request(message='缺少参数：vehicle_ids')
 
-    id_list = [int(v) for v in vehicle_ids.split(',') if v.strip().isdigit()]
-    if not id_list:
-        return Response.bad_request(message='参数 vehicle_ids 非法')
-
-    raw_points = request.GET.get('points')
-    point_list = [p.strip() for p in raw_points.split(',')] if raw_points else []
-    if point_list:
-        point_list = [p for p in point_list if p]
-
-    # Collect latest NTFInfo for each vehicle id
-    infos: list[NTFInfo] = []
-    for vid in id_list:
-        info = (
-            NTFInfo.objects.select_related('vehicle_model')
-            .prefetch_related('test_results')
-            .filter(vehicle_model_id=vid)
-            .order_by('-test_time')
-            .first()
-        )
-        if info:
-            infos.append(info)
-
-    if not infos:
+    results = _collect_filtered_queryset(request.GET)
+    if not results:
         return Response.success(data={
             'seat_columns': [],
+            'vehicles': [],
             'results': [],
             'heatmap': {'frequency': [], 'points': [], 'matrix': []},
         }, message='未找到匹配的NTF数据')
 
-    # Determine unified seat columns across all selected vehicles（来自 VehicleModel）
-    has_middle = any(getattr(info.vehicle_model, 'seat_count', None) and info.vehicle_model.seat_count > 5 for info in infos)
-    has_rear = any(getattr(info.vehicle_model, 'seat_count', None) and info.vehicle_model.seat_count >= 3 for info in infos)
-    seat_columns = [{'key': 'front', 'label': '前排'}]
-    if has_middle:
-        seat_columns.append({'key': 'middle', 'label': '中排'})
-    if has_rear:
-        seat_columns.append({'key': 'rear', 'label': '后排'})
-
-    # Build results table rows and heatmap
-    results_rows = []
-    vehicle_cards = []
-    frequency_axis = []
-    heat_points = []
-    heat_matrix = []
-
-    for info in infos:
-        vm = info.vehicle_model
-        vehicle_name = vm.vehicle_model_name
-        vehicle_code = vm.cle_model_code
-
-        # 车辆信息卡片
+    # 车辆信息卡片
+    vehicle_cards: List[Dict[str, object]] = []
+    vehicle_seen: Set[int] = set()
+    for r in results:
+        vm = r.ntf_info.vehicle_model
+        if vm.id in vehicle_seen:
+            continue
+        vehicle_seen.add(vm.id)
+        info = r.ntf_info
         vehicle_cards.append({
             'vehicle_id': vm.id,
             'vehicle_model_name': vm.vehicle_model_name,
@@ -160,60 +194,84 @@ def ntf_query(request):
             'test_time': info.test_time,
         })
 
-        result_qs = info.test_results.all().order_by('measurement_point')
-        if point_list:
-            result_qs = result_qs.filter(measurement_point__in=point_list)
+    # 统一座位列：来自传入 positions 或由数据推断
+    requested_positions = _normalize_csv(request.GET.get('positions'))
+    if requested_positions:
+        seat_columns = [{'key': p, 'label': POS_LABEL.get(p, p)} for p in requested_positions]
+    else:
+        # 推断：如任一结果存在该分支，即纳入
+        pos_keys = []
+        for p in ('front', 'middle', 'rear'):
+            for r in results:
+                if (r.ntf_curve or {}).get(p):
+                    pos_keys.append(p)
+                    break
+        seat_columns = [{'key': p, 'label': POS_LABEL.get(p, p)} for p in pos_keys or ['front']]
 
-        for res in result_qs:
-            # Table rows
-            for code, label, prefix in (('X', 'X方向', 'x'), ('Y', 'Y方向', 'y'), ('Z', 'Z方向', 'z')):
+    seat_keys = [c['key'] for c in seat_columns]
+
+    # 结果表：每个测点 × 方向 × 频段（两行）
+    bands = ['20-200Hz', '200-500Hz']
+    results_rows: List[Dict[str, object]] = []
+    for r in sorted(results, key=lambda x: (x.ntf_info.vehicle_model.vehicle_model_name, x.measurement_point)):
+        vm = r.ntf_info.vehicle_model
+        curve = r.ntf_curve or {}
+        for code, dir_key, label in (('X','x','X方向'), ('Y','y','Y方向'), ('Z','z','Z方向')):
+            for band in bands:
                 row = {
-                    'vehicle_model_name': vehicle_name,
-                    'vehicle_model_code': vehicle_code,
-                    'measurement_point': res.measurement_point,
+                    'vehicle_model_name': vm.vehicle_model_name,
+                    'vehicle_model_code': vm.cle_model_code,
+                    'measurement_point': r.measurement_point,
                     'direction': code,
                     'direction_label': label,
-                    'target': getattr(res, f'{prefix}_target_value'),
-                    'front': getattr(res, f'{prefix}_front_row_value'),
-                    'middle': getattr(res, f'{prefix}_middle_row_value'),
-                    'rear': getattr(res, f'{prefix}_rear_row_value'),
-                    'available_columns': [c['key'] for c in _seat_layout(getattr(vm, 'seat_count', None))],
-                    'layout_image_url': getattr(res, 'layout_image_url', None),
+                    'band': band,
+                    'target': 60.0,
+                    'available_columns': seat_keys,
+                    'layout_image_url': getattr(r, 'layout_image_url', None),
                 }
+                for p in seat_keys:
+                    branch = (curve or {}).get(p) or {}
+                    stats = (branch.get('stats') or {}).get(dir_key) or {}
+                    key = 'max_20_200' if band == '20-200Hz' else 'max_200_500'
+                    row[p] = stats.get(key)
                 results_rows.append(row)
 
-            # Heatmap rows
-            curve = res.ntf_curve or {}
-            if not frequency_axis:
-                freqs = curve.get('frequency') or []
-                if freqs:
-                    frequency_axis = [float(x) for x in freqs]
+    # 热力图：点名 车型名_测点_位置_方向
+    # 频率轴：取第一个非空分支 frequency
+    frequency_axis: List[float] = []
+    for r in results:
+        for p in seat_keys:
+            branch = (r.ntf_curve or {}).get(p) or {}
+            freqs = branch.get('frequency') or []
+            if freqs:
+                frequency_axis = [float(x) for x in freqs]
+                break
+        if frequency_axis:
+            break
 
-            for dir_key, values_key in (('x', 'x_values'), ('y', 'y_values'), ('z', 'z_values')):
-                values = curve.get(values_key) or []
+    heat_points: List[str] = []
+    heat_matrix: List[List[Optional[float]]] = []
+
+    requested_dirs = _normalize_csv(request.GET.get('directions')) or ['x','y','z']
+    for r in results:
+        vm = r.ntf_info.vehicle_model
+        for p in seat_keys:
+            branch = (r.ntf_curve or {}).get(p) or {}
+            for d_code, d_key in (('X','x'), ('Y','y'), ('Z','z')):
+                if d_key not in requested_dirs:
+                    continue
+                values = branch.get(f'{d_key}_values') or []
                 if values:
-                    series = []
+                    series: List[Optional[float]] = []
                     for v in values:
                         try:
                             f = float(v)
                         except (TypeError, ValueError):
                             f = None
                         series.append(f)
-                    heat_points.append(f"{vehicle_name}_{res.measurement_point}_{dir_key}")
-                    heat_matrix.append(series)
-
-            # Fallback for legacy single "values" array
-            if not any(curve.get(k) for k in ('x_values', 'y_values', 'z_values')):
-                old_values = curve.get('values') or []
-                if old_values:
-                    series = []
-                    for v in old_values:
-                        try:
-                            f = float(v)
-                        except (TypeError, ValueError):
-                            f = None
-                        series.append(f)
-                    heat_points.append(f"{vehicle_name}_{res.measurement_point}")
+                    if frequency_axis:
+                        series = series[:len(frequency_axis)]
+                    heat_points.append(f"{vm.vehicle_model_name}_{r.measurement_point}_{POS_LABEL.get(p,p)}_{d_code}")
                     heat_matrix.append(series)
 
     data = {

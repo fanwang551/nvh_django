@@ -6,7 +6,7 @@
           <span class="card-title">查询条件</span>
         </div>
       </template>
-      <el-form label-width="80px" class="filter-form">
+      <el-form inline label-width="80px" class="filter-form">
         <el-form-item label="车型">
           <el-select
             v-model="localVehicleIds"
@@ -36,6 +36,30 @@
             @change="handlePointsChange"
           >
             <el-option v-for="p in measurementPointOptions" :key="p" :label="p" :value="p" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="位置">
+          <el-select
+            v-model="localPositions"
+            placeholder="请选择位置（可多选）"
+            multiple
+            filterable
+            clearable
+            @change="handlePositionsChange"
+          >
+            <el-option v-for="p in positionStaticOptions" :key="p" :label="posLabel(p)" :value="p" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="方向">
+          <el-select
+            v-model="localDirections"
+            placeholder="请选择方向（可多选）"
+            multiple
+            filterable
+            clearable
+            @change="handleDirectionsChange"
+          >
+            <el-option v-for="d in directionStaticOptions" :key="d" :label="dirLabel(d)" :value="d" />
           </el-select>
         </el-form-item>
       </el-form>
@@ -100,6 +124,7 @@
             {{ getDirectionLabel(row) }}
           </template>
         </el-table-column>
+        <el-table-column prop="band" label="频段" min-width="120" />
         <el-table-column label="目标" min-width="120">
           <template #default="{ row }">
             <span :class="getValueClass(row.target)">{{ formatValue(row.target) }}</span>
@@ -171,6 +196,11 @@ const { vehicleOptions, measurementPointOptions, seatColumns, tableRows, heatmap
 
 const localVehicleIds = ref([])
 const localPoints = ref([])
+const localPositions = ref([])
+const localDirections = ref([])
+// 静态的 位置 与 方向 选项（不级联）
+const positionStaticOptions = ['front', 'middle', 'rear']
+const directionStaticOptions = ['x', 'y', 'z']
 const heatmapRef = ref(null)
 let chartInstance = null
 
@@ -211,6 +241,16 @@ function classifyValue(value) {
 function getValueClass(value) {
   const level = classifyValue(value)
   return level ? `ntf-cell ntf-cell--${level}` : 'ntf-cell'
+}
+
+function posLabel(key) {
+  const map = { front: '前排', middle: '中排', rear: '后排' }
+  return map[key] || key
+}
+
+function dirLabel(key) {
+  const map = { x: 'X', y: 'Y', z: 'Z' }
+  return map[key] || key
 }
 
 function tableSpanMethod({ column, rowIndex }) {
@@ -342,18 +382,29 @@ watch(
 
 async function handleVehicleChange(ids) {
   store.selectedVehicleIds = Array.isArray(ids) ? ids : []
-  await store.fetchMeasurementPoints()
+  await store.fetchFilters()
   await store.multiQuery()
 }
 
 async function handlePointsChange(points) {
   store.selectedPoints = Array.isArray(points) ? points : []
+  await store.fetchFilters()
+  await store.multiQuery()
+}
+
+async function handlePositionsChange(positions) {
+  store.selectedPositions = Array.isArray(positions) ? positions : []
+  await store.multiQuery()
+}
+
+async function handleDirectionsChange(directions) {
+  store.selectedDirections = Array.isArray(directions) ? directions : []
   await store.multiQuery()
 }
 
 onMounted(async () => {
   await store.fetchVehicleOptions()
-  await store.fetchMeasurementPoints()
+  await store.fetchFilters()
   window.addEventListener('resize', handleResize)
 })
 
@@ -375,7 +426,7 @@ function openLayout(url) {
 .ntf-query { display: flex; flex-direction: column; gap: 16px; }
 .card-header { display: flex; align-items: center; justify-content: space-between; }
 .card-title { font-size: 16px; font-weight: 600; }
-.filter-form { max-width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: center; }
+.filter-form { max-width: 100%; display: flex; gap: 12px; align-items: center; flex-wrap: nowrap; }
 .heatmap { width: 100%; height: 420px; }
 .result-table { --el-table-border-color: #ebeef5; }
 .ntf-cell { font-weight: 600; }

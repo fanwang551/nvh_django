@@ -14,8 +14,12 @@ export const useNTFQueryStore = defineStore('NTFQuery', {
   state: () => ({
     vehicleOptions: [],
     measurementPointOptions: [],
+    positionOptions: [],
+    directionOptions: [],
     selectedVehicleIds: [],
     selectedPoints: [],
+    selectedPositions: [],
+    selectedDirections: [],
     vehicleCards: [],
     seatColumns: [],
     tableRows: [],
@@ -53,6 +57,36 @@ export const useNTFQueryStore = defineStore('NTFQuery', {
       this.error = null
     },
 
+    async fetchFilters() {
+      const params = {}
+      if (Array.isArray(this.selectedVehicleIds) && this.selectedVehicleIds.length) {
+        params.vehicle_ids = this.selectedVehicleIds.join(',')
+      }
+      if (Array.isArray(this.selectedPoints) && this.selectedPoints.length) {
+        params.points = this.selectedPoints.join(',')
+      }
+      if (Array.isArray(this.selectedPositions) && this.selectedPositions.length) {
+        params.positions = this.selectedPositions.join(',')
+      }
+      if (Array.isArray(this.selectedDirections) && this.selectedDirections.length) {
+        params.directions = this.selectedDirections.join(',')
+      }
+      try {
+        const res = await NtfApi.getFilters(params)
+        const data = res.data || {}
+        this.measurementPointOptions = Array.isArray(data.measurement_points) ? data.measurement_points : []
+        this.positionOptions = Array.isArray(data.positions) ? data.positions : []
+        this.directionOptions = Array.isArray(data.directions) ? data.directions : []
+        return data
+      } catch (error) {
+        console.error('加载过滤项失败', error)
+        this.measurementPointOptions = []
+        this.positionOptions = []
+        this.directionOptions = []
+        throw error
+      }
+    },
+
     async fetchMeasurementPoints() {
       const ids = Array.isArray(this.selectedVehicleIds) && this.selectedVehicleIds.length
         ? this.selectedVehicleIds.join(',')
@@ -79,6 +113,12 @@ export const useNTFQueryStore = defineStore('NTFQuery', {
         const params = { vehicle_ids: this.selectedVehicleIds.join(',') }
         if (Array.isArray(this.selectedPoints) && this.selectedPoints.length) {
           params.points = this.selectedPoints.join(',')
+        }
+        if (Array.isArray(this.selectedPositions) && this.selectedPositions.length) {
+          params.positions = this.selectedPositions.join(',')
+        }
+        if (Array.isArray(this.selectedDirections) && this.selectedDirections.length) {
+          params.directions = this.selectedDirections.join(',')
         }
         const res = await NtfApi.multiQuery(params)
         const data = res.data || {}

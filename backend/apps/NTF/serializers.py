@@ -1,10 +1,17 @@
 from decimal import Decimal
-from typing import Dict, List
+from typing import Dict, List, Optional
 import math
 
 from rest_framework import serializers
 
 from apps.NTF.models import NTFInfo, NTFTestResult
+
+
+POS_LABEL = {
+    'front': '前排',
+    'middle': '中排',
+    'rear': '后排',
+}
 
 
 class NTFInfoListSerializer(serializers.ModelSerializer):
@@ -22,6 +29,66 @@ class NTFInfoListSerializer(serializers.ModelSerializer):
             'test_time',
             'location',
         )
+
+
+def _is_finite_number(value) -> bool:
+    try:
+        f = float(value)
+        return math.isfinite(f)
+    except (TypeError, ValueError):
+        return False
+
+
+def _to_float(value) -> Optional[float]:
+    try:
+        f = float(value)
+        return f if math.isfinite(f) else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _to_float_list(values, limit_len: int | None = None):
+    arr: List[float] = []
+    for v in values or []:
+        f = _to_float(v)
+        if f is not None:
+            arr.append(f)
+    if limit_len is not None:
+        arr = arr[:limit_len]
+    return arr
+
+
+def _seat_layout(seat_count: int | None) -> List[Dict[str, str]]:
+    layout: List[Dict[str, str]] = [{'key': 'front', 'label': '前排'}]
+    if seat_count and seat_count > 5:
+        layout.append({'key': 'middle', 'label': '中排'})
+    if seat_count and seat_count >= 3:
+        layout.append({'key': 'rear', 'label': '后排'})
+    return layout
+
+
+def _curve_branch(curve: dict, pos_key: str) -> dict:
+    branch = (curve or {}).get(pos_key)
+    return branch or {}
+
+
+def _stats_value(curve: dict, pos_key: str, dir_key: str, band: str) -> Optional[float]:
+    branch = _curve_branch(curve, pos_key)
+    stats = (branch or {}).get('stats') or {}
+    d = (stats or {}).get(dir_key) or {}
+    key = 'max_20_200' if band == '20-200Hz' else 'max_200_500'
+    return _to_float(d.get(key))
+
+
+def _values_series(curve: dict, pos_key: str, dir_key: str) -> List[Optional[float]]:
+    branch = _curve_branch(curve, pos_key)
+    key = f"{dir_key}_values"
+    return [( _to_float(v) ) for v in (branch.get(key) or [])]
+
+
+def _frequency(curve: dict, pos_key: str) -> List[float]:
+    branch = _curve_branch(curve, pos_key)
+    return _to_float_list(branch.get('frequency') or [])
 
 
 class NTFInfoDetailSerializer(serializers.ModelSerializer):
@@ -45,51 +112,6 @@ class NTFInfoDetailSerializer(serializers.ModelSerializer):
             'heatmap',
         )
 
-    @staticmethod
-    def _is_finite_number(value) -> bool:
-        try:
-            f = float(value)
-            return math.isfinite(f)
-        except (TypeError, ValueError):
-            return False
-
-    @staticmethod
-    def _to_float(value):
-        """Safely convert to float; return None if not finite."""
-        try:
-            f = float(value)
-            return f if math.isfinite(f) else None
-        except (TypeError, ValueError):
-            return None
-
-    @staticmethod
-    def _to_float_list(values, limit_len: int | None = None):
-        arr = []
-        for v in values or []:
-            f = NTFInfoDetailSerializer._to_float(v)
-            if f is not None:
-                arr.append(f)
-        if limit_len is not None:
-            arr = arr[:limit_len]
-        return arr
-
-    @staticmethod
-    def _clean_decimal(value):
-        # Accept Decimal or numeric-like values; return None for non-finite
-        if isinstance(value, Decimal) or isinstance(value, (int, float, str)):
-            f = NTFInfoDetailSerializer._to_float(value)
-            return f
-        return None
-
-    @staticmethod
-    def _seat_layout(seat_count: int) -> List[Dict[str, str]]:
-        layout: List[Dict[str, str]] = [{'key': 'front', 'label': '前排'}]
-        if seat_count and seat_count >= 3:
-            layout.append({'key': 'rear', 'label': '后排'})
-        if seat_count and seat_count > 5:
-            layout.insert(1, {'key': 'middle', 'label': '中排'})
-        return layout
-
     def get_vehicle(self, obj: NTFInfo) -> Dict[str, str]:
         vehicle = obj.vehicle_model
         return {
@@ -106,82 +128,60 @@ class NTFInfoDetailSerializer(serializers.ModelSerializer):
         }
 
     def get_seat_columns(self, obj: NTFInfo) -> List[Dict[str, str]]:
-        return self._seat_layout(getattr(obj.vehicle_model, 'seat_count', None))
+        return _seat_layout(getattr(obj.vehicle_model, 'seat_count', None))
 
     def get_results(self, obj: NTFInfo) -> List[Dict[str, object]]:
-        seat_layout = self._seat_layout(getattr(obj.vehicle_model, 'seat_count', None))
-        seats = [seat['key'] for seat in seat_layout]
+        seats = [c['key'] for c in _seat_layout(getattr(obj.vehicle_model, 'seat_count', None))]
+        bands = ['20-200Hz', '200-500Hz']
+        dirs = [('X', 'x', 'X方向'), ('Y', 'y', 'Y方向'), ('Z', 'z', 'Z方向')]
         data: List[Dict[str, object]] = []
-        direction_map = [
-            ('X', 'X方向', 'x'),
-            ('Y', 'Y方向', 'y'),
-            ('Z', 'Z方向', 'z'),
-        ]
+
         for result in obj.test_results.all().order_by('measurement_point'):
-            for code, label, prefix in direction_map:
-                target = getattr(result, f"{prefix}_target_value")
-                front = getattr(result, f"{prefix}_front_row_value")
-                middle = getattr(result, f"{prefix}_middle_row_value")
-                rear = getattr(result, f"{prefix}_rear_row_value")
-                row = {
-                    'measurement_point': result.measurement_point,
-                    'direction': code,
-                    'direction_label': label,
-                    'target': self._clean_decimal(target),
-                    'front': self._clean_decimal(front),
-                    'middle': self._clean_decimal(middle),
-                    'rear': self._clean_decimal(rear),
-                    'available_columns': seats,
-                }
-                data.append(row)
+            curve = result.ntf_curve or {}
+            for code, dir_key, label in dirs:
+                for band in bands:
+                    row = {
+                        'measurement_point': result.measurement_point,
+                        'direction': code,
+                        'direction_label': label,
+                        'band': band,
+                        'target': 60.0,
+                        'front': _stats_value(curve, 'front', dir_key, band) if 'front' in seats else None,
+                        'middle': _stats_value(curve, 'middle', dir_key, band) if 'middle' in seats else None,
+                        'rear': _stats_value(curve, 'rear', dir_key, band) if 'rear' in seats else None,
+                        'available_columns': seats,
+                    }
+                    data.append(row)
         return data
 
     def get_heatmap(self, obj: NTFInfo) -> Dict[str, object]:
         frequency_axis: List[float] = []
         points_axis: List[str] = []
-        matrix: List[List[float]] = []
+        matrix: List[List[Optional[float]]] = []
+
+        # 选取第一个非空分支作为频率轴
+        for result in obj.test_results.all().order_by('measurement_point'):
+            curve = result.ntf_curve or {}
+            for pos in ('front', 'middle', 'rear'):
+                freqs = _frequency(curve, pos)
+                if freqs:
+                    frequency_axis = freqs
+                    break
+            if frequency_axis:
+                break
 
         for result in obj.test_results.all().order_by('measurement_point'):
             curve = result.ntf_curve or {}
-            frequencies = curve.get('frequency') or []
-            if not frequency_axis and frequencies:
-                frequency_axis = self._to_float_list(frequencies)
-
-            # 优先新结构：x_values / y_values / z_values
-            x_vals = curve.get('x_values') or []
-            y_vals = curve.get('y_values') or []
-            z_vals = curve.get('z_values') or []
-            expected_len = len(frequency_axis) if frequency_axis else None
-
-            # 热力图展示 X、Y、Z 三个方向
-            added_any = False
-            if x_vals:
-                row = self._to_float_list(x_vals, expected_len)
-                if row:
-                    points_axis.append(f"{result.measurement_point}_X")
-                    matrix.append(row)
-                    added_any = True
-            if y_vals:
-                row = self._to_float_list(y_vals, expected_len)
-                if row:
-                    points_axis.append(f"{result.measurement_point}_Y")
-                    matrix.append(row)
-                    added_any = True
-            if z_vals:
-                row = self._to_float_list(z_vals, expected_len)
-                if row:
-                    points_axis.append(f"{result.measurement_point}_Z")
-                    matrix.append(row)
-                    added_any = True
-
-            # 兼容历史数据：旧结构 {frequency: [], values: []}
-            if not added_any:
-                old_values = curve.get('values') or []
-                if old_values:
-                    row = self._to_float_list(old_values, expected_len)
-                    if row:
-                        points_axis.append(f"{result.measurement_point}")
-                        matrix.append(row)
+            for pos in ('front', 'middle', 'rear'):
+                pos_label = POS_LABEL.get(pos, pos)
+                for code, dir_key, _ in [('X', 'x', 'X方向'), ('Y', 'y', 'Y方向'), ('Z', 'z', 'Z方向')]:
+                    series = _values_series(curve, pos, dir_key)
+                    if series:
+                        if frequency_axis:
+                            series = series[:len(frequency_axis)]
+                        name = f"{obj.vehicle_model.vehicle_model_name}_{result.measurement_point}_{pos_label}_{code}"
+                        points_axis.append(name)
+                        matrix.append(series)
 
         return {
             'frequency': frequency_axis,

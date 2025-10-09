@@ -2,7 +2,7 @@ from django.db import models
 
 
 class NTFInfo(models.Model):
-    """NTF 测试元数据"""
+    """NTF 测试元数据（保持不变）"""
 
     vehicle_model = models.ForeignKey(
         'modal.VehicleModel',
@@ -29,16 +29,31 @@ class NTFInfo(models.Model):
 
 
 def _default_ntf_curve() -> dict:
-    return {
-        'frequency': [],
-        'x_values': [],
-        'y_values': [],
-        'z_values': [],
-    }
+    """新结构默认空对象；各位置(front/middle/rear)可缺失或为 null。"""
+    return {}
 
 
 class NTFTestResult(models.Model):
-    """NTF 测试结果：每个测点包含 X/Y/Z 三个方向"""
+    """NTF 测试结果（精简版）
+
+    仅保留测点、布置图 URL 与曲线 JSON：
+    ntf_curve 示例结构：
+    {
+      "front": {
+        "frequency": [20, 20.25, ...],
+        "x_values": [...],
+        "y_values": [...],
+        "z_values": [...],
+        "stats": {
+          "x": {"max_20_200": 0.85, "max_200_500": 0.92},
+          "y": {"max_20_200": 0.78, "max_200_500": 0.88},
+          "z": {"max_20_200": 0.95, "max_200_500": 1.02}
+        }
+      },
+      "middle": null,
+      "rear": { ... }
+    }
+    """
 
     ntf_info = models.ForeignKey(
         NTFInfo,
@@ -47,31 +62,10 @@ class NTFTestResult(models.Model):
         verbose_name='NTF信息'
     )
     measurement_point = models.CharField(max_length=100, verbose_name='测点')
-    # 测点布置图 URL（用于前端弹窗展示）
     layout_image_url = models.CharField(max_length=255, null=True, blank=True, verbose_name='测点布置图URL')
 
-    # X 方向
-    x_target_value = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='X方向目标(dB)')
-    x_front_row_value = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='X方向前排(dB)')
-    x_middle_row_value = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='X方向中排(dB)')
-    x_rear_row_value = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='X方向后排(dB)')
-
-    # 单一曲线：每个测点包含 XYZ 三个方向数据
-    # 结构：{frequency: [], x_values: [], y_values: [], z_values: []}
-    # 兼容历史数据：若为 {frequency: [], values: []}，序列化层做兼容处理
-    ntf_curve = models.JSONField(default=_default_ntf_curve, blank=True, verbose_name='NTF原始数据')
-
-    # Y 方向
-    y_target_value = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='Y方向目标(dB)')
-    y_front_row_value = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='Y方向前排(dB)')
-    y_middle_row_value = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='Y方向中排(dB)')
-    y_rear_row_value = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='Y方向后排(dB)')
-
-    # Z 方向
-    z_target_value = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='Z方向目标(dB)')
-    z_front_row_value = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='Z方向前排(dB)')
-    z_middle_row_value = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='Z方向中排(dB)')
-    z_rear_row_value = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='Z方向后排(dB)')
+    # 新 JSON 曲线结构
+    ntf_curve = models.JSONField(default=_default_ntf_curve, blank=True, verbose_name='NTF曲线数据')
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
