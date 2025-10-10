@@ -98,24 +98,28 @@
           <span class="card-title">测试结果</span>
           <div v-if="tableRows.length && levelStats.total > 0" class="level-stats">
             <span class="level-item ntf-cell ntf-cell--low">
-              <strong>&lt;60</strong>：{{ levelStats.low.percent }}%
+              <strong>&lt;55</strong>：{{ levelStats.lt55.percent }}%
             </span>
             <span class="level-item ntf-cell ntf-cell--medium">
-              <strong>60-65</strong>：{{ levelStats.medium.percent }}%
+              <strong>55-60</strong>：{{ levelStats.r55_60.percent }}%
+            </span>
+            <span class="level-item ntf-cell ntf-cell--medium">
+              <strong>60-65</strong>：{{ levelStats.r60_65.percent }}%
             </span>
             <span class="level-item ntf-cell ntf-cell--high">
-              <strong>&gt;65</strong>：{{ levelStats.high.percent }}%
+              <strong>&gt;65</strong>：{{ levelStats.gt65.percent }}%
             </span>
           </div>
         </div>
       </template>
       <el-table
         v-if="tableRows.length"
-        :data="tableRows"
+        :data="pivotedRows"
         border
         stripe
         class="result-table"
         :span-method="tableSpanMethod"
+        :header-cell-style="headerCellStyleCenter"
       >
         <el-table-column prop="vehicle_model_name" label="车型" min-width="160" />
         <el-table-column prop="measurement_point" label="测点" min-width="140" />
@@ -124,21 +128,28 @@
             {{ getDirectionLabel(row) }}
           </template>
         </el-table-column>
-        <el-table-column prop="band" label="频段" min-width="120" />
+        <!-- 频段改为列分组显示，移除单列显示 -->
         <el-table-column label="目标" min-width="120">
           <template #default="{ row }">
             <span :class="getValueClass(row.target)">{{ formatValue(row.target) }}</span>
           </template>
         </el-table-column>
+        <!-- 以频段为列分组，内部为各座位值 -->
         <el-table-column
-          v-for="column in seatColumns"
-          :key="column.key"
-          :label="column.label"
-          min-width="120"
+          v-for="band in pivotBands"
+          :key="band.key"
+          :label="band.label"
         >
-          <template #default="{ row }">
-            <span :class="getValueClass(row[column.key])">{{ formatValue(row[column.key]) }}</span>
-          </template>
+          <el-table-column
+            v-for="column in seatColumns"
+            :key="band.key + ':' + column.key"
+            :label="column.label"
+            min-width="120"
+          >
+            <template #default="{ row }">
+              <span :class="getValueClass(row[`${column.key}__${band.key}`])">{{ formatValue(row[`${column.key}__${band.key}`]) }}</span>
+            </template>
+          </el-table-column>
         </el-table-column>
         <el-table-column label="操作" min-width="120">
           <template #default="{ row }">
@@ -253,8 +264,70 @@ function dirLabel(key) {
   return map[key] || key
 }
 
-function tableSpanMethod({ column, rowIndex }) {
+// 将频段标签转为字段安全的 key（如 20-200Hz -> 20_200）
+function bandKeyFromLabel(label) {
+  const s = String(label || '')
+  const m = s.match(/(\d+)\s*-\s*(\d+)/)
+  if (m) return `${m[1]}_${m[2]}`
+  return s.replace(/[^0-9a-zA-Z]+/g, '_')
+}
+
+// 可用频段列
+const pivotBands = computed(() => {
   const rows = Array.isArray(tableRows.value) ? tableRows.value : []
+  const set = new Map()
+  for (const r of rows) {
+    const label = r?.band
+    if (!label) continue
+    const key = bandKeyFromLabel(label)
+    if (!set.has(key)) set.set(key, { key, label })
+  }
+  // 按显示顺序：20-200 在前，200-500 在后
+  const arr = Array.from(set.values())
+  arr.sort((a, b) => a.label.localeCompare(b.label, 'zh-CN', { numeric: true }))
+  return arr
+})
+
+// 结果表透视：同一 车型+测点+方向 合并为一行，频段展开为列
+const pivotedRows = computed(() => {
+  const rows = Array.isArray(tableRows.value) ? tableRows.value : []
+  if (!rows.length) return []
+  const seatKeys = Array.isArray(seatColumns.value) ? seatColumns.value.map((c) => c.key) : []
+  const map = new Map()
+  for (const r of rows) {
+    const key = `${r.vehicle_model_name}__${r.measurement_point}__${r.direction}`
+    const bandKey = bandKeyFromLabel(r.band)
+    let obj = map.get(key)
+    if (!obj) {
+      obj = {
+        vehicle_model_name: r.vehicle_model_name,
+        vehicle_model_code: r.vehicle_model_code,
+        measurement_point: r.measurement_point,
+        direction: r.direction,
+        direction_label: r.direction_label,
+        target: r.target,
+        layout_image_url: r.layout_image_url,
+      }
+      map.set(key, obj)
+    }
+    // 每个频段下为各座位的值
+    for (const p of seatKeys) {
+      obj[`${p}__${bandKey}`] = r[p]
+    }
+  }
+  const result = Array.from(map.values())
+  // 排序：车型 -> 测点 -> 方向 X/Y/Z
+  const dirOrder = { X: 0, Y: 1, Z: 2 }
+  result.sort((a, b) =>
+    a.vehicle_model_name.localeCompare(b.vehicle_model_name, 'zh-CN')
+      || a.measurement_point.localeCompare(b.measurement_point, 'zh-CN')
+      || (dirOrder[a.direction] ?? 9) - (dirOrder[b.direction] ?? 9)
+  )
+  return result
+})
+
+function tableSpanMethod({ column, rowIndex }) {
+  const rows = Array.isArray(pivotedRows.value) ? pivotedRows.value : []
   if (!column || !rows.length) return { rowspan: 1, colspan: 1 }
   const groupKey = (r) => `${r.vehicle_model_name}__${r.measurement_point}`
   const currentKey = groupKey(rows[rowIndex])
@@ -272,6 +345,9 @@ function tableSpanMethod({ column, rowIndex }) {
   return { rowspan: 1, colspan: 1 }
 }
 
+// 表头居中样式
+function headerCellStyleCenter() { return { textAlign: 'center' } }
+
 function getDirectionLabel(row) {
   if (!row) return '-'
   const raw = (row.direction ?? row.direction_label ?? '').toString()
@@ -281,7 +357,13 @@ function getDirectionLabel(row) {
 }
 
 const levelStats = computed(() => {
-  const stats = { total: 0, low: { count: 0, percent: 0 }, medium: { count: 0, percent: 0 }, high: { count: 0, percent: 0 } }
+  const stats = {
+    total: 0,
+    lt55: { count: 0, percent: 0 },
+    r55_60: { count: 0, percent: 0 },
+    r60_65: { count: 0, percent: 0 },
+    gt65: { count: 0, percent: 0 }
+  }
   const seatKeys = Array.isArray(seatColumns.value) ? seatColumns.value.map((c) => c.key) : []
   if (!Array.isArray(tableRows.value) || !seatKeys.length) return stats
   for (const row of tableRows.value) {
@@ -289,15 +371,17 @@ const levelStats = computed(() => {
       const v = Number(row?.[key])
       if (!Number.isFinite(v)) continue
       stats.total += 1
-      if (v > 65) stats.high.count += 1
-      else if (v >= 60) stats.medium.count += 1
-      else stats.low.count += 1
+      if (v < 55) stats.lt55.count += 1
+      else if (v < 60) stats.r55_60.count += 1
+      else if (v <= 65) stats.r60_65.count += 1
+      else stats.gt65.count += 1
     }
   }
   if (stats.total > 0) {
-    stats.low.percent = Math.round((stats.low.count / stats.total) * 100)
-    stats.medium.percent = Math.round((stats.medium.count / stats.total) * 100)
-    stats.high.percent = Math.round((stats.high.count / stats.total) * 100)
+    stats.lt55.percent = Math.round((stats.lt55.count / stats.total) * 100)
+    stats.r55_60.percent = Math.round((stats.r55_60.count / stats.total) * 100)
+    stats.r60_65.percent = Math.round((stats.r60_65.count / stats.total) * 100)
+    stats.gt65.percent = Math.round((stats.gt65.count / stats.total) * 100)
   }
   return stats
 })
@@ -320,6 +404,8 @@ function renderHeatmap() {
   if (!chartInstance) chartInstance = echarts.init(heatmapRef.value)
   const data = buildHeatmapSeriesData()
   const valueRange = computeHeatmapRange()
+  const total = Array.isArray(heatmap.value.frequency) ? heatmap.value.frequency.length : 0
+  const step = Math.max(1, Math.floor(total / 10))
   const option = {
     title: { left: 'center', text: 'Frequency vs Measurement Point' },
     tooltip: {
@@ -333,7 +419,21 @@ function renderHeatmap() {
       }
     },
     grid: { top: 60, left: 80, right: 20, bottom: 50 },
-    xAxis: { type: 'category', data: heatmap.value.frequency, name: '频率 (Hz)', nameGap: 18, axisLabel: { fontSize: 10, rotate: 45 } },
+    xAxis: {
+      type: 'category',
+      data: heatmap.value.frequency,
+      name: '频率 (Hz)',
+      nameGap: 18,
+      axisLabel: {
+        fontSize: 10,
+        rotate: 0,
+        interval(index) { return index % step === 0 },
+        formatter(value) {
+          const n = Number(value)
+          return Number.isFinite(n) ? Math.round(n) : value
+        }
+      }
+    },
     yAxis: { type: 'category', data: heatmap.value.points, name: '测点', nameGap: 16, axisLabel: { fontSize: 12 } },
     visualMap: {
       min: valueRange.min,
