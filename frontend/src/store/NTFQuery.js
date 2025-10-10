@@ -62,9 +62,8 @@ export const useNTFQueryStore = defineStore('NTFQuery', {
       if (Array.isArray(this.selectedVehicleIds) && this.selectedVehicleIds.length) {
         params.vehicle_ids = this.selectedVehicleIds.join(',')
       }
-      if (Array.isArray(this.selectedPoints) && this.selectedPoints.length) {
-        params.points = this.selectedPoints.join(',')
-      }
+      // 注意：不要传入已选测点进行自我过滤，否则会导致测点选项被收缩为已选项，
+      // 从而在界面上表现为“只能单选”的错觉。仅依据车型（及位置/方向）收敛可选项即可。
       if (Array.isArray(this.selectedPositions) && this.selectedPositions.length) {
         params.positions = this.selectedPositions.join(',')
       }
