@@ -174,6 +174,13 @@ const soundModules = ref([
     bg: 'linear-gradient(135deg,#a78bfa,#7c3aed)'
   },
   {
+    name: 'acoustic-analysis',
+    title: '声学测试数据分析',
+    desc: '车型/工况/测点曲线与指标',
+    icon: TrendCharts,
+    bg: 'linear-gradient(135deg,#60a5fa,#3b82f6)'
+  },
+  {
     name: 'vehicle-sound-insulation-query',
     title: '车型隔声量查询',
     desc: '检索特定车型隔声量数据',

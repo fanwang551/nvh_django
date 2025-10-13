@@ -22,6 +22,7 @@ urlpatterns = [
     path('api/dynamic-stiffness/', include('apps.dynamic_stiffness.urls')),
     path('api/wheel-performance/', include('apps.wheel_performance.urls')),
     path('api/NTF/', include('apps.NTF.urls')),
+    path('api/acoustic-analysis/', include('apps.acoustic_analysis.urls')),
     path('oidc/', include('mozilla_django_oidc.urls')),
 ]
 
