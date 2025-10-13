@@ -19,12 +19,15 @@
             class="module-card"
             @click="openModule(module)"
           >
-            <div class="module-icon">
-              <el-icon :size="20">
+            <div class="module-media" :style="{ background: module.bg }">
+              <el-icon :size="26" class="media-icon">
                 <component :is="module.icon" />
               </el-icon>
             </div>
-            <div class="module-title">{{ module.title }}</div>
+            <div class="module-content">
+              <div class="module-title">{{ module.title }}</div>
+              <div class="module-desc">{{ module.desc }}</div>
+            </div>
           </div>
         </div>
       </el-collapse-item>
@@ -42,12 +45,15 @@
             class="module-card"
             @click="openModule(module)"
           >
-            <div class="module-icon">
-              <el-icon :size="20">
+            <div class="module-media" :style="{ background: module.bg }">
+              <el-icon :size="26" class="media-icon">
                 <component :is="module.icon" />
               </el-icon>
             </div>
-            <div class="module-title">{{ module.title }}</div>
+            <div class="module-content">
+              <div class="module-title">{{ module.title }}</div>
+              <div class="module-desc">{{ module.desc }}</div>
+            </div>
           </div>
         </div>
       </el-collapse-item>
@@ -65,12 +71,15 @@
             class="module-card"
             @click="openModule(module)"
           >
-            <div class="module-icon">
-              <el-icon :size="20">
+            <div class="module-media" :style="{ background: module.bg }">
+              <el-icon :size="26" class="media-icon">
                 <component :is="module.icon" />
               </el-icon>
             </div>
-            <div class="module-title">{{ module.title }}</div>
+            <div class="module-content">
+              <div class="module-title">{{ module.title }}</div>
+              <div class="module-desc">{{ module.desc }}</div>
+            </div>
           </div>
         </div>
       </el-collapse-item>
@@ -88,12 +97,15 @@
             class="module-card"
             @click="openModule(module)"
           >
-            <div class="module-icon">
-              <el-icon :size="20">
+            <div class="module-media" :style="{ background: module.bg }">
+              <el-icon :size="26" class="media-icon">
                 <component :is="module.icon" />
               </el-icon>
             </div>
-            <div class="module-title">{{ module.title }}</div>
+            <div class="module-content">
+              <div class="module-title">{{ module.title }}</div>
+              <div class="module-desc">{{ module.desc }}</div>
+            </div>
           </div>
         </div>
       </el-collapse-item>
@@ -125,22 +137,30 @@ const modalAirtightnessModules = ref([
   {
     name: 'modal-data-query',
     title: '模态数据查询',
-    icon: DataAnalysis
+    desc: '按车型/零件检索模态数据',
+    icon: DataAnalysis,
+    bg: 'linear-gradient(135deg,#5b8ff9,#3b76f6)'
   },
   {
     name: 'modal-data-compare',
     title: '模态数据对比',
-    icon: TrendCharts
+    desc: '多车型/状态可视化对比',
+    icon: TrendCharts,
+    bg: 'linear-gradient(135deg,#34d399,#10b981)'
   },
   {
     name: 'airtight-leak-compare',
     title: '气密性泄漏量对比',
-    icon: Connection
+    desc: '整车及分系统泄漏量对照',
+    icon: Connection,
+    bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)'
   },
   {
     name: 'airtightness-image-query',
     title: '气密性测试图片查询',
-    icon: Picture
+    desc: '三大区域测试图像速览',
+    icon: Picture,
+    bg: 'linear-gradient(135deg,#f87171,#ef4444)'
   }
 ])
 
@@ -149,32 +169,44 @@ const soundModules = ref([
   {
     name: 'sound-insulation-compare',
     title: '区域隔声量（ATF）对比',
-    icon: TrendCharts
+    desc: '按区域对比不同车型隔声量',
+    icon: TrendCharts,
+    bg: 'linear-gradient(135deg,#a78bfa,#7c3aed)'
   },
   {
     name: 'vehicle-sound-insulation-query',
     title: '车型隔声量查询',
-    icon: TrendCharts
+    desc: '检索特定车型隔声量数据',
+    icon: TrendCharts,
+    bg: 'linear-gradient(135deg,#60a5fa,#3b82f6)'
   },
   {
     name: 'vehicle-reverberation-query',
     title: '车辆混响时间查询',
-    icon: Monitor
+    desc: '车型混响时间曲线与对比',
+    icon: Monitor,
+    bg: 'linear-gradient(135deg,#22d3ee,#06b6d4)'
   },
   {
     name: 'sound-absorption-query',
     title: '吸声系数查询',
-    icon: MagicStick
+    desc: '材料吸声性能快速检索',
+    icon: MagicStick,
+    bg: 'linear-gradient(135deg,#fb7185,#ec4899)'
   },
   {
     name: 'sound-insulation-coefficient-query',
     title: '隔声量查询',
-    icon: MagicStick
+    desc: '标准隔声量测试数据查询',
+    icon: MagicStick,
+    bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)'
   },
   {
     name: 'material-porosity-flow-resistance-query',
     title: '材料孔隙率和流阻查询',
-    icon: MagicStick
+    desc: '多维度材料特性数据汇总',
+    icon: MagicStick,
+    bg: 'linear-gradient(135deg,#4ade80,#22c55e)'
   }
 ])
 
@@ -183,17 +215,23 @@ const dynamicStiffnessModules = ref([
   {
     name: 'dynamic-stiffness-query',
     title: '动刚度查询',
-    icon: MagicStick
+    desc: '曲线/峰值/参数一体化呈现',
+    icon: MagicStick,
+    bg: 'linear-gradient(135deg,#fdba74,#fb923c)'
   },
   {
     name: 'vehicle-mount-isolation-query',
     title: '整车悬置隔振率查询',
-    icon: Setting
+    desc: '悬置隔振率频段对比',
+    icon: Setting,
+    bg: 'linear-gradient(135deg,#93c5fd,#60a5fa)'
   },
   {
     name: 'suspension-isolation-query',
     title: '整车悬架隔振率查询',
-    icon: Setting
+    desc: '悬架隔振特性趋势分析',
+    icon: Setting,
+    bg: 'linear-gradient(135deg,#86efac,#22c55e)'
   }
 ])
 
@@ -202,12 +240,16 @@ const wheelPerformanceModules = ref([
   {
     name: 'wheel-performance-query',
     title: '车轮性能查询',
-    icon: Odometer
+    desc: '轮辋/传递函数等关键指标',
+    icon: Odometer,
+    bg: 'linear-gradient(135deg,#38bdf8,#0ea5e9)'
   },
   {
     name: 'ntf-query',
     title: 'NTF 查询',
-    icon: TrendCharts
+    desc: 'NTF曲线/热力图一目了然',
+    icon: TrendCharts,
+    bg: 'linear-gradient(135deg,#c084fc,#a855f7)'
   }
 ])
 
@@ -264,8 +306,8 @@ const openModule = (module) => {
 
 .modules-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
   max-width: 100%;
 }
 
@@ -307,37 +349,34 @@ const openModule = (module) => {
 }
 
 .module-card {
-  background: white;
-  border: 1px solid #e4e7ed;
-  border-radius: 4px;
-  padding: 16px 8px;
-  text-align: center;
+  background: #ffffff;
+  border: 1px solid #eef0f5;
+  border-radius: 10px;
+  padding: 10px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  aspect-ratio: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 10px;
   align-items: center;
 }
+.module-card:hover { transform: translateY(-2px); border-color: #c7d2fe; box-shadow: 0 10px 24px rgba(99,102,241,0.12); }
 
-.module-card:hover {
-  border-color: #409eff;
-  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.1);
+.module-media {
+  height: 86px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  transition: transform .25s ease;
 }
+.module-card:hover .module-media { transform: scale(1.02); }
 
-.module-icon {
-  color: #409eff;
-  margin-bottom: 8px;
-}
-
-.module-title {
-  font-size: 12px;
-  font-weight: 500;
-  color: #303133;
-  line-height: 1.3;
-  word-break: break-all;
-}
+.module-content { overflow: hidden; }
+.module-title { font-size: 14px; font-weight: 600; color: #1f2d3d; margin-bottom: 4px; }
+.module-card:hover .module-title { color: #3b82f6; }
+.module-desc { font-size: 12px; color: #6b7280; line-height: 1.5; }
 
 /* 深度选择器，覆盖 Element Plus 折叠面板样式 */
 :deep(.el-collapse-item__header) {
