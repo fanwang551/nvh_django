@@ -8,7 +8,7 @@
       </template>
       <el-form label-width="100px" class="search-form">
         <el-row :gutter="24">
-          <el-col :span="8">
+          <el-col :span="6">
             <el-form-item label="车型">
               <el-select
                 v-model="filters.vehicleModelIds"
@@ -17,6 +17,7 @@
                 clearable
                 collapse-tags
                 collapse-tags-tooltip
+                filterable
                 @change="onVehicleChange"
                 style="width: 100%"
               >
@@ -29,7 +30,7 @@
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="8">
+          <el-col :span="6">
             <el-form-item label="工况">
               <el-select
                 v-model="filters.workConditions"
@@ -51,7 +52,7 @@
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="8">
+          <el-col :span="6">
             <el-form-item label="测点">
               <el-select
                 v-model="filters.measurePoints"
@@ -72,11 +73,13 @@
               </el-select>
             </el-form-item>
           </el-col>
+          <el-col :span="6">
+            <div class="form-actions">
+              <el-button type="primary" @click="handleQuery" :loading="isLoading">查询</el-button>
+              <el-button @click="handleReset" :disabled="isLoading">重置</el-button>
+            </div>
+          </el-col>
         </el-row>
-        <div class="form-actions">
-          <el-button type="primary" @click="handleQuery" :loading="isLoading">查询</el-button>
-          <el-button @click="handleReset" :disabled="isLoading">重置</el-button>
-        </div>
       </el-form>
     </el-card>
 
@@ -267,7 +270,6 @@ onBeforeUnmount(() => {
 .card-title { font-size: 16px; font-weight: 600; }
 .card-subtitle { font-size: 12px; color: #909399; }
 .search-form { padding-top: 8px; }
-.form-actions { display: flex; gap: 12px; margin-top: 8px; }
+.form-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 0; }
 .echarts-container { width: 100%; height: 420px; }
 </style>
-
