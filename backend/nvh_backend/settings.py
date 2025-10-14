@@ -81,7 +81,7 @@ WSGI_APPLICATION = 'nvh_backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': config('DB_NAME', default='nvh_database'),
+        'NAME': config('DB_NAME', default='nvh_1014'),
         'USER': config('DB_USER', default='root'),
         'PASSWORD': config('DB_PASSWORD', default='123456'),
         'HOST': config('DB_HOST', default='localhost'),
