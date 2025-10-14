@@ -17,17 +17,17 @@
             v-for="module in modalAirtightnessModules"
             :key="module.name"
             class="module-card"
+            role="button"
+            tabindex="0"
             @click="openModule(module)"
+            @keydown.enter.prevent="openModule(module)"
           >
-            <div class="module-media" :style="{ background: module.bg }">
-              <el-icon :size="26" class="media-icon">
+            <div class="module-media">
+              <el-icon :size="20" class="media-icon">
                 <component :is="module.icon" />
               </el-icon>
             </div>
-            <div class="module-content">
-              <div class="module-title">{{ module.title }}</div>
-              <div class="module-desc">{{ module.desc }}</div>
-            </div>
+            <div class="module-title" :title="module.title">{{ module.title }}</div>
           </div>
         </div>
       </el-collapse-item>
@@ -43,17 +43,17 @@
             v-for="module in soundModules"
             :key="module.name"
             class="module-card"
+            role="button"
+            tabindex="0"
             @click="openModule(module)"
+            @keydown.enter.prevent="openModule(module)"
           >
-            <div class="module-media" :style="{ background: module.bg }">
-              <el-icon :size="26" class="media-icon">
+            <div class="module-media">
+              <el-icon :size="20" class="media-icon">
                 <component :is="module.icon" />
               </el-icon>
             </div>
-            <div class="module-content">
-              <div class="module-title">{{ module.title }}</div>
-              <div class="module-desc">{{ module.desc }}</div>
-            </div>
+            <div class="module-title" :title="module.title">{{ module.title }}</div>
           </div>
         </div>
       </el-collapse-item>
@@ -69,17 +69,17 @@
             v-for="module in dynamicStiffnessModules"
             :key="module.name"
             class="module-card"
+            role="button"
+            tabindex="0"
             @click="openModule(module)"
+            @keydown.enter.prevent="openModule(module)"
           >
-            <div class="module-media" :style="{ background: module.bg }">
-              <el-icon :size="26" class="media-icon">
+            <div class="module-media">
+              <el-icon :size="20" class="media-icon">
                 <component :is="module.icon" />
               </el-icon>
             </div>
-            <div class="module-content">
-              <div class="module-title">{{ module.title }}</div>
-              <div class="module-desc">{{ module.desc }}</div>
-            </div>
+            <div class="module-title" :title="module.title">{{ module.title }}</div>
           </div>
         </div>
       </el-collapse-item>
@@ -95,17 +95,17 @@
             v-for="module in wheelPerformanceModules"
             :key="module.name"
             class="module-card"
+            role="button"
+            tabindex="0"
             @click="openModule(module)"
+            @keydown.enter.prevent="openModule(module)"
           >
-            <div class="module-media" :style="{ background: module.bg }">
-              <el-icon :size="26" class="media-icon">
+            <div class="module-media">
+              <el-icon :size="20" class="media-icon">
                 <component :is="module.icon" />
               </el-icon>
             </div>
-            <div class="module-content">
-              <div class="module-title">{{ module.title }}</div>
-              <div class="module-desc">{{ module.desc }}</div>
-            </div>
+            <div class="module-title" :title="module.title">{{ module.title }}</div>
           </div>
         </div>
       </el-collapse-item>
@@ -314,11 +314,11 @@ const openModule = (module) => {
 .modules-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 14px;
+  gap: 12px;
   max-width: 100%;
 }
 
-/* 响应式：最多6列/
+/* 响应式：最多6列 */
 @media (min-width: 1080px) {
   .modules-grid {
     grid-template-columns: repeat(6, 1fr);
@@ -356,45 +356,51 @@ const openModule = (module) => {
 }
 
 .module-card {
+  position: relative;
   background: #ffffff;
-  border: 1px solid #eef0f5;
+  border: 1px solid #e5e7eb;
   border-radius: 10px;
-  padding: 10px;
+  padding: 10px 12px;
   cursor: pointer;
-  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
-  display: grid;
-  grid-template-columns: 120px 1fr;
-  gap: 10px;
+  transition: color .2s ease;
+  display: flex;
   align-items: center;
+  gap: 10px;
+  min-height: 44px;
 }
-.module-card:hover { transform: translateY(-2px); border-color: #c7d2fe; box-shadow: 0 10px 24px rgba(99,102,241,0.12); }
+.module-card:hover { /* 仅保留文字变蓝，不做阴影和位移 */ }
+.module-card:focus-visible { outline: 3px solid rgba(59,130,246,0.25); outline-offset: 2px; }
+
+/* 移除箭头提示 */
+.module-card::after { content: none; }
 
 .module-media {
-  height: 86px;
+  width: 36px;
+  height: 36px;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  transition: transform .25s ease;
+  background: #f3f6ff;
+  color: #3b82f6;
 }
-.module-card:hover .module-media { transform: scale(1.02); }
 
 .module-content { overflow: hidden; }
-.module-title { font-size: 14px; font-weight: 600; color: #1f2d3d; margin-bottom: 4px; }
-.module-card:hover .module-title { color: #3b82f6; }
-.module-desc { font-size: 12px; color: #6b7280; line-height: 1.5; }
+.module-title { font-size: 14px; font-weight: 600; color: #1f2d3d; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.module-card:hover .module-title, .module-card:focus-visible .module-title { color: #2563eb; }
+/* 描述已移除，保留占位选择器以兼容但不使用 */
+.module-desc { display: none; }
 
 /* 深度选择器，覆盖 Element Plus 折叠面板样式 */
 :deep(.el-collapse-item__header) {
-  background-color: #f8f9fa;
+  background-color: #fafafa;
   border: none;
-  padding: 16px 20px;
-  border-radius: 6px;
+  padding: 12px 16px;
+  border-radius: 8px;
 }
 
 :deep(.el-collapse-item__content) {
-  padding: 0 20px 20px 20px;
+  padding: 0 16px 16px 16px;
   border: none;
 }
 
