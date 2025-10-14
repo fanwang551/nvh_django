@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from apps.acoustic_analysis.models import TestDataAll
+from apps.acoustic_analysis.models import AcousticTestData
 from apps.modal.models import VehicleModel
 
 
@@ -75,9 +75,11 @@ class AcousticQuerySerializer(serializers.Serializer):
 
 class AcousticTableItemSerializer(serializers.ModelSerializer):
     vehicle_model_name = serializers.CharField(source='vehicle_model.vehicle_model_name', read_only=True)
+    work_condition = serializers.CharField(source='condition_point.work_condition', read_only=True)
+    measure_point = serializers.CharField(source='condition_point.measure_point', read_only=True)
 
     class Meta:
-        model = TestDataAll
+        model = AcousticTestData
         fields = (
             'id',
             'vehicle_model_name',
@@ -87,4 +89,3 @@ class AcousticTableItemSerializer(serializers.ModelSerializer):
             'rms_value',
             'test_date',
         )
-
