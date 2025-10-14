@@ -160,9 +160,12 @@ const renderSpectrum = () => {
 
   spectrumChart.setOption({
     tooltip: { trigger: 'axis' },
-    legend: { type: 'scroll' },
-    grid: { left: 40, right: 20, top: 30, bottom: 40 },
-    xAxis: { type: 'value', name: '频率 (Hz)', nameLocation: 'middle', nameGap: 25 },
+    // 将图例放到顶部，避免与图像重叠，便于点击
+    legend: { type: 'scroll', top: 0 },
+    // 给顶部留出更多空间以容纳图例，同时增大底部留白避免与缩放条重叠
+    grid: { left: 40, right: 20, top: 70, bottom: 90 },
+    // 限制频率横坐标最大到 12800 Hz，并将轴标题上移一些避免与缩放条重叠
+    xAxis: { type: 'value', name: '频率 (Hz)', nameLocation: 'middle', nameGap: 18, max: 12800 },
     yAxis: { type: 'value', name: '声压级 dB(A)' },
     dataZoom: [{ type: 'inside' }, { type: 'slider' }],
     series: spectrumSeries.value.map((s) => ({

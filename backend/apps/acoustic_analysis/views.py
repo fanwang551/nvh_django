@@ -132,7 +132,17 @@ def query_acoustic_data(request):
                     })
                 oa = _safe_parse_series(obj.oa_json) or {}
                 times = oa.get('time') if isinstance(oa, dict) else None
+                # 兼容不同字段命名：优先 OA，其次 dB(A)
                 oa_values = oa.get('OA') if isinstance(oa, dict) else None
+                if oa_values is None and isinstance(oa, dict):
+                    # 常见写法兼容，如 dB(A) / dBA
+                    oa_values = oa.get('dB(A)') if 'dB(A)' in oa else oa.get('dBA')
+                if oa_values is None and isinstance(oa, dict):
+                    # 宽松匹配，避免因为空格或大小写导致取不到
+                    for _k in list(oa.keys()):
+                        if isinstance(_k, str) and _k.strip() in ('OA', 'dB(A)', 'dBA'):
+                            oa_values = oa[_k]
+                            break
                 stats = None
                 if isinstance(oa_values, list) and len(oa_values):
                     try:
