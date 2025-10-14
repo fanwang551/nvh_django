@@ -23,6 +23,7 @@ urlpatterns = [
     path('api/wheel-performance/', include('apps.wheel_performance.urls')),
     path('api/NTF/', include('apps.NTF.urls')),
     path('api/acoustic-analysis/', include('apps.acoustic_analysis.urls')),
+    path('api/experience/', include('apps.experience.urls')),
     path('oidc/', include('mozilla_django_oidc.urls')),
 ]
 

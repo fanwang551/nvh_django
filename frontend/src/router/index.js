@@ -17,6 +17,7 @@ import SoundInsulationCompare from '@/views/business/SoundInsulationCompare.vue'
 import VehicleSoundInsulationQuery from '@/views/business/VehicleSoundInsulationQuery.vue'
 import VehicleReverberationQuery from '@/views/business/VehicleReverberationQuery.vue'
 import WheelPerformanceQuery from '@/views/business/WheelPerformanceQuery.vue'
+import ExperienceQuery from '@/views/business/ExperienceQuery.vue'
 import AcousticAnalysis from '@/views/business/AcousticAnalysis.vue'
 import NTFQuery from '@/views/business/NTFQuery.vue'
 import SoundAbsorptionQuery from '@/views/business/SoundAbsorptionQuery.vue'
@@ -31,6 +32,12 @@ const routes = [
     path: '/',
     name: 'Home',
     component: Home,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/business/experience-query',
+    name: 'ExperienceQuery',
+    component: ExperienceQuery,
     meta: { requiresAuth: true }
   },
   {

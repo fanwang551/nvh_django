@@ -1,13 +1,13 @@
-<template>
+﻿<template>
   <div class="main-layout">
     <el-container>
-      <!-- 顶部导航栏 -->
+      <!-- 椤堕儴瀵艰埅鏍?-->
       <el-header class="main-header">
         <TopNavbar />
       </el-header>
       
       <el-container>
-        <!-- 侧边菜单栏 -->
+        <!-- 渚ц竟鑿滃崟鏍?-->
         <el-aside class="main-aside" :width="sideMenuWidth">
           <SideMenu
             @menu-select="handleMenuSelect"
@@ -15,9 +15,9 @@
           />
         </el-aside>
         
-        <!-- 主内容区域 -->
+        <!-- 涓诲唴瀹瑰尯鍩?-->
         <el-main class="main-content">
-          <!-- 标签页导航 -->
+          <!-- 鏍囩椤靛鑸?-->
           <div class="tab-navigation">
             <TabNavigation 
               :active-tab="activeTab"
@@ -27,7 +27,7 @@
             />
           </div>
           
-          <!-- 内容区域 -->
+          <!-- 鍐呭鍖哄煙 -->
           <div class="content-area">
             <keep-alive :include="cachedComponents">
               <router-view />
@@ -49,18 +49,18 @@ import TabNavigation from './TabNavigation.vue'
 const router = useRouter()
 const route = useRoute()
 
-// 当前激活的标签页
+// 褰撳墠婵€娲荤殑鏍囩椤?
 const activeTab = ref('home')
 
-// 已打开的标签页列表
+// 宸叉墦寮€鐨勬爣绛鹃〉鍒楄〃
 const openTabs = reactive([
-  { name: 'home', title: '首页', closable: false }
+  { name: 'home', title: '棣栭〉', closable: false }
 ])
 
-// 侧边菜单宽度
+// 渚ц竟鑿滃崟瀹藉害
 const sideMenuWidth = ref('200px')
 
-// 需要缓存的组件列表
+// 闇€瑕佺紦瀛樼殑缁勪欢鍒楄〃
 const cachedComponents = ref([
   'ModalDataQuery',
   'ModalDataCompare',
@@ -81,71 +81,67 @@ const cachedComponents = ref([
   'SuspensionIsolationQuery'
 ])
 
-// 菜单选择处理
+// 鑿滃崟閫夋嫨澶勭悊
 const handleMenuSelect = (menuKey) => {
   const menuConfig = {
-    'home': { name: 'home', title: '首页', route: '/' },
-    'business': { name: 'business', title: '业务中心', route: '/business' },
-    'permission': { name: 'permission', title: '权限管理', route: '/permission' },
-    'others': { name: 'others', title: '其他', route: '/others' }
+    'home': { name: 'home', title: '棣栭〉', route: '/' },
+    'business': { name: 'business', title: '涓氬姟涓績', route: '/business' },
+    'permission': { name: 'permission', title: '鏉冮檺绠＄悊', route: '/permission' },
+    'others': { name: 'others', title: '鍏朵粬', route: '/others' }
   }
 
   const menu = menuConfig[menuKey]
   if (menu) {
-    // 检查标签页是否已存在
+    // 妫€鏌ユ爣绛鹃〉鏄惁宸插瓨鍦?
     const existingTab = openTabs.find(tab => tab.name === menu.name)
     if (!existingTab) {
       openTabs.push({
         name: menu.name,
         title: menu.title,
-        closable: menu.name !== 'home' // 首页不可关闭
+        closable: menu.name !== 'home' // 棣栭〉涓嶅彲鍏抽棴
       })
     }
 
-    // 切换到对应标签页
+    // 鍒囨崲鍒板搴旀爣绛鹃〉
     activeTab.value = menu.name
     router.push(menu.route)
   }
 }
 
-// 添加业务子页面标签页
+// 娣诲姞涓氬姟瀛愰〉闈㈡爣绛鹃〉
 const addBusinessTab = (routePath) => {
   const businessTabConfig = {
-    '/business/modal-data-query': { name: 'modal-data-query', title: '模态数据查询' },
-    '/business/modal-data-compare': { name: 'modal-data-compare', title: '模态数据对比' },
-    '/business/airtight-leak-compare': { name: 'airtight-leak-compare', title: '气密性泄漏量对比' },
-    '/business/airtightness-image-query': { name: 'airtightness-image-query', title: '气密性测试图片查询' },
-    '/business/sound-insulation-compare': { name: 'sound-insulation-compare', title: '区域隔声量（ATF）对比' },
-    '/business/acoustic-analysis': { name: 'acoustic-analysis', title: '声学测试数据分析' },
-    '/business/vehicle-sound-insulation-query': { name: 'vehicle-sound-insulation-query', title: '车型隔声量查询' },
-    '/business/vehicle-reverberation-query': { name: 'vehicle-reverberation-query', title: '车辆混响时间查询' },
-    '/business/wheel-performance-query': { name: 'wheel-performance-query', title: '车轮性能查询' },
-    '/business/ntf-query': { name: 'ntf-query', title: 'NTF查询' },
-    '/business/sound-absorption-query': { name: 'sound-absorption-query', title: '吸声系数查询' },
-    '/business/sound-insulation-coefficient-query': { name: 'sound-insulation-coefficient-query', title: '隔声量查询' },
-    '/business/material-porosity-flow-resistance-query': { name: 'material-porosity-flow-resistance-query', title: '材料孔隙率流阻查询' },
-    '/business/dynamic-stiffness-query': { name: 'dynamic-stiffness-query', title: '动刚度查询' },
-    '/business/vehicle-mount-isolation-query': { name: 'vehicle-mount-isolation-query', title: '整车悬置隔振率查询' },
-    '/business/suspension-isolation-query': { name: 'suspension-isolation-query', title: '整车悬架隔振率查询' }
+    '/business/modal-data-query': { name: 'modal-data-query', title: '妯℃€佹暟鎹煡璇? },
+    '/business/modal-data-compare': { name: 'modal-data-compare', title: '妯℃€佹暟鎹姣? },
+    '/business/airtight-leak-compare': { name: 'airtight-leak-compare', title: '姘斿瘑鎬ф硠婕忛噺瀵规瘮' },
+    '/business/airtightness-image-query': { name: 'airtightness-image-query', title: '姘斿瘑鎬ф祴璇曞浘鐗囨煡璇? },
+    '/business/sound-insulation-compare': { name: 'sound-insulation-compare', title: '鍖哄煙闅斿０閲忥紙ATF锛夊姣? },
+    '/business/acoustic-analysis': { name: 'acoustic-analysis', title: '澹板娴嬭瘯鏁版嵁鍒嗘瀽' },
+    '/business/vehicle-sound-insulation-query': { name: 'vehicle-sound-insulation-query', title: '杞﹀瀷闅斿０閲忔煡璇? },
+    '/business/vehicle-reverberation-query': { name: 'vehicle-reverberation-query', title: '杞﹁締娣峰搷鏃堕棿鏌ヨ' },
+    '/business/wheel-performance-query': { name: 'wheel-performance-query', title: '杞﹁疆鎬ц兘鏌ヨ' },
+    '/business/ntf-query': { name: 'ntf-query', title: 'NTF鏌ヨ' },
+    '/business/sound-absorption-query': { name: 'sound-absorption-query', title: '鍚稿０绯绘暟鏌ヨ' },
+    '/business/sound-insulation-coefficient-query': { name: 'sound-insulation-coefficient-query', title: '闅斿０閲忔煡璇? },
+    '/business/material-porosity-flow-resistance-query': { name: 'material-porosity-flow-resistance-query', title: '鏉愭枡瀛旈殭鐜囨祦闃绘煡璇? },
+    '/business/dynamic-stiffness-query': { name: 'dynamic-stiffness-query', title: '鍔ㄥ垰搴︽煡璇? },
+    '/business/vehicle-mount-isolation-query': { name: 'vehicle-mount-isolation-query', title: '鏁磋溅鎮疆闅旀尟鐜囨煡璇? },
+    '/business/suspension-isolation-query': { name: 'suspension-isolation-query', title: '鏁磋溅鎮灦闅旀尟鐜囨煡璇? }
   }
 
-  // 经验数据库：单独处理路由映射
-  let tabConfig = businessTabConfig[routePath]
-  if (!tabConfig && routePath === '/business/experience-query') {
-    tabConfig = { name: 'experience-query', title: '经验数据' }
-  }
+  const tabConfig = businessTabConfig[routePath]
   if (tabConfig) {
-    // 确保业务中心标签存在
+    // 纭繚涓氬姟涓績鏍囩瀛樺湪
     const businessTabExists = openTabs.find(tab => tab.name === 'business')
     if (!businessTabExists) {
       openTabs.push({
         name: 'business',
-        title: '业务中心',
+        title: '涓氬姟涓績',
         closable: true
       })
     }
     
-    // 检查子页面标签是否已存在
+    // 妫€鏌ュ瓙椤甸潰鏍囩鏄惁宸插瓨鍦?
     const existingTab = openTabs.find(tab => tab.name === tabConfig.name)
     if (!existingTab) {
       openTabs.push({
@@ -155,12 +151,12 @@ const addBusinessTab = (routePath) => {
       })
     }
 
-    // 切换到对应标签页
+    // 鍒囨崲鍒板搴旀爣绛鹃〉
     activeTab.value = tabConfig.name
   }
 }
 
-// 标签页点击处理
+// 鏍囩椤电偣鍑诲鐞?
 const handleTabClick = (tabName) => {
   activeTab.value = tabName
   const allRoutes = {
@@ -185,21 +181,19 @@ const handleTabClick = (tabName) => {
     'vehicle-mount-isolation-query': '/business/vehicle-mount-isolation-query',
     'suspension-isolation-query': '/business/suspension-isolation-query'
   }
-  // 经验数据库：追加路由映射
-  allRoutes['experience-query'] = '/business/experience-query'
 
   if (allRoutes[tabName]) {
     router.push(allRoutes[tabName])
   }
 }
 
-// 标签页关闭处理
+// 鏍囩椤靛叧闂鐞?
 const handleTabRemove = (tabName) => {
   const index = openTabs.findIndex(tab => tab.name === tabName)
   if (index > -1 && openTabs[index].closable) {
     openTabs.splice(index, 1)
 
-    // 如果关闭的是当前激活标签页，切换到前一个标签页
+    // 濡傛灉鍏抽棴鐨勬槸褰撳墠婵€娲绘爣绛鹃〉锛屽垏鎹㈠埌鍓嶄竴涓爣绛鹃〉
     if (activeTab.value === tabName) {
       const newActiveTab = openTabs[Math.max(0, index - 1)]
       if (newActiveTab) {
@@ -209,22 +203,22 @@ const handleTabRemove = (tabName) => {
   }
 }
 
-// 侧边菜单收起状态变化处理
+// 渚ц竟鑿滃崟鏀惰捣鐘舵€佸彉鍖栧鐞?
 const handleCollapseChange = (collapsed) => {
   sideMenuWidth.value = collapsed ? '64px' : '200px'
 }
 
-// 监听路由变化，自动处理业务子页面标签页
+// 鐩戝惉璺敱鍙樺寲锛岃嚜鍔ㄥ鐞嗕笟鍔″瓙椤甸潰鏍囩椤?
 watch(() => route.path, (newPath) => {
   if (newPath.startsWith('/business/')) {
     addBusinessTab(newPath)
   } else if (newPath === '/business') {
-    // 如果是业务中心主页面，确保业务中心标签存在并激活
+    // 濡傛灉鏄笟鍔′腑蹇冧富椤甸潰锛岀‘淇濅笟鍔′腑蹇冩爣绛惧瓨鍦ㄥ苟婵€娲?
     const existingTab = openTabs.find(tab => tab.name === 'business')
     if (!existingTab) {
       openTabs.push({
         name: 'business',
-        title: '业务中心',
+        title: '涓氬姟涓績',
         closable: true
       })
     }
@@ -232,30 +226,30 @@ watch(() => route.path, (newPath) => {
   }
 }, { immediate: true })
 
-// 页面加载时根据当前路由初始化标签页状态
+// 椤甸潰鍔犺浇鏃舵牴鎹綋鍓嶈矾鐢卞垵濮嬪寲鏍囩椤电姸鎬?
 const initializeTabsFromRoute = () => {
   const currentPath = route.path
   
   if (currentPath === '/business') {
-    // 业务中心主页面
+    // 涓氬姟涓績涓婚〉闈?
     const existingTab = openTabs.find(tab => tab.name === 'business')
     if (!existingTab) {
       openTabs.push({
         name: 'business',
-        title: '业务中心',
+        title: '涓氬姟涓績',
         closable: true
       })
     }
     activeTab.value = 'business'
   } else if (currentPath.startsWith('/business/')) {
-    // 业务子页面
+    // 涓氬姟瀛愰〉闈?
     addBusinessTab(currentPath)
   } else if (currentPath === '/permission') {
     const existingTab = openTabs.find(tab => tab.name === 'permission')
     if (!existingTab) {
       openTabs.push({
         name: 'permission',
-        title: '权限管理',
+        title: '鏉冮檺绠＄悊',
         closable: true
       })
     }
@@ -265,18 +259,18 @@ const initializeTabsFromRoute = () => {
     if (!existingTab) {
       openTabs.push({
         name: 'others',
-        title: '其他',
+        title: '鍏朵粬',
         closable: true
       })
     }
     activeTab.value = 'others'
   } else {
-    // 默认首页
+    // 榛樿棣栭〉
     activeTab.value = 'home'
   }
 }
 
-// 组件挂载时初始化标签页
+// 缁勪欢鎸傝浇鏃跺垵濮嬪寲鏍囩椤?
 initializeTabsFromRoute()
 </script>
 
@@ -313,11 +307,11 @@ initializeTabsFromRoute()
 
 .content-area {
   padding: 20px;
-  height: calc(100vh - 60px - 41px); /* 减去header和tab的高度 */
+  height: calc(100vh - 60px - 41px); /* 鍑忓幓header鍜宼ab鐨勯珮搴?*/
   overflow-y: auto;
 }
 
-/* 滚动条样式 */
+/* 婊氬姩鏉℃牱寮?*/
 .content-area::-webkit-scrollbar {
   width: 6px;
 }
@@ -336,3 +330,4 @@ initializeTabsFromRoute()
   background: #a8a8a8;
 }
 </style>
+

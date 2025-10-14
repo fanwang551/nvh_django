@@ -109,6 +109,31 @@
           </div>
         </div>
       </el-collapse-item>
+      <!-- 经验数据库模块 -->
+      <el-collapse-item name="experience" class="group-item">
+        <template #title>
+          <h3 class="group-title">经验数据库模块</h3>
+        </template>
+        <div class="group-divider"></div>
+        <div class="modules-grid">
+          <div
+            v-for="module in experienceModules"
+            :key="module.name"
+            class="module-card"
+            role="button"
+            tabindex="0"
+            @click="openModule(module)"
+            @keydown.enter.prevent="openModule(module)"
+          >
+            <div class="module-media">
+              <el-icon :size="20" class="media-icon">
+                <component :is="module.icon" />
+              </el-icon>
+            </div>
+            <div class="module-title" :title="module.title">{{ module.title }}</div>
+          </div>
+        </div>
+      </el-collapse-item>
     </el-collapse>
   </div>
 </template>
@@ -130,7 +155,7 @@ import {
 const router = useRouter()
 
 // 控制折叠面板展开状态
-const activeGroups = ref(['modal', 'sound', 'dynamic', 'wheel'])
+const activeGroups = ref(['modal', 'sound', 'dynamic', 'wheel', 'experience'])
 
 // 模态和气密性模块
 const modalAirtightnessModules = ref([
@@ -261,6 +286,17 @@ const wheelPerformanceModules = ref([
 ])
 
 // 打开业务模块
+// 经验数据库模块
+const experienceModules = ref([
+  {
+    name: 'experience-query',
+    title: '经验数据',
+    desc: '关键字检索经验数据，查看详情',
+    icon: DataAnalysis,
+    bg: 'linear-gradient(135deg,#22d3ee,#06b6d4)'
+  }
+])
+
 const openModule = (module) => {
   router.push(`/business/${module.name}`)
 }
