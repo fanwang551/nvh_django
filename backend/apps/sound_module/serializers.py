@@ -28,10 +28,9 @@ class SoundInsulationDataSerializer(serializers.ModelSerializer):
             'freq_200', 'freq_250', 'freq_315', 'freq_400', 'freq_500', 'freq_630',
             'freq_800', 'freq_1000', 'freq_1250', 'freq_1600', 'freq_2000', 'freq_2500',
             'freq_3150', 'freq_4000', 'freq_5000', 'freq_6300', 'freq_8000', 'freq_10000',
-            'test_image_path', 'test_date', 'test_location', 'test_engineer', 'remarks',
-            'created_at', 'updated_at'
+            'test_image_path', 'test_date', 'test_location', 'test_engineer', 'remarks'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id']
 
 
 class SoundInsulationCompareSerializer(serializers.Serializer):

@@ -50,14 +50,12 @@ class SoundInsulationData(models.Model):
     remarks = models.TextField(null=True, blank=True, verbose_name='备注')
 
     # 时间戳
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
 
     class Meta:
         db_table = 'sound_insulation_data'
         verbose_name = '隔声量数据'
         verbose_name_plural = '隔声量数据'
-        ordering = ['-created_at']
+        ordering = ['-id']
         unique_together = ['vehicle_model', 'area']  # 每个车型在每个区域只能有一条数据
 
     def __str__(self):
@@ -115,21 +113,21 @@ class VehicleReverberationData(models.Model):
     vehicle_model = models.ForeignKey(VehicleModel, on_delete=models.CASCADE, verbose_name='车型')
 
     # 15个频率的混响时间数据 (400-10000Hz)
-    freq_400 = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True, verbose_name='400Hz混响时间(s)')
-    freq_500 = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True, verbose_name='500Hz混响时间(s)')
-    freq_630 = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True, verbose_name='630Hz混响时间(s)')
-    freq_800 = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True, verbose_name='800Hz混响时间(s)')
-    freq_1000 = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True, verbose_name='1000Hz混响时间(s)')
-    freq_1250 = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True, verbose_name='1250Hz混响时间(s)')
-    freq_1600 = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True, verbose_name='1600Hz混响时间(s)')
-    freq_2000 = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True, verbose_name='2000Hz混响时间(s)')
-    freq_2500 = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True, verbose_name='2500Hz混响时间(s)')
-    freq_3150 = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True, verbose_name='3150Hz混响时间(s)')
-    freq_4000 = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True, verbose_name='4000Hz混响时间(s)')
-    freq_5000 = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True, verbose_name='5000Hz混响时间(s)')
-    freq_6300 = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True, verbose_name='6300Hz混响时间(s)')
-    freq_8000 = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True, verbose_name='8000Hz混响时间(s)')
-    freq_10000 = models.DecimalField(max_digits=5, decimal_places=3, null=True, blank=True, verbose_name='10000Hz混响时间(s)')
+    freq_400 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name='400Hz混响时间(s)')
+    freq_500 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name='500Hz混响时间(s)')
+    freq_630 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name='630Hz混响时间(s)')
+    freq_800 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name='800Hz混响时间(s)')
+    freq_1000 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name='1000Hz混响时间(s)')
+    freq_1250 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name='1250Hz混响时间(s)')
+    freq_1600 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name='1600Hz混响时间(s)')
+    freq_2000 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name='2000Hz混响时间(s)')
+    freq_2500 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name='2500Hz混响时间(s)')
+    freq_3150 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name='3150Hz混响时间(s)')
+    freq_4000 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name='4000Hz混响时间(s)')
+    freq_5000 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name='5000Hz混响时间(s)')
+    freq_6300 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name='6300Hz混响时间(s)')
+    freq_8000 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name='8000Hz混响时间(s)')
+    freq_10000 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name='10000Hz混响时间(s)')
 
     # 测试相关信息
     test_image_path = models.CharField(max_length=500, null=True, blank=True, verbose_name='测试图片路径')

@@ -17,11 +17,11 @@ class SoundInsulationAreaAdmin(admin.ModelAdmin):
 class SoundInsulationDataAdmin(admin.ModelAdmin):
     list_display = [
         'id', 'vehicle_model', 'area', 'test_date', 'test_location',
-        'test_engineer', 'created_at'
+        'test_engineer'
     ]
     list_filter = ['area', 'test_date', 'test_location', 'test_engineer']
     search_fields = ['vehicle_model__vehicle_model_name', 'area__area_name', 'test_engineer']
-    ordering = ['-created_at']
+    ordering = ['-id']
 
     fieldsets = (
         ('基本信息', {

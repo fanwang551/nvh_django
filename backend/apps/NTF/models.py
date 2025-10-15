@@ -14,8 +14,7 @@ class NTFInfo(models.Model):
     test_time = models.DateTimeField(verbose_name='测试时间')
     location = models.CharField(max_length=100, verbose_name='测试地点')
 
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+    
 
     class Meta:
         db_table = 'NTF_info'
@@ -79,4 +78,3 @@ class NTFTestResult(models.Model):
 
     def __str__(self) -> str:
         return f"{self.ntf_info_id} - {self.measurement_point}"
-
