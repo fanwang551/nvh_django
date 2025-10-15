@@ -391,7 +391,7 @@ const getChartOption = () => {
       nameLocation: 'middle',
       nameGap: 50,
       min: 0,
-      max: 70,
+      max: 90,
       interval: 10,
       axisLabel: {
         formatter: '{value}',
@@ -628,7 +628,7 @@ watch(() => store.compareResult, () => {
 
 .chart-container {
   width: 100%;
-  height: 500px;
+  height: 600px;
   padding: 20px 10px;
   position: relative;
 }
@@ -636,7 +636,7 @@ watch(() => store.compareResult, () => {
 .echarts-container {
   width: 100%;
   height: 100%;
-  min-height: 400px;
+  min-height: 500px;
 }
 
 .empty-state {
@@ -788,14 +788,14 @@ watch(() => store.compareResult, () => {
 }
 
 /* 响应式设计 */
-@media (max-width: 1200px) {
-  .search-form .el-col {
-    margin-bottom: 16px;
-  }
+  @media (max-width: 1200px) {
+    .search-form .el-col {
+      margin-bottom: 16px;
+    }
 
-  .chart-container {
-    height: 400px;
-  }
+    .chart-container {
+      height: 500px;
+    }
 
   .result-table {
     min-width: 1600px;
