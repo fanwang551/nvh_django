@@ -38,9 +38,9 @@ class TestProjectSerializer(serializers.ModelSerializer):
             'id', 'vehicle_model', 'vehicle_model_name',
             'component', 'component_name', 'test_type', 'test_date',
             'test_location', 'test_engineer', 'test_status',
-            'excitation_method', 'notes', 'created_at', 'updated_at'
+            'excitation_method', 'notes'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id']
 
 
 class ModalDataSerializer(serializers.ModelSerializer):
@@ -56,9 +56,9 @@ class ModalDataSerializer(serializers.ModelSerializer):
             'id', 'test_project', 'test_project_id', 'vehicle_model_name', 'component_name', 'component_category',
             'frequency', 'damping_ratio', 'mode_shape_description',
             'mode_shape_file', 'test_photo_file', 'notes',
-            'created_at', 'updated_at', 'updated_by'
+            'updated_by'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id']
 
 
 class ModalDataQuerySerializer(serializers.Serializer):
@@ -138,10 +138,9 @@ class AirtightnessTestSerializer(serializers.ModelSerializer):
             'uncontrolled_leakage', 'left_pressure_valve', 'right_pressure_valve', 'ac_circulation_valve',
             'right_door_drain_hole', 'tailgate_drain_hole', 'right_door_outer_seal',
             'right_door_outer_opening', 'side_mirrors',
-            'body_shell_leakage', 'other_area', 'notes',
-            'created_at', 'updated_at'
+            'body_shell_leakage', 'other_area', 'notes'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id']
 
 
 class AirtightnessImageSerializer(serializers.ModelSerializer):
@@ -154,9 +153,9 @@ class AirtightnessImageSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'vehicle_model', 'vehicle_model_name', 'vehicle_model_code',
             'front_compartment_image', 'door_image', 'tailgate_image',
-            'upload_date', 'notes', 'created_at', 'updated_at'
+            'upload_date', 'notes'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id']
 
 
 class AirtightnessCompareSerializer(serializers.Serializer):

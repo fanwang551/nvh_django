@@ -21,30 +21,27 @@ class ComponentAdmin(admin.ModelAdmin):
 @admin.register(TestProject)
 class TestProjectAdmin(admin.ModelAdmin):
     list_display = ['id', 'vehicle_model', 'component', 'test_type', 'test_date', 'test_engineer', 'test_status']
-    list_filter = ['test_status', 'test_type', 'test_date', 'created_at']
+    list_filter = ['test_status', 'test_type', 'test_date']
     search_fields = ['test_type', 'test_engineer']
-    readonly_fields = ['created_at', 'updated_at']
-    ordering = ['-created_at']
+    ordering = ['-id']
     raw_id_fields = ['vehicle_model', 'component']
 
 
 @admin.register(ModalData)
 class ModalDataAdmin(admin.ModelAdmin):
-    list_display = ['test_project', 'frequency', 'damping_ratio', 'mode_shape_description', 'updated_by', 'created_at']
-    list_filter = ['created_at', 'updated_at']
+    list_display = ['test_project', 'frequency', 'damping_ratio', 'mode_shape_description', 'updated_by']
+    list_filter = []
     search_fields = ['test_project__id', 'mode_shape_description', 'updated_by']
-    readonly_fields = ['created_at', 'updated_at']
-    ordering = ['-created_at']
+    ordering = ['-id']
     raw_id_fields = ['test_project']
 
 
 @admin.register(AirtightnessTest)
 class AirtightnessTestAdmin(admin.ModelAdmin):
-    list_display = ['vehicle_model', 'test_date', 'test_engineer', 'uncontrolled_leakage', 'created_at']
-    list_filter = ['test_date', 'test_engineer', 'created_at']
+    list_display = ['vehicle_model', 'test_date', 'test_engineer', 'uncontrolled_leakage']
+    list_filter = ['test_date', 'test_engineer']
     search_fields = ['vehicle_model__vehicle_model_name', 'vehicle_model__cle_model_code', 'test_engineer']
-    readonly_fields = ['created_at', 'updated_at']
-    ordering = ['-created_at']
+    ordering = ['-id']
     raw_id_fields = ['vehicle_model']
 
     fieldsets = (
@@ -65,7 +62,7 @@ class AirtightnessTestAdmin(admin.ModelAdmin):
             'fields': ('body_shell_leakage', 'other_area')
         }),
         ('时间信息', {
-            'fields': ('created_at', 'updated_at'),
+            'fields': (),
             'classes': ('collapse',)
         })
     )

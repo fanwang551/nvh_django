@@ -93,15 +93,13 @@ class VehicleSoundInsulationData(models.Model):
     test_engineer = models.CharField(max_length=50, null=True, blank=True, verbose_name='测试工程师')
     remarks = models.TextField(null=True, blank=True, verbose_name='备注')
 
-    # 时间戳
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+    # 移除时间戳：created_at/updated_at
 
     class Meta:
         db_table = 'vehicle_sound_insulation_data'
         verbose_name = '车型隔声量数据'
         verbose_name_plural = '车型隔声量数据'
-        ordering = ['-created_at']
+        ordering = ['-id']
         unique_together = ['vehicle_model']  # 每个车型只能有一条隔声量数据
 
     def __str__(self):
@@ -136,15 +134,13 @@ class VehicleReverberationData(models.Model):
     test_engineer = models.CharField(max_length=50, null=True, blank=True, verbose_name='测试工程师')
     remarks = models.TextField(null=True, blank=True, verbose_name='备注')
 
-    # 时间戳
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+    # 移除时间戳：created_at/updated_at
 
     class Meta:
         db_table = 'vehicle_reverberation_data'
         verbose_name = '车辆混响时间数据'
         verbose_name_plural = '车辆混响时间数据'
-        ordering = ['-created_at']
+        ordering = ['-id']
         unique_together = ['vehicle_model']  # 每个车型只能有一条混响时间数据
 
     def __str__(self):
@@ -211,15 +207,13 @@ class SoundAbsorptionCoefficients(models.Model):
     test_image_path = models.CharField(max_length=500, null=True, blank=True, verbose_name='测试图片路径')
     remarks = models.TextField(null=True, blank=True, verbose_name='备注')
     
-    # 时间戳
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+    # 移除时间戳：created_at/updated_at
 
     class Meta:
         db_table = 'sound_absorption_coefficients'
         verbose_name = '吸声系数'
         verbose_name_plural = '吸声系数'
-        ordering = ['-created_at']
+        ordering = ['-id']
 
     def __str__(self):
         return f"零件{self.part_name} - 材料{self.material_composition} - {self.weight}g/m²"
@@ -289,15 +283,13 @@ class SoundInsulationCoefficients(models.Model):
     test_image_path = models.CharField(max_length=500, null=True, blank=True, verbose_name='测试图片路径')
     remarks = models.TextField(null=True, blank=True, verbose_name='备注')
 
-    # 时间戳
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+    # 移除时间戳：created_at/updated_at
 
     class Meta:
         db_table = 'sound_insulation_coefficients'
         verbose_name = '隔声量系数'
         verbose_name_plural = '隔声量系数'
-        ordering = ['-created_at']
+        ordering = ['-id']
 
     def __str__(self):
         return f"零件{self.part_name} - 材料{self.material_composition} - {self.get_test_type_display()} - {self.weight}g/m²"
@@ -318,15 +310,14 @@ class MaterialPorosityFlowResistance(models.Model):
     flow_resistance_deviation = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='流阻率偏差(Pa·s/m²)')
     test_time = models.DateTimeField(null=True, blank=True, verbose_name='测试时间')
     test_engineer = models.CharField(max_length=50, null=True, blank=True, verbose_name='测试工程师')
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+    # 移除时间戳：created_at/updated_at
     remarks = models.TextField(null=True, blank=True, verbose_name='备注')
 
     class Meta:
         db_table = 'material_porosity_flow_resistance'
         verbose_name = '材料孔隙率流阻'
         verbose_name_plural = '材料孔隙率流阻'
-        ordering = ['-created_at']
+        ordering = ['-id']
 
     def __str__(self):
         return f"零件{self.part_name} - 材料{self.material_composition} - {self.thickness_mm}mm"

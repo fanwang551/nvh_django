@@ -18,6 +18,15 @@ class Experience(models.Model):
     description = models.TextField(verbose_name='问题描述')
 
     # 媒体信息（JSON 格式）
+    # {
+    #     "images": [
+    #         "/media/problem_img1.jpg",
+    #         "/media/problem_img2.jpg"
+    #     ],
+    #     "videos": [
+    #         "/media/problem_video1.mp4"
+    #     ]
+    # }
     problem_media = models.JSONField(null=True, blank=True, default=default_media, verbose_name='问题描述图片及视频')
     analysis_content = models.TextField(null=True, blank=True, verbose_name='问题分析内容')
     analysis_media = models.JSONField(null=True, blank=True, default=default_media, verbose_name='问题分析图片及视频')

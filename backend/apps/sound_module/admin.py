@@ -47,11 +47,11 @@ class SoundInsulationDataAdmin(admin.ModelAdmin):
 class VehicleSoundInsulationDataAdmin(admin.ModelAdmin):
     list_display = [
         'id', 'vehicle_model', 'test_date', 'test_location',
-        'test_engineer', 'created_at'
+        'test_engineer'
     ]
     list_filter = ['test_date', 'test_location', 'test_engineer']
     search_fields = ['vehicle_model__vehicle_model_name', 'vehicle_model__cle_model_code', 'test_engineer']
-    ordering = ['-created_at']
+    ordering = ['-id']
 
     fieldsets = (
         ('基本信息', {
@@ -77,11 +77,11 @@ class VehicleSoundInsulationDataAdmin(admin.ModelAdmin):
 class VehicleReverberationDataAdmin(admin.ModelAdmin):
     list_display = [
         'id', 'vehicle_model', 'test_date', 'test_location',
-        'test_engineer', 'created_at'
+        'test_engineer'
     ]
     list_filter = ['test_date', 'test_location', 'test_engineer']
     search_fields = ['vehicle_model__vehicle_model_name', 'vehicle_model__cle_model_code', 'test_engineer']
-    ordering = ['-created_at']
+    ordering = ['-id']
 
     fieldsets = (
         ('基本信息', {
@@ -106,11 +106,11 @@ class VehicleReverberationDataAdmin(admin.ModelAdmin):
 class SoundAbsorptionCoefficientsAdmin(admin.ModelAdmin):
     list_display = [
         'id', 'part_name', 'material_composition', 'weight', 'thickness',
-        'manufacturer', 'test_institution', 'created_at'
+        'manufacturer', 'test_institution'
     ]
     list_filter = ['part_name', 'manufacturer', 'test_institution', 'test_date']
     search_fields = ['part_name', 'material_composition', 'manufacturer']
-    ordering = ['-created_at']
+    ordering = ['-id']
 
     fieldsets = (
         ('基本信息', {
@@ -146,11 +146,11 @@ class SoundAbsorptionCoefficientsAdmin(admin.ModelAdmin):
 class SoundInsulationCoefficientsAdmin(admin.ModelAdmin):
     list_display = [
         'id', 'part_name', 'material_composition', 'test_type', 'weight', 'thickness',
-        'manufacturer', 'test_institution', 'created_at'
+        'manufacturer', 'test_institution'
     ]
     list_filter = ['part_name', 'test_type', 'manufacturer', 'test_institution', 'test_date']
     search_fields = ['part_name', 'material_composition', 'manufacturer']
-    ordering = ['-created_at']
+    ordering = ['-id']
 
     fieldsets = (
         ('基本信息', {
@@ -187,11 +187,11 @@ class MaterialPorosityFlowResistanceAdmin(admin.ModelAdmin):
     list_display = [
         'id', 'part_name', 'material_composition', 'material_manufacturer',
         'thickness_mm', 'weight_per_area', 'density', 'porosity_percent',
-        'flow_resistance', 'test_engineer', 'created_at'
+        'flow_resistance', 'test_engineer'
     ]
-    list_filter = ['part_name', 'material_manufacturer', 'test_institution', 'test_engineer', 'created_at']
+    list_filter = ['part_name', 'material_manufacturer', 'test_institution', 'test_engineer']
     search_fields = ['part_name', 'material_composition', 'material_manufacturer', 'test_engineer']
-    ordering = ['-created_at']
+    ordering = ['-id']
 
     fieldsets = (
         ('基本信息', {

@@ -66,8 +66,7 @@ class NTFTestResult(models.Model):
     # 新 JSON 曲线结构
     ntf_curve = models.JSONField(default=_default_ntf_curve, blank=True, verbose_name='NTF曲线数据')
 
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+    # 移除时间戳：created_at/updated_at
 
     class Meta:
         db_table = 'NTF_test_result'

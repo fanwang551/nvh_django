@@ -111,7 +111,7 @@ def modal_data_query(request):
             queryset = queryset.filter(test_project__test_type__icontains=test_type)
 
         # 排序：按频率升序
-        queryset = queryset.order_by('frequency', '-created_at')
+        queryset = queryset.order_by('frequency', '-id')
 
         # 分页处理
         paginator = PageNumberPaginationUtil()
@@ -511,7 +511,7 @@ def airtightness_images_query(request):
         queryset = queryset.filter(vehicle_model__status='active')
 
         # 按车型ID和创建时间排序
-        queryset = queryset.order_by('vehicle_model__id', '-created_at')
+        queryset = queryset.order_by('vehicle_model__id', '-id')
 
         # 序列化数据
         serializer = AirtightnessImageSerializer(queryset, many=True)

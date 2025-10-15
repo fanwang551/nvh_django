@@ -22,6 +22,9 @@ class VehicleModel(models.Model):
     ]
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='active', verbose_name='状态')
 
+    created_at = None
+    updated_at = None
+
     class Meta:
         db_table = 'vehicle_models'
         verbose_name = '车型信息'
@@ -38,6 +41,9 @@ class Component(models.Model):
     category = models.CharField(max_length=100, verbose_name='分类')
     component_brand = models.CharField(max_length=100, null=True, blank=True, verbose_name='零件品牌')
     component_model = models.CharField(max_length=100, null=True, blank=True, verbose_name='零件规格型号')
+
+    created_at = None
+    updated_at = None
 
     class Meta:
         db_table = 'components'
@@ -63,11 +69,14 @@ class TestProject(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
 
+    created_at = None
+    updated_at = None
+
     class Meta:
         db_table = 'test_projects'
         verbose_name = '测试项目'
         verbose_name_plural = '测试项目'
-        ordering = ['-created_at']
+        ordering = ['-id']
 
     def __str__(self):
         return f"{self.id} - {self.test_type}"
@@ -86,11 +95,14 @@ class ModalData(models.Model):
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
     updated_by = models.CharField(max_length=50, null=True, blank=True, verbose_name='修改人员')
 
+    created_at = None
+    updated_at = None
+
     class Meta:
         db_table = 'modal_data'
         verbose_name = '模态数据'
         verbose_name_plural = '模态数据'
-        ordering = ['-created_at']
+        ordering = ['-id']
 
     def __str__(self):
         return f"{self.test_project.id} - {self.frequency}Hz"
@@ -131,7 +143,7 @@ class AirtightnessTest(models.Model):
         db_table = 'airtightness_tests'
         verbose_name = '气密性测试'
         verbose_name_plural = '气密性测试'
-        ordering = ['-created_at']
+        ordering = ['-id']
 
     def __str__(self):
         return f"{self.vehicle_model.vehicle_model_name} - {self.test_date}"
@@ -156,7 +168,7 @@ class AirtightnessImage(models.Model):
         db_table = 'airtightness_images'
         verbose_name = '气密性测试图片'
         verbose_name_plural = '气密性测试图片'
-        ordering = ['-created_at']
+        ordering = ['-id']
 
     def __str__(self):
         return f"{self.vehicle_model.vehicle_model_name} - 气密性图片"

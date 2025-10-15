@@ -1,7 +1,7 @@
 import os
 
 # 定义目录路径
-directory_path = r"C:\Users\wangfan\Desktop\车轮、气密性图片\整车声密性图片存放"
+directory_path = r"C:\Users\wangfan\Desktop\经验库视频图片"
 
 # 检查目录是否存在
 if os.path.exists(directory_path):
@@ -9,7 +9,7 @@ if os.path.exists(directory_path):
     files = os.listdir(directory_path)
 
     # 定义常见图片格式
-    image_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp', '.ico')
+    image_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp', '.ico', '.mp4')
 
     # 筛选出图片文件
     image_files = [f for f in files if f.lower().endswith(image_extensions)]

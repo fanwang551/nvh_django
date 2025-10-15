@@ -87,10 +87,9 @@ class VehicleSoundInsulationDataSerializer(serializers.ModelSerializer):
             'freq_200', 'freq_250', 'freq_315', 'freq_400', 'freq_500', 'freq_630',
             'freq_800', 'freq_1000', 'freq_1250', 'freq_1600', 'freq_2000', 'freq_2500',
             'freq_3150', 'freq_4000', 'freq_5000', 'freq_6300', 'freq_8000', 'freq_10000',
-            'test_image_path', 'test_date', 'test_location', 'test_engineer', 'remarks',
-            'created_at', 'updated_at'
+            'test_image_path', 'test_date', 'test_location', 'test_engineer', 'remarks'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id']
 
 
 class VehicleSoundInsulationCompareSerializer(serializers.Serializer):
@@ -131,10 +130,9 @@ class VehicleReverberationDataSerializer(serializers.ModelSerializer):
             'freq_400', 'freq_500', 'freq_630', 'freq_800', 'freq_1000', 'freq_1250',
             'freq_1600', 'freq_2000', 'freq_2500', 'freq_3150', 'freq_4000', 'freq_5000',
             'freq_6300', 'freq_8000', 'freq_10000',
-            'test_image_path', 'test_date', 'test_location', 'test_engineer', 'remarks',
-            'created_at', 'updated_at'
+            'test_image_path', 'test_date', 'test_location', 'test_engineer', 'remarks'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id']
 
 
 class VehicleReverberationCompareSerializer(serializers.Serializer):
@@ -185,9 +183,8 @@ class SoundAbsorptionCoefficientsSerializer(serializers.ModelSerializer):
             'target_value_5000', 'target_value_6300', 'target_value_8000', 'target_value_10000',
             # 测试相关信息
             'test_date', 'test_location', 'test_engineer', 'test_image_path', 'remarks',
-            'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id']
 
 
 class SoundAbsorptionQuerySerializer(serializers.Serializer):
@@ -246,9 +243,8 @@ class SoundInsulationCoefficientsSerializer(serializers.ModelSerializer):
             'target_value_5000', 'target_value_6300', 'target_value_8000', 'target_value_10000',
             # 测试相关信息
             'test_date', 'test_location', 'test_engineer', 'test_image_path', 'remarks',
-            'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id']
 
 
 class SoundInsulationCoefficientQuerySerializer(serializers.Serializer):
@@ -304,9 +300,9 @@ class MaterialPorosityFlowResistanceSerializer(serializers.ModelSerializer):
             'test_institution', 'thickness_mm', 'weight_per_area', 'density',
             'porosity_percent', 'porosity_deviation_percent', 'flow_resistance',
             'flow_resistance_deviation', 'test_time', 'test_engineer',
-            'created_at', 'updated_at', 'remarks'
+            'remarks'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id']
 
 
 class MaterialPorosityQuerySerializer(serializers.Serializer):

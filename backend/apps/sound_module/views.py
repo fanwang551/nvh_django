@@ -422,7 +422,7 @@ def sound_absorption_query(request):
                 return Response.error(message="克重格式错误", status_code=status.HTTP_400_BAD_REQUEST)
         
         # 查询吸声系数数据
-        queryset = SoundAbsorptionCoefficients.objects.filter(**filters).order_by('-created_at')
+        queryset = SoundAbsorptionCoefficients.objects.filter(**filters).order_by('-id')
         
         if not queryset.exists():
             return Response.success(data=[], message="未找到匹配的吸声系数数据")
@@ -736,7 +736,7 @@ def material_porosity_query(request):
                 queryset = queryset.filter(part_name__in=part_names_list)
 
         # 按创建时间倒序排列
-        queryset = queryset.order_by('-created_at')
+        queryset = queryset.order_by('-id')
 
         if not queryset.exists():
             return Response.success(data=[], message="未找到匹配的材料孔隙率流阻数据")
