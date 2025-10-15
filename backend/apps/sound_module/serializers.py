@@ -79,6 +79,8 @@ class VehicleSoundInsulationDataSerializer(serializers.ModelSerializer):
     """车型隔声量数据序列化器"""
     vehicle_model_name = serializers.CharField(source='vehicle_model.vehicle_model_name', read_only=True)
     vehicle_model_code = serializers.CharField(source='vehicle_model.cle_model_code', read_only=True)
+    # 多图路径（JSON数组）
+    test_image_path = serializers.ListField(child=serializers.CharField(), required=False, allow_null=True)
 
     class Meta:
         model = VehicleSoundInsulationData
@@ -122,6 +124,8 @@ class VehicleReverberationDataSerializer(serializers.ModelSerializer):
     """车辆混响时间数据序列化器"""
     vehicle_model_name = serializers.CharField(source='vehicle_model.vehicle_model_name', read_only=True)
     vehicle_model_code = serializers.CharField(source='vehicle_model.cle_model_code', read_only=True)
+    # 多图路径（JSON数组）
+    test_image_path = serializers.ListField(child=serializers.CharField(), required=False, allow_null=True)
 
     class Meta:
         model = VehicleReverberationData

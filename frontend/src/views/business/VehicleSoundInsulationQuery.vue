@@ -156,12 +156,14 @@
           </el-descriptions>
         </div>
 
-        <!-- 测试图片 -->
-        <div v-if="currentImageData.test_image_path" class="image-section">
+        <!-- 测试图片（支持多张） -->
+        <div v-if="resolveImageList(currentImageData).length" class="image-section">
           <h4>测试图片</h4>
-          <div class="image-container">
+          <div class="image-container multi">
             <img
-                :src="getImageUrl(currentImageData.test_image_path)"
+                v-for="(img, idx) in resolveImageList(currentImageData)"
+                :key="idx"
+                :src="getImageUrl(img)"
                 alt="测试图片"
                 class="test-image"
                 @error="handleImageError"
@@ -277,6 +279,13 @@ const handleReset = () => {
 const showImageDialog = (data) => {
   currentImageData.value = data
   imageDialogVisible.value = true
+}
+// 解析图片列表：兼容字符串与数组
+const resolveImageList = (data) => {
+  const v = data && data.test_image_path
+  if (Array.isArray(v)) return v
+  if (typeof v === 'string' && v.trim()) return [v.trim()]
+  return []
 }
 
 // 关闭图片弹窗（UI逻辑在组件中）
@@ -616,6 +625,13 @@ onBeforeUnmount(() => {
   padding: 20px;
   background-color: #f8f9fa;
   border-radius: 4px;
+}
+
+.image-container.multi {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
 }
 
 .test-image {

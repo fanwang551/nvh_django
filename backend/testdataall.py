@@ -1,7 +1,7 @@
 import os
 
 # 定义目录路径
-directory_path = r"C:\Users\wangfan\Desktop\经验库视频图片"
+directory_path = r"C:\Users\wangfan\Desktop\01-NVH数据库数据\各区域隔声量图片"
 
 # 检查目录是否存在
 if os.path.exists(directory_path):

@@ -43,7 +43,8 @@ class SoundInsulationData(models.Model):
     freq_10000 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name='10000Hz隔声量(dB)')
 
     # 测试相关信息
-    test_image_path = models.CharField(max_length=500, null=True, blank=True, verbose_name='测试图片路径')
+    # 改为JSON数组，支持多张图片路径
+    test_image_path = models.JSONField(default=list, null=True, blank=True, verbose_name='测试图片路径列表')
     test_date = models.DateField(null=True, blank=True, verbose_name='测试日期')
     test_location = models.CharField(max_length=100, null=True, blank=True, verbose_name='测试地点')
     test_engineer = models.CharField(max_length=50, null=True, blank=True, verbose_name='测试工程师')
@@ -87,7 +88,8 @@ class VehicleSoundInsulationData(models.Model):
     freq_10000 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name='10000Hz隔声量(dB)')
 
     # 测试相关信息
-    test_image_path = models.CharField(max_length=500, null=True, blank=True, verbose_name='测试图片路径')
+    # 改为JSON数组，支持多张图片路径
+    test_image_path = models.JSONField(default=list, null=True, blank=True, verbose_name='测试图片路径列表')
     test_date = models.DateField(null=True, blank=True, verbose_name='测试日期')
     test_location = models.CharField(max_length=100, null=True, blank=True, verbose_name='测试地点')
     test_engineer = models.CharField(max_length=50, null=True, blank=True, verbose_name='测试工程师')

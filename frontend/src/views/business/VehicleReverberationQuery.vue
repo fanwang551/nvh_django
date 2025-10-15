@@ -130,8 +130,8 @@
       </el-card>
     </div>
 
-    <!-- 空状态 -->
     <div v-else-if="!store.compareLoading" class="empty-state">
+      <!-- 空状态 -->
       <el-empty description="请选择车型并生成对比数据" />
     </div>
 
@@ -156,12 +156,14 @@
           </el-descriptions>
         </div>
 
-        <!-- 测试图片 -->
-        <div v-if="currentImageData.test_image_path" class="image-section">
+        <!-- 测试图片（支持多张） -->
+        <div v-if="resolveImageList(currentImageData).length" class="image-section">
           <h4>测试图片</h4>
-          <div class="image-container">
+          <div class="image-container multi">
             <img
-                :src="getImageUrl(currentImageData.test_image_path)"
+                v-for="(img, idx) in resolveImageList(currentImageData)"
+                :key="idx"
+                :src="getImageUrl(img)"
                 alt="测试图片"
                 class="test-image"
                 @error="handleImageError"
@@ -274,6 +276,14 @@ const showImageDialog = (data) => {
 const closeImageDialog = () => {
   imageDialogVisible.value = false
   currentImageData.value = null
+}
+
+// 解析图片列表：兼容字符串与数组
+const resolveImageList = (data) => {
+  const v = data && data.test_image_path
+  if (Array.isArray(v)) return v
+  if (typeof v === 'string' && v.trim()) return [v.trim()]
+  return []
 }
 
 // 图表管理：获取图表配置（组件职责）
@@ -603,6 +613,13 @@ onBeforeUnmount(() => {
   padding: 20px;
   background-color: #f8f9fa;
   border-radius: 4px;
+}
+
+.image-container.multi {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
 }
 
 .test-image {
