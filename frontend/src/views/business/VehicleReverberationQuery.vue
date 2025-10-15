@@ -278,11 +278,32 @@ const closeImageDialog = () => {
   currentImageData.value = null
 }
 
-// 解析图片列表：兼容字符串与数组
+// 解析图片列表：兼容字符串、JSON字符串与数组
 const resolveImageList = (data) => {
   const v = data && data.test_image_path
-  if (Array.isArray(v)) return v
-  if (typeof v === 'string' && v.trim()) return [v.trim()]
+
+  // 已是数组，直接返回
+  if (Array.isArray(v)) return v.filter(Boolean)
+
+  // 字符串：可能是单个路径或 JSON 数组字符串
+  if (typeof v === 'string') {
+    const s = v.trim()
+    if (!s) return []
+
+    // 尝试按 JSON 数组解析（例如 '["/media/a.jpg", "/media/b.jpg"]'）
+    if (s.startsWith('[') && s.endsWith(']')) {
+      try {
+        const parsed = JSON.parse(s)
+        if (Array.isArray(parsed)) return parsed.filter(Boolean)
+      } catch (_) {
+        // 解析失败则回退为单路径
+      }
+    }
+
+    // 非 JSON 数组字符串，按单路径处理
+    return [s]
+  }
+
   return []
 }
 

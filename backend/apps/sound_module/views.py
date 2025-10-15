@@ -22,6 +22,7 @@ from .serializers import (
     MaterialPorosityPartNameOptionSerializer
 )
 from apps.modal.models import VehicleModel
+import json
 
 
 @api_view(['GET'])
@@ -282,6 +283,26 @@ def vehicle_reverberation_compare(request):
             'freq_6300', 'freq_8000', 'freq_10000'
         ]
 
+        def _parse_image_paths(value):
+            """规范图片路径字段为数组，兼容 JSON 字符串。"""
+            if value is None:
+                return []
+            if isinstance(value, list):
+                return [v for v in value if v]
+            if isinstance(value, str):
+                s = value.strip()
+                if not s:
+                    return []
+                if s.startswith('[') and s.endswith(']'):
+                    try:
+                        arr = json.loads(s)
+                        if isinstance(arr, list):
+                            return [v for v in arr if v]
+                    except Exception:
+                        pass
+                return [s]
+            return []
+
         for data in queryset:
             # 构建频率数据字典
             frequency_data = {}
@@ -295,7 +316,7 @@ def vehicle_reverberation_compare(request):
                 'vehicle_model_name': data.vehicle_model.vehicle_model_name,
                 'vehicle_model_code': data.vehicle_model.cle_model_code,
                 'frequency_data': frequency_data,
-                'test_image_path': data.test_image_path,
+                'test_image_path': _parse_image_paths(data.test_image_path),
                 'test_date': data.test_date.isoformat() if data.test_date else None,
                 'test_location': data.test_location,
                 'test_engineer': data.test_engineer,
