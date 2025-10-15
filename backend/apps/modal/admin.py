@@ -29,9 +29,9 @@ class TestProjectAdmin(admin.ModelAdmin):
 
 @admin.register(ModalData)
 class ModalDataAdmin(admin.ModelAdmin):
-    list_display = ['test_project', 'frequency', 'damping_ratio', 'mode_shape_description', 'updated_by']
+    list_display = ['test_project', 'frequency', 'damping_ratio', 'mode_shape_description']
     list_filter = []
-    search_fields = ['test_project__id', 'mode_shape_description', 'updated_by']
+    search_fields = ['test_project__id', 'mode_shape_description']
     ordering = ['-id']
     raw_id_fields = ['test_project']
 

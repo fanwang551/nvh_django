@@ -1,7 +1,7 @@
 <template>
   <div class="experience">
     <div class="header">
-      <div class="title">经验数据库系统</div>
+      <div class="title">经验数据库</div>
       <div class="actions">
         <el-button type="primary" @click="handleCreate" plain>新增经验</el-button>
         <el-button disabled title="未开通导出">导出</el-button>

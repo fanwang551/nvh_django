@@ -55,8 +55,7 @@ class ModalDataSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'test_project', 'test_project_id', 'vehicle_model_name', 'component_name', 'component_category',
             'frequency', 'damping_ratio', 'mode_shape_description',
-            'mode_shape_file', 'test_photo_file', 'notes',
-            'updated_by'
+            'mode_shape_file', 'test_photo_file', 'notes'
         ]
         read_only_fields = ['id']
 

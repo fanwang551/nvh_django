@@ -59,18 +59,14 @@ class TestProject(models.Model):
     """测试项目表"""
     vehicle_model = models.ForeignKey(VehicleModel, on_delete=models.CASCADE, verbose_name='车辆')
     component = models.ForeignKey(Component, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='零件')
-    test_type = models.CharField(max_length=200, verbose_name='测试类型')
-    test_date = models.DateField(verbose_name='测试日期')
+    test_type = models.CharField(max_length=200, null=True, blank=True, verbose_name='测试类型')
+    test_date = models.DateField(null=True, blank=True, verbose_name='测试日期')
     test_location = models.CharField(max_length=100, null=True, blank=True, verbose_name='测试地点')
-    test_engineer = models.CharField(max_length=50, verbose_name='测试工程师')
+    test_engineer = models.CharField(max_length=50, null=True, blank=True, verbose_name='测试工程师')
     test_status = models.CharField(max_length=200, null=True, blank=True, verbose_name='测试状态')
     excitation_method = models.CharField(max_length=100, null=True, blank=True, verbose_name='激励方式')
     notes = models.TextField(null=True, blank=True, verbose_name='备注')
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
-
-    created_at = None
-    updated_at = None
+    
 
     class Meta:
         db_table = 'test_projects'
@@ -91,12 +87,7 @@ class ModalData(models.Model):
     mode_shape_file = models.CharField(max_length=255, null=True, blank=True, verbose_name='GIF动图文件路径')
     test_photo_file = models.CharField(max_length=255, null=True, blank=True, verbose_name='测试照片文件路径')
     notes = models.TextField(null=True, blank=True, verbose_name='备注')
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
-    updated_by = models.CharField(max_length=50, null=True, blank=True, verbose_name='修改人员')
 
-    created_at = None
-    updated_at = None
 
     class Meta:
         db_table = 'modal_data'
