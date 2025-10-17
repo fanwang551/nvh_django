@@ -60,7 +60,7 @@ class Command(BaseCommand):
         test_engineers = ['张工', '李工', '王工', '刘工', '陈工']
         analysis_engineers = ['赵分析师', '钱分析师', '孙分析师', '李分析师']
         test_locations = ['NVH试验室A', 'NVH试验室B', '动力学试验室']
-        suspension_types = ['麦弗逊式独立悬挂', '双叉臂独立悬挂', '多连杆独立悬挂', '扭力梁非独立悬挂']
+        # 已移除悬挂形式字段
 
         created_tests = 0
         created_data = 0
@@ -83,8 +83,11 @@ class Command(BaseCommand):
                         test_location=random.choice(test_locations),
                         test_engineer=random.choice(test_engineers),
                         analysis_engineer=random.choice(analysis_engineers),
-                        suspension_type=random.choice(suspension_types),
-                        test_photo_path=f'/media/dynamic_stiffness/test_photos/test_{vehicle_model.id}_{i+1}.jpg'
+                        # 多张/无测试照片：随机生成0-3张图片路径
+                        test_photo_path=[
+                            f'/media/dynamic_stiffness/test_photos/test_{vehicle_model.id}_{i+1}_{j+1}.jpg'
+                            for j in range(random.randint(0, 3))
+                        ]
                     )
                     
                     created_tests += 1

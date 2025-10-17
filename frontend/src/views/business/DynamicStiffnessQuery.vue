@@ -134,7 +134,7 @@
             type="primary" 
             size="small"
             @click="viewTestPhotos"
-            v-if="basicInfo?.testPhotoPath"
+            v-if="basicInfo?.testPhotoPath && basicInfo.testPhotoPath.length > 0"
           >
             查看测试照片
           </el-button>
@@ -170,12 +170,6 @@
             <div class="info-item">
               <span class="label">分析人员：</span>
               <span class="value">{{ basicInfo?.analysisEngineer || '-' }}</span>
-            </div>
-          </el-col>
-          <el-col :span="8">
-            <div class="info-item">
-              <span class="label">悬挂形式：</span>
-              <span class="value">{{ basicInfo?.suspensionType || '-' }}</span>
             </div>
           </el-col>
           <el-col :span="8">
@@ -323,14 +317,16 @@
       class="test-photo-dialog"
     >
       <div class="test-photo-content">
-        <div v-if="basicInfo?.testPhotoPath" class="image-wrapper">
-          <img
-            :src="getImageUrl(basicInfo.testPhotoPath)"
-            alt="测试照片"
-            class="test-photo-image"
-            @error="handleImageError"
-          />
-        </div>
+        <template v-if="basicInfo?.testPhotoPath && basicInfo.testPhotoPath.length > 0">
+          <div class="image-wrapper" v-for="(img, idx) in basicInfo.testPhotoPath" :key="idx" style="margin-bottom: 12px;">
+            <img
+              :src="getImageUrl(img)"
+              :alt="`测试照片 ${idx + 1}`"
+              class="test-photo-image"
+              @error="handleImageError"
+            />
+          </div>
+        </template>
         <div v-else class="no-image">
           <el-empty description="暂无测试照片" />
         </div>

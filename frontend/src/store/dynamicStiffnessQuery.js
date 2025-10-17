@@ -55,7 +55,7 @@ export const useDynamicStiffnessQueryStore = defineStore('dynamicStiffnessQuery'
         testLocation: firstResult.test_location,
         testEngineer: firstResult.test_engineer,
         analysisEngineer: firstResult.analysis_engineer,
-        suspensionType: firstResult.suspension_type,
+        // test_photo_path 现为JSON数组，前端直接消费数组
         testPhotoPath: firstResult.test_photo_path
       }
     }
