@@ -397,9 +397,9 @@ function buildHeatmapSeriesData() {
         data.push([colIndex, rowIndex, null, null])
         return
       }
-      // 固定颜色映射范围：40-65
-      // 规则：≤40 映射到40（深蓝/紫色）；40-65 按梯度；≥65 映射到65（红色）
-      const mapped = numeric <= 40 ? 40 : (numeric >= 65 ? 65 : numeric)
+      // 固定颜色映射范围：49-69
+      // 规则：≤49 映射到49（深蓝/紫色）；49-69 按梯度；≥69 映射到69（红色）
+      const mapped = numeric <= 49 ? 49 : (numeric >= 69 ? 69 : numeric)
       // 第四个维度保留真实值供 tooltip 展示
       data.push([colIndex, rowIndex, mapped, numeric])
     })
@@ -446,7 +446,7 @@ function renderHeatmap() {
     },
     yAxis: { type: 'category', data: heatmap.value.points, name: '测点', nameGap: 16, axisLabel: { fontSize: 12 } },
     visualMap: {
-      // 固定映射区间 40-65
+      // 固定映射区间 49-69
       min: valueRange.min,
       max: valueRange.max,
       orient: 'vertical',
@@ -467,8 +467,8 @@ function renderHeatmap() {
 }
 
 function computeHeatmapRange() {
-  // 固定颜色映射范围：40-65
-  return { min: 40, max: 65 }
+  // 固定颜色映射范围：49-69
+  return { min: 49, max: 69 }
 }
 
 function handleResize() { if (chartInstance) chartInstance.resize() }
