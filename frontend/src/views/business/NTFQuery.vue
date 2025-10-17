@@ -393,7 +393,15 @@ function buildHeatmapSeriesData() {
   matrix.forEach((row, rowIndex) => {
     row.forEach((value, colIndex) => {
       const numeric = Number(value)
-      data.push([colIndex, rowIndex, Number.isFinite(numeric) ? numeric : null])
+      if (!Number.isFinite(numeric)) {
+        data.push([colIndex, rowIndex, null, null])
+        return
+      }
+      // 固定颜色映射范围：40-65
+      // 规则：≤40 映射到40（深蓝/紫色）；40-65 按梯度；≥65 映射到65（红色）
+      const mapped = numeric <= 40 ? 40 : (numeric >= 65 ? 65 : numeric)
+      // 第四个维度保留真实值供 tooltip 展示
+      data.push([colIndex, rowIndex, mapped, numeric])
     })
   })
   return data
@@ -413,8 +421,10 @@ function renderHeatmap() {
       formatter(params) {
         const point = heatmap.value.points[params.value[1]]
         const frequency = heatmap.value.frequency[params.value[0]]
-        const value = params.value[2]
-        const displayValue = Number.isFinite(value) ? value.toFixed(2) : '-'
+        // 第4维保存原始值，优先展示原始值
+        const raw = params.value?.[3]
+        const value = Number.isFinite(raw) ? raw : params.value?.[2]
+        const displayValue = Number.isFinite(value) ? Number(value).toFixed(2) : '-'
         return `测点：${point}<br/>频率：${frequency} Hz<br/>NTF：${displayValue}`
       }
     },
@@ -436,6 +446,7 @@ function renderHeatmap() {
     },
     yAxis: { type: 'category', data: heatmap.value.points, name: '测点', nameGap: 16, axisLabel: { fontSize: 12 } },
     visualMap: {
+      // 固定映射区间 40-65
       min: valueRange.min,
       max: valueRange.max,
       orient: 'vertical',
@@ -444,6 +455,7 @@ function renderHeatmap() {
       align: 'auto',
       calculable: true,
       inRange: {
+        // 深蓝/紫 -> 蓝 -> 绿(约60附近) -> 黄 -> 橙 -> 红
         color: ['#1a237e', '#3949ab', '#42a5f5', '#66bb6a', '#fdd835', '#fb8c00', '#e53935', '#b71c1c']
       }
     },
@@ -455,16 +467,8 @@ function renderHeatmap() {
 }
 
 function computeHeatmapRange() {
-  const values = []
-  const m = heatmap.value?.matrix || []
-  for (const row of m) {
-    for (const v of row || []) {
-      const n = Number(v)
-      if (Number.isFinite(n)) values.push(n)
-    }
-  }
-  if (!values.length) return { min: 49, max: 69 }
-  return { min: Math.min(...values), max: Math.max(...values) }
+  // 固定颜色映射范围：40-65
+  return { min: 40, max: 65 }
 }
 
 function handleResize() { if (chartInstance) chartInstance.resize() }

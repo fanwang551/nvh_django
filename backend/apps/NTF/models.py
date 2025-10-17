@@ -10,9 +10,9 @@ class NTFInfo(models.Model):
         related_name='ntf_infos',
         verbose_name='车型信息'
     )
-    tester = models.CharField(max_length=50, verbose_name='测试人员')
-    test_time = models.DateTimeField(verbose_name='测试时间')
-    location = models.CharField(max_length=100, verbose_name='测试地点')
+    tester = models.CharField(max_length=50, null=True, blank=True, verbose_name='测试人员')
+    test_time = models.DateTimeField(null=True, blank=True, verbose_name='测试时间')
+    location = models.CharField(max_length=100, null=True, blank=True, verbose_name='测试地点')
 
     
 
@@ -24,7 +24,8 @@ class NTFInfo(models.Model):
 
     def __str__(self) -> str:
         code = getattr(self.vehicle_model, 'cle_model_code', None) or ''
-        return f"{code} - {self.test_time:%Y-%m-%d}"
+        date_str = self.test_time.strftime('%Y-%m-%d') if self.test_time else '-'
+        return f"{code} - {date_str}"
 
 
 def _default_ntf_curve() -> dict:
@@ -60,11 +61,11 @@ class NTFTestResult(models.Model):
         related_name='test_results',
         verbose_name='NTF信息'
     )
-    measurement_point = models.CharField(max_length=100, verbose_name='测点')
+    measurement_point = models.CharField(max_length=100, null=True, blank=True, verbose_name='测点')
     layout_image_url = models.CharField(max_length=255, null=True, blank=True, verbose_name='测点布置图URL')
 
     # 新 JSON 曲线结构
-    ntf_curve = models.JSONField(default=_default_ntf_curve, blank=True, verbose_name='NTF曲线数据')
+    ntf_curve = models.JSONField(default=_default_ntf_curve, null=True, blank=True, verbose_name='NTF曲线数据')
 
     # 移除时间戳：created_at/updated_at
 
@@ -72,7 +73,6 @@ class NTFTestResult(models.Model):
         db_table = 'NTF_test_result'
         verbose_name = 'NTF测试结果'
         verbose_name_plural = 'NTF测试结果'
-        unique_together = ('ntf_info', 'measurement_point')
         ordering = ['measurement_point']
 
     def __str__(self) -> str:
