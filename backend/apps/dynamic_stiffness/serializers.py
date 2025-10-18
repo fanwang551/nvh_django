@@ -16,7 +16,7 @@ class DynamicStiffnessTestSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'vehicle_model', 'vehicle_model_name', 'part_name',
             'test_date', 'test_location', 'test_engineer', 'analysis_engineer',
-            'suspension_type', 'test_photo_path'
+            'test_photo_path'
         ]
         read_only_fields = ['id']
 
@@ -29,14 +29,13 @@ class DynamicStiffnessDataSerializer(serializers.ModelSerializer):
     test_location = serializers.CharField(source='test.test_location', read_only=True)
     test_engineer = serializers.CharField(source='test.test_engineer', read_only=True)
     analysis_engineer = serializers.CharField(source='test.analysis_engineer', read_only=True)
-    suspension_type = serializers.CharField(source='test.suspension_type', read_only=True)
-    test_photo_path = serializers.CharField(source='test.test_photo_path', read_only=True)
+    test_photo_path = serializers.JSONField(source='test.test_photo_path', read_only=True, allow_null=True)
     
     class Meta:
         model = DynamicStiffnessData
         fields = [
             'id', 'test', 'vehicle_model_name', 'part_name', 'test_date', 'test_location',
-            'test_engineer', 'analysis_engineer', 'suspension_type', 'test_photo_path',
+            'test_engineer', 'analysis_engineer', 'test_photo_path',
             'subsystem', 'test_point',
             # X方向数据
             'target_stiffness_x', 'freq_50_x', 'freq_80_x', 'freq_100_x', 'freq_125_x',

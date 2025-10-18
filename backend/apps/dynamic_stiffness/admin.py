@@ -4,8 +4,8 @@ from .models import DynamicStiffnessTest, DynamicStiffnessData, VehicleMountIsol
 
 @admin.register(DynamicStiffnessTest)
 class DynamicStiffnessTestAdmin(admin.ModelAdmin):
-    list_display = ['vehicle_model', 'part_name', 'test_date', 'test_engineer', 'analysis_engineer', 'suspension_type']
-    list_filter = ['test_date', 'part_name', 'suspension_type', 'test_engineer']
+    list_display = ['vehicle_model', 'part_name', 'test_date', 'test_engineer', 'analysis_engineer']
+    list_filter = ['test_date', 'part_name', 'test_engineer']
     search_fields = ['vehicle_model__vehicle_model_name', 'part_name', 'test_engineer', 'analysis_engineer']
     ordering = ['-test_date']
     date_hierarchy = 'test_date'

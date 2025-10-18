@@ -134,7 +134,7 @@
             type="primary" 
             size="small"
             @click="viewTestPhotos"
-            v-if="basicInfo?.testPhotoPath"
+            v-if="basicInfo?.testPhotoList && basicInfo.testPhotoList.length > 0"
           >
             查看测试照片
           </el-button>
@@ -173,10 +173,7 @@
             </div>
           </el-col>
           <el-col :span="8">
-            <div class="info-item">
-              <span class="label">悬挂形式：</span>
-              <span class="value">{{ basicInfo?.suspensionType || '-' }}</span>
-            </div>
+            <!-- 预留位置，可用于未来扩展 -->
           </el-col>
           <el-col :span="8">
             <!-- 预留位置，可用于未来扩展 -->
@@ -323,13 +320,18 @@
       class="test-photo-dialog"
     >
       <div class="test-photo-content">
-        <div v-if="basicInfo?.testPhotoPath" class="image-wrapper">
-          <img
-            :src="getImageUrl(basicInfo.testPhotoPath)"
-            alt="测试照片"
-            class="test-photo-image"
-            @error="handleImageError"
-          />
+        <div v-if="basicInfo?.testPhotoList && basicInfo.testPhotoList.length > 0" class="image-wrapper">
+          <div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;">
+            <img
+              v-for="(imgPath, idx) in basicInfo.testPhotoList"
+              :key="idx"
+              :src="getImageUrl(imgPath)"
+              alt="测试照片"
+              class="test-photo-image"
+              @error="handleImageError"
+              style="max-width: 260px; max-height: 200px; object-fit: contain;"
+            />
+          </div>
         </div>
         <div v-else class="no-image">
           <el-empty description="暂无测试照片" />

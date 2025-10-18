@@ -6,12 +6,11 @@ class DynamicStiffnessTest(models.Model):
     """动刚度测试表"""
     vehicle_model = models.ForeignKey(VehicleModel, on_delete=models.CASCADE, verbose_name='车型')
     part_name = models.CharField(max_length=100, verbose_name='零件名称')
-    test_date = models.DateField(verbose_name='测试时间')
+    test_date = models.DateField(null=True, blank=True, verbose_name='测试时间')
     test_location = models.CharField(max_length=100, null=True, blank=True, verbose_name='测试地点')
-    test_engineer = models.CharField(max_length=50, verbose_name='测试人员')
-    analysis_engineer = models.CharField(max_length=50, verbose_name='分析人员')
-    suspension_type = models.CharField(max_length=50, verbose_name='悬挂形式')
-    test_photo_path = models.CharField(max_length=255, null=True, blank=True, verbose_name='测试照片路径')
+    test_engineer = models.CharField(max_length=50, null=True, blank=True, verbose_name='测试人员')
+    analysis_engineer = models.CharField(max_length=50, null=True, blank=True, verbose_name='分析人员')
+    test_photo_path = models.JSONField(default=list, null=True, blank=True, verbose_name='测试照片路径')
 
     class Meta:
         db_table = 'dynamic_stiffness_tests'
