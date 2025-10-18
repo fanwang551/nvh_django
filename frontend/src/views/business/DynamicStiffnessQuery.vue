@@ -223,7 +223,16 @@
           </template>
         </el-table-column>
 
-        <!-- 80Hz (对应原来的63Hz位置) -->
+        <!-- 63Hz -->
+        <el-table-column prop="freq_63" label="63Hz" width="80" align="center">
+          <template #default="scope">
+            <span :style="{ color: isValueBelowTarget(scope.row.freq_63, scope.row.target_stiffness) ? '#f56c6c' : '' }">
+              {{ formatValue(scope.row.freq_63) }}
+            </span>
+          </template>
+        </el-table-column>
+
+        <!-- 80Hz -->
         <el-table-column prop="freq_80" label="80Hz" width="80" align="center">
           <template #default="scope">
             <span :style="{ color: isValueBelowTarget(scope.row.freq_80, scope.row.target_stiffness) ? '#f56c6c' : '' }">
@@ -454,6 +463,7 @@ const transformedTableData = computed(() => {
       direction: 'X',
       target_stiffness: item.target_stiffness_x,
       freq_50: item.freq_50_x,
+      freq_63: item.freq_63_x,
       freq_80: item.freq_80_x,
       freq_100: item.freq_100_x,
       freq_125: item.freq_125_x,
@@ -473,6 +483,7 @@ const transformedTableData = computed(() => {
       direction: 'Y',
       target_stiffness: item.target_stiffness_y,
       freq_50: item.freq_50_y,
+      freq_63: item.freq_63_y,
       freq_80: item.freq_80_y,
       freq_100: item.freq_100_y,
       freq_125: item.freq_125_y,
@@ -492,6 +503,7 @@ const transformedTableData = computed(() => {
       direction: 'Z',
       target_stiffness: item.target_stiffness_z,
       freq_50: item.freq_50_z,
+      freq_63: item.freq_63_z,
       freq_80: item.freq_80_z,
       freq_100: item.freq_100_z,
       freq_125: item.freq_125_z,
@@ -588,7 +600,7 @@ const handleSpanMethod = ({ row, column, rowIndex, columnIndex }) => {
   }
 
   // 操作列也需要合并，只在X方向显示按钮
-  if (columnIndex === 13) { // 操作列的索引（第14列，从0开始计数）
+  if (columnIndex === 14) { // 操作列的索引（新增63Hz后为第15列，从0开始计数）
     if (rowIndex % 3 === 0) {
       return {
         rowspan: 3,

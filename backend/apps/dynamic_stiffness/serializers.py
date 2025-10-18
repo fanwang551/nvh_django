@@ -38,13 +38,13 @@ class DynamicStiffnessDataSerializer(serializers.ModelSerializer):
             'test_engineer', 'analysis_engineer', 'test_photo_path',
             'subsystem', 'test_point',
             # X方向数据
-            'target_stiffness_x', 'freq_50_x', 'freq_80_x', 'freq_100_x', 'freq_125_x',
+            'target_stiffness_x', 'freq_50_x', 'freq_63_x', 'freq_80_x', 'freq_100_x', 'freq_125_x',
             'freq_160_x', 'freq_200_x', 'freq_250_x', 'freq_315_x', 'freq_350_x', 'freq_400_x',
             # Y方向数据
-            'target_stiffness_y', 'freq_50_y', 'freq_80_y', 'freq_100_y', 'freq_125_y',
+            'target_stiffness_y', 'freq_50_y', 'freq_63_y', 'freq_80_y', 'freq_100_y', 'freq_125_y',
             'freq_160_y', 'freq_200_y', 'freq_250_y', 'freq_315_y', 'freq_350_y', 'freq_400_y',
             # Z方向数据
-            'target_stiffness_z', 'freq_50_z', 'freq_80_z', 'freq_100_z', 'freq_125_z',
+            'target_stiffness_z', 'freq_50_z', 'freq_63_z', 'freq_80_z', 'freq_100_z', 'freq_125_z',
             'freq_160_z', 'freq_200_z', 'freq_250_z', 'freq_315_z', 'freq_350_z', 'freq_400_z',
             # 图片路径
             'layout_image', 'curve_image'

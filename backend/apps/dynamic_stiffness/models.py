@@ -31,6 +31,8 @@ class DynamicStiffnessData(models.Model):
     # X方向目标值和各频率段数据
     target_stiffness_x = models.DecimalField(max_digits=15, decimal_places=6, null=True, blank=True, verbose_name='X方向目标值')
     freq_50_x = models.DecimalField(max_digits=15, decimal_places=6, null=True, blank=True, verbose_name='50Hz X方向')
+    # 新增：63Hz X方向，两位小数
+    freq_63_x = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True, verbose_name='63Hz X方向')
     freq_80_x = models.DecimalField(max_digits=15, decimal_places=6, null=True, blank=True, verbose_name='80Hz X方向')
     freq_100_x = models.DecimalField(max_digits=15, decimal_places=6, null=True, blank=True, verbose_name='100Hz X方向')
     freq_125_x = models.DecimalField(max_digits=15, decimal_places=6, null=True, blank=True, verbose_name='125Hz X方向')
@@ -44,6 +46,8 @@ class DynamicStiffnessData(models.Model):
     # Y方向目标值和各频率段数据
     target_stiffness_y = models.DecimalField(max_digits=15, decimal_places=6, null=True, blank=True, verbose_name='Y方向目标值')
     freq_50_y = models.DecimalField(max_digits=15, decimal_places=6, null=True, blank=True, verbose_name='50Hz Y方向')
+    # 新增：63Hz Y方向，两位小数
+    freq_63_y = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True, verbose_name='63Hz Y方向')
     freq_80_y = models.DecimalField(max_digits=15, decimal_places=6, null=True, blank=True, verbose_name='80Hz Y方向')
     freq_100_y = models.DecimalField(max_digits=15, decimal_places=6, null=True, blank=True, verbose_name='100Hz Y方向')
     freq_125_y = models.DecimalField(max_digits=15, decimal_places=6, null=True, blank=True, verbose_name='125Hz Y方向')
@@ -57,6 +61,8 @@ class DynamicStiffnessData(models.Model):
     # Z方向目标值和各频率段数据
     target_stiffness_z = models.DecimalField(max_digits=15, decimal_places=6, null=True, blank=True, verbose_name='Z方向目标值')
     freq_50_z = models.DecimalField(max_digits=15, decimal_places=6, null=True, blank=True, verbose_name='50Hz Z方向')
+    # 新增：63Hz Z方向，两位小数
+    freq_63_z = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True, verbose_name='63Hz Z方向')
     freq_80_z = models.DecimalField(max_digits=15, decimal_places=6, null=True, blank=True, verbose_name='80Hz Z方向')
     freq_100_z = models.DecimalField(max_digits=15, decimal_places=6, null=True, blank=True, verbose_name='100Hz Z方向')
     freq_125_z = models.DecimalField(max_digits=15, decimal_places=6, null=True, blank=True, verbose_name='125Hz Z方向')
