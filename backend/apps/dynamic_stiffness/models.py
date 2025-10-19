@@ -27,52 +27,55 @@ class DynamicStiffnessData(models.Model):
     test = models.ForeignKey(DynamicStiffnessTest, on_delete=models.CASCADE, verbose_name='动刚度测试')
     subsystem = models.CharField(max_length=50, verbose_name='子系统')
     test_point = models.CharField(max_length=100, verbose_name='测点')
-    
+
     # X方向目标值和各频率段数据
-    target_stiffness_x = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='X方向目标值')
+    target_stiffness_x = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True,
+                                             verbose_name='X方向目标值')
     freq_50_x = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='50Hz X方向')
-    # 新增：23Hz X方向，两位小数
-    freq_23_x = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='23Hz X方向')
+    # 新增：63Hz X方向，两位小数
+    freq_63_x = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='63Hz X方向')
     freq_80_x = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='80Hz X方向')
     freq_100_x = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='100Hz X方向')
     freq_125_x = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='125Hz X方向')
-    freq_120_x = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='120Hz X方向')
+    freq_160_x = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='160Hz X方向')
     freq_200_x = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='200Hz X方向')
     freq_250_x = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='250Hz X方向')
-    freq_310_x = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='310Hz X方向')
+    freq_315_x = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='315Hz X方向')
     freq_350_x = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='350Hz X方向')
     freq_400_x = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='400Hz X方向')
-    
+
     # Y方向目标值和各频率段数据
-    target_stiffness_y = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='Y方向目标值')
+    target_stiffness_y = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True,
+                                             verbose_name='Y方向目标值')
     freq_50_y = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='50Hz Y方向')
-    # 新增：23Hz Y方向，两位小数
-    freq_23_y = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='23Hz Y方向')
+    # 新增：63Hz Y方向，两位小数
+    freq_63_y = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='63Hz Y方向')
     freq_80_y = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='80Hz Y方向')
     freq_100_y = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='100Hz Y方向')
     freq_125_y = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='125Hz Y方向')
-    freq_120_y = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='120Hz Y方向')
+    freq_160_y = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='160Hz Y方向')
     freq_200_y = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='200Hz Y方向')
     freq_250_y = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='250Hz Y方向')
-    freq_310_y = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='310Hz Y方向')
+    freq_315_y = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='315Hz Y方向')
     freq_350_y = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='350Hz Y方向')
     freq_400_y = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='400Hz Y方向')
-    
+
     # Z方向目标值和各频率段数据
-    target_stiffness_z = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='Z方向目标值')
+    target_stiffness_z = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True,
+                                             verbose_name='Z方向目标值')
     freq_50_z = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='50Hz Z方向')
-    # 新增：23Hz Z方向，两位小数
-    freq_23_z = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='23Hz Z方向')
+    # 新增：63Hz Z方向，两位小数
+    freq_63_z = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='63Hz Z方向')
     freq_80_z = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='80Hz Z方向')
     freq_100_z = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='100Hz Z方向')
     freq_125_z = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='125Hz Z方向')
-    freq_120_z = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='120Hz Z方向')
+    freq_160_z = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='160Hz Z方向')
     freq_200_z = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='200Hz Z方向')
     freq_250_z = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='250Hz Z方向')
-    freq_310_z = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='310Hz Z方向')
+    freq_315_z = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='315Hz Z方向')
     freq_350_z = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='350Hz Z方向')
     freq_400_z = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='400Hz Z方向')
-    
+
     # 图片路径
     layout_image = models.CharField(max_length=255, null=True, blank=True, verbose_name='测点布置图路径')
     curve_image = models.CharField(max_length=255, null=True, blank=True, verbose_name='测试曲线图路径')
@@ -180,7 +183,7 @@ class VehicleSuspensionIsolationTest(models.Model):
     suspension_type = models.CharField(max_length=50, verbose_name='悬挂形式')
     tire_pressure = models.CharField(max_length=50, null=True, blank=True, verbose_name='实测胎压')
     test_condition = models.CharField(max_length=200, null=True, blank=True, verbose_name='测试工况')
-    
+
     class Meta:
         db_table = 'vehicle_suspension_isolation_tests'
         verbose_name = '整车悬架隔振率测试'
@@ -196,20 +199,29 @@ class SuspensionIsolationData(models.Model):
     test = models.ForeignKey(VehicleSuspensionIsolationTest, on_delete=models.CASCADE, verbose_name='测试基本信息')
     measuring_point = models.CharField(max_length=100, verbose_name='测点名称')
 
-    # X方向数据 - 遵循数据精度要求：主动端/被动端使用Decimal(10,2)，隔振率使用Decimal(8,3)
-    x_active_value = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='X方向主动端(m/s²)')
-    x_passive_value = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='X方向被动端(m/s²)')
-    x_isolation_rate = models.DecimalField(max_digits=8, decimal_places=3, null=True, blank=True, verbose_name='X方向隔振率(dB)')
+    # X方向数据 - 遵循数据精度要求：主动端/被动端使用Decimal(10,6)，隔振率使用Decimal(8,3)
+    x_active_value = models.DecimalField(max_digits=10, decimal_places=6, null=True, blank=True,
+                                         verbose_name='X方向主动端(m/s²)')
+    x_passive_value = models.DecimalField(max_digits=10, decimal_places=6, null=True, blank=True,
+                                          verbose_name='X方向被动端(m/s²)')
+    x_isolation_rate = models.DecimalField(max_digits=8, decimal_places=3, null=True, blank=True,
+                                           verbose_name='X方向隔振率(dB)')
 
     # Y方向数据
-    y_active_value = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='Y方向主动端(m/s²)')
-    y_passive_value = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='Y方向被动端(m/s²)')
-    y_isolation_rate = models.DecimalField(max_digits=8, decimal_places=3, null=True, blank=True, verbose_name='Y方向隔振率(dB)')
+    y_active_value = models.DecimalField(max_digits=10, decimal_places=6, null=True, blank=True,
+                                         verbose_name='Y方向主动端(m/s²)')
+    y_passive_value = models.DecimalField(max_digits=10, decimal_places=6, null=True, blank=True,
+                                          verbose_name='Y方向被动端(m/s²)')
+    y_isolation_rate = models.DecimalField(max_digits=8, decimal_places=3, null=True, blank=True,
+                                           verbose_name='Y方向隔振率(dB)')
 
     # Z方向数据
-    z_active_value = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='Z方向主动端(m/s²)')
-    z_passive_value = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='Z方向被动端(m/s²)')
-    z_isolation_rate = models.DecimalField(max_digits=8, decimal_places=3, null=True, blank=True, verbose_name='Z方向隔振率(dB)')
+    z_active_value = models.DecimalField(max_digits=10, decimal_places=6, null=True, blank=True,
+                                         verbose_name='Z方向主动端(m/s²)')
+    z_passive_value = models.DecimalField(max_digits=10, decimal_places=6, null=True, blank=True,
+                                          verbose_name='Z方向被动端(m/s²)')
+    z_isolation_rate = models.DecimalField(max_digits=8, decimal_places=3, null=True, blank=True,
+                                           verbose_name='Z方向隔振率(dB)')
 
     # 图片路径
     layout_image_path = models.CharField(max_length=255, null=True, blank=True, verbose_name='测试布置图路径')
