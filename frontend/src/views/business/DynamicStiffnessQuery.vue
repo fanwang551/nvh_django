@@ -166,11 +166,12 @@
 
             <div class="info-chip">
               <span class="label">测试图：</span>
+              <!-- 始终展示按钮；无图片时弹窗内显示空态提示 -->
+              <el-button type="primary" @click="viewTestPhotos">测试照片</el-button>
               <template v-if="Array.isArray(basicInfo?.testPhotoList) && basicInfo.testPhotoList.length > 0">
-                <el-button type="primary" link @click="viewTestPhotos">查看图片</el-button>
                 <span class="photo-count">共 {{ basicInfo.testPhotoList.length }} 张</span>
               </template>
-              <span v-else class="value">-</span>
+              <span v-else class="value" style="margin-left: 8px;">-</span>
             </div>
           </div>
         </div>
