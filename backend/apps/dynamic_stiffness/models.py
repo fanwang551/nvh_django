@@ -96,7 +96,6 @@ class VehicleMountIsolationTest(models.Model):
     test_date = models.DateField(verbose_name='测试时间')
     test_location = models.CharField(max_length=100, null=True, blank=True, verbose_name='测试地点')
     test_engineer = models.CharField(max_length=50, verbose_name='测试人员')
-    suspension_type = models.CharField(max_length=50, verbose_name='悬挂形式')
     tire_pressure = models.CharField(max_length=50, null=True, blank=True, verbose_name='实测胎压')
 
     # 驾驶员座椅导轨振动 AC OFF (m/s²)
@@ -180,7 +179,6 @@ class VehicleSuspensionIsolationTest(models.Model):
     test_date = models.DateField(verbose_name='测试时间')
     test_location = models.CharField(max_length=100, null=True, blank=True, verbose_name='测试地点')
     test_engineer = models.CharField(max_length=50, verbose_name='测试人员')
-    suspension_type = models.CharField(max_length=50, verbose_name='悬挂形式')
     tire_pressure = models.CharField(max_length=50, null=True, blank=True, verbose_name='实测胎压')
     test_condition = models.CharField(max_length=200, null=True, blank=True, verbose_name='测试工况')
 

@@ -70,6 +70,8 @@ class DynamicStiffnessQuerySerializer(serializers.Serializer):
 class VehicleMountIsolationTestSerializer(serializers.ModelSerializer):
     """整车悬置隔振率测试序列化器"""
     vehicle_model_name = serializers.CharField(source='vehicle_model.vehicle_model_name', read_only=True)
+    # 模型字段已移除，改从车型信息读取悬挂形式
+    suspension_type = serializers.CharField(source='vehicle_model.suspension_type', read_only=True, allow_null=True)
 
     class Meta:
         model = VehicleMountIsolationTest
@@ -95,7 +97,8 @@ class MountIsolationDataSerializer(serializers.ModelSerializer):
     test_date = serializers.DateField(source='test.test_date', read_only=True)
     test_location = serializers.CharField(source='test.test_location', read_only=True)
     test_engineer = serializers.CharField(source='test.test_engineer', read_only=True)
-    suspension_type = serializers.CharField(source='test.suspension_type', read_only=True)
+    # 模型字段已移除，改从车型信息读取悬挂形式
+    suspension_type = serializers.CharField(source='test.vehicle_model.suspension_type', read_only=True, allow_null=True)
     tire_pressure = serializers.CharField(source='test.tire_pressure', read_only=True)
 
     # 基本信息字段 - 座椅导轨振动 AC OFF/ON
@@ -162,6 +165,8 @@ class MountIsolationQuerySerializer(serializers.Serializer):
 class VehicleSuspensionIsolationTestSerializer(serializers.ModelSerializer):
     """整车悬架隔振率测试序列化器"""
     vehicle_model_name = serializers.CharField(source='vehicle_model.vehicle_model_name', read_only=True)
+    # 模型字段已移除，改从车型信息读取悬挂形式
+    suspension_type = serializers.CharField(source='vehicle_model.suspension_type', read_only=True, allow_null=True)
 
     class Meta:
         model = VehicleSuspensionIsolationTest
@@ -178,7 +183,8 @@ class SuspensionIsolationDataSerializer(serializers.ModelSerializer):
     test_date = serializers.DateField(source='test.test_date', read_only=True)
     test_location = serializers.CharField(source='test.test_location', read_only=True)
     test_engineer = serializers.CharField(source='test.test_engineer', read_only=True)
-    suspension_type = serializers.CharField(source='test.suspension_type', read_only=True)
+    # 模型字段已移除，改从车型信息读取悬挂形式
+    suspension_type = serializers.CharField(source='test.vehicle_model.suspension_type', read_only=True, allow_null=True)
     tire_pressure = serializers.CharField(source='test.tire_pressure', read_only=True)
     test_condition = serializers.CharField(source='test.test_condition', read_only=True)
 

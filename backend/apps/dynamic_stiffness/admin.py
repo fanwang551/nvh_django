@@ -54,16 +54,15 @@ class DynamicStiffnessDataAdmin(admin.ModelAdmin):
 
 @admin.register(VehicleMountIsolationTest)
 class VehicleMountIsolationTestAdmin(admin.ModelAdmin):
-    list_display = ['vehicle_model', 'test_date', 'test_engineer', 'suspension_type', 'tire_pressure']
-    list_filter = ['test_date', 'suspension_type', 'test_engineer']
-    search_fields = ['vehicle_model__vehicle_model_name', 'test_engineer', 'suspension_type']
+    list_display = ['vehicle_model', 'test_date', 'test_engineer',  'tire_pressure']
+    list_filter = ['test_date',  'test_engineer']
+    search_fields = ['vehicle_model__vehicle_model_name', 'test_engineer']
     ordering = ['-test_date']
     date_hierarchy = 'test_date'
 
     fieldsets = (
         ('基本信息', {
-            'fields': ('vehicle_model', 'test_date', 'test_location', 'test_engineer', 'suspension_type',
-                       'tire_pressure')
+            'fields': ('vehicle_model', 'test_date', 'test_location', 'test_engineer', 'tire_pressure')
         }),
         ('驾驶员座椅导轨振动 AC OFF (m/s²)', {
             'fields': ('seat_vib_x_ac_off', 'seat_vib_y_ac_off', 'seat_vib_z_ac_off')
@@ -89,7 +88,7 @@ class VehicleMountIsolationTestAdmin(admin.ModelAdmin):
 @admin.register(MountIsolationData)
 class MountIsolationDataAdmin(admin.ModelAdmin):
     list_display = ['test', 'measuring_point', 'x_ac_off_isolation', 'y_ac_off_isolation', 'z_ac_off_isolation']
-    list_filter = ['measuring_point', 'test__suspension_type']
+    list_filter = ['measuring_point']
     search_fields = ['test__vehicle_model__vehicle_model_name', 'measuring_point']
     ordering = ['test', 'measuring_point']
 
