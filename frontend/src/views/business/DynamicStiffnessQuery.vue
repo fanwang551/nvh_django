@@ -195,10 +195,10 @@
         :header-cell-style="{ backgroundColor: '#409EFF', color: '#ffffff', fontWeight: '600', fontSize: '14px' }"
       >
         <!-- 子系统列 -->
-        <el-table-column prop="subsystem" label="子系统" width="100" align="center" />
+        <el-table-column prop="subsystem" label="子系统" width="80" align="center" />
 
         <!-- 测点列 -->
-        <el-table-column prop="test_point" label="测点" width="120" align="center" />
+        <el-table-column prop="test_point" label="测点" width="200" align="center" />
 
         <!-- 方向列 -->
         <el-table-column prop="direction" label="方向" width="60" align="center" />
