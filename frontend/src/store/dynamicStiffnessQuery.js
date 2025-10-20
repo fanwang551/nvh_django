@@ -8,7 +8,7 @@ export const useDynamicStiffnessQueryStore = defineStore('dynamicStiffnessQuery'
     searchForm: {
       vehicleModelId: null,
       partName: null,
-      subsystem: null,
+      subsystem: [],
       testPoints: []
     },
 
@@ -48,17 +48,36 @@ export const useDynamicStiffnessQueryStore = defineStore('dynamicStiffnessQuery'
       if (state.queryResult.results.length === 0) return null
       
       const firstResult = state.queryResult.results[0]
+      // 解析测试图片字段：支持数组或JSON字符串
+      let testPhotoList = []
+      const rawPhoto = firstResult.test_photo_path
+      if (Array.isArray(rawPhoto)) {
+        testPhotoList = rawPhoto
+      } else if (typeof rawPhoto === 'string') {
+        try {
+          const parsed = JSON.parse(rawPhoto)
+          if (Array.isArray(parsed)) {
+            testPhotoList = parsed
+          } else if (parsed) {
+            testPhotoList = [parsed]
+          }
+        } catch (e) {
+          // 非JSON字符串，按单个路径处理
+          if (rawPhoto.trim()) testPhotoList = [rawPhoto]
+        }
+      }
+      // 过滤空值
+      testPhotoList = (testPhotoList || []).filter(Boolean)
+
       return {
         vehicleModelName: firstResult.vehicle_model_name,
+        suspensionType: firstResult.suspension_type,
         partName: firstResult.part_name,
         testDate: firstResult.test_date,
         testLocation: firstResult.test_location,
         testEngineer: firstResult.test_engineer,
         analysisEngineer: firstResult.analysis_engineer,
-        // 兼容字符串或JSON数组：统一输出为数组
-        testPhotoList: Array.isArray(firstResult.test_photo_path)
-          ? firstResult.test_photo_path
-          : (firstResult.test_photo_path ? [firstResult.test_photo_path] : [])
+        testPhotoList
       }
     }
   },
@@ -99,7 +118,7 @@ export const useDynamicStiffnessQueryStore = defineStore('dynamicStiffnessQuery'
       
       // 重置下级选项
       this.searchForm.partName = null
-      this.searchForm.subsystem = null
+      this.searchForm.subsystem = []
       this.searchForm.testPoints = []
       this.partNameOptions = []
       this.subsystemOptions = []
@@ -140,7 +159,7 @@ export const useDynamicStiffnessQueryStore = defineStore('dynamicStiffnessQuery'
       this.searchForm.partName = partName
       
       // 重置下级选项
-      this.searchForm.subsystem = null
+      this.searchForm.subsystem = []
       this.searchForm.testPoints = []
       this.subsystemOptions = []
       this.testPointOptions = []
@@ -174,14 +193,19 @@ export const useDynamicStiffnessQueryStore = defineStore('dynamicStiffnessQuery'
      * 处理子系统变化
      */
     async handleSubsystemChange(subsystem) {
-      this.searchForm.subsystem = subsystem
+      this.searchForm.subsystem = Array.isArray(subsystem) ? subsystem : (subsystem ? [subsystem] : [])
       
       // 重置下级选项
       this.searchForm.testPoints = []
       this.testPointOptions = []
       
-      if (subsystem && this.searchForm.vehicleModelId && this.searchForm.partName) {
-        await this.loadTestPoints(this.searchForm.vehicleModelId, this.searchForm.partName, subsystem)
+      if (this.searchForm.vehicleModelId && this.searchForm.partName) {
+        // 如果选择了多个子系统，则忽略子系统过滤，加载车型+零件下的所有测点
+        let subsystemParam
+        if (Array.isArray(this.searchForm.subsystem) && this.searchForm.subsystem.length === 1) {
+          subsystemParam = this.searchForm.subsystem[0]
+        }
+        await this.loadTestPoints(this.searchForm.vehicleModelId, this.searchForm.partName, subsystemParam)
       }
     },
 
@@ -244,7 +268,7 @@ export const useDynamicStiffnessQueryStore = defineStore('dynamicStiffnessQuery'
       this.searchForm = {
         vehicleModelId: null,
         partName: null,
-        subsystem: null,
+        subsystem: [],
         testPoints: []
       }
       

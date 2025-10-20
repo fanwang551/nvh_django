@@ -146,10 +146,15 @@ def dynamic_stiffness_query(request):
         if part_name:
             queryset = queryset.filter(test__part_name=part_name)
 
-        # 子系统筛选
+        # 子系统筛选（支持多选，逗号分隔）
         subsystem = request.GET.get('subsystem')
         if subsystem:
-            queryset = queryset.filter(subsystem=subsystem)
+            # 支持传入逗号分隔的多个子系统名称
+            parts = [s.strip() for s in subsystem.split(',') if s and s.strip()]
+            if len(parts) > 1:
+                queryset = queryset.filter(subsystem__in=parts)
+            else:
+                queryset = queryset.filter(subsystem=parts[0])
 
         # 测点筛选（支持多选）
         test_points = request.GET.get('test_points')

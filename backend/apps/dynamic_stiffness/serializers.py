@@ -24,6 +24,7 @@ class DynamicStiffnessTestSerializer(serializers.ModelSerializer):
 class DynamicStiffnessDataSerializer(serializers.ModelSerializer):
     """动刚度数据序列化器"""
     vehicle_model_name = serializers.CharField(source='test.vehicle_model.vehicle_model_name', read_only=True)
+    suspension_type = serializers.CharField(source='test.vehicle_model.suspension_type', read_only=True, allow_null=True)
     part_name = serializers.CharField(source='test.part_name', read_only=True)
     test_date = serializers.DateField(source='test.test_date', read_only=True)
     test_location = serializers.CharField(source='test.test_location', read_only=True)
@@ -34,7 +35,7 @@ class DynamicStiffnessDataSerializer(serializers.ModelSerializer):
     class Meta:
         model = DynamicStiffnessData
         fields = [
-            'id', 'test', 'vehicle_model_name', 'part_name', 'test_date', 'test_location',
+            'id', 'test', 'vehicle_model_name', 'suspension_type', 'part_name', 'test_date', 'test_location',
             'test_engineer', 'analysis_engineer', 'test_photo_path',
             'subsystem', 'test_point',
             # X方向数据

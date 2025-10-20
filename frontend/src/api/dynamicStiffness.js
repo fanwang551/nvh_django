@@ -36,11 +36,14 @@ const dynamicStiffnessApi = {
    * @returns {Promise}
    */
   getTestPoints(vehicleModelId, partName, subsystem) {
-    return request.get('/dynamic-stiffness/test-points/', {
+    const params = {
       vehicle_model_id: vehicleModelId,
-      part_name: partName,
-      subsystem: subsystem
-    })
+      part_name: partName
+    }
+    if (subsystem) {
+      params.subsystem = subsystem
+    }
+    return request.get('/dynamic-stiffness/test-points/', params)
   },
 
   /**
@@ -61,7 +64,9 @@ const dynamicStiffnessApi = {
       requestParams.part_name = params.partName
     }
 
-    if (params.subsystem) {
+    if (params.subsystem && Array.isArray(params.subsystem) && params.subsystem.length > 0) {
+      requestParams.subsystem = params.subsystem.join(',')
+    } else if (params.subsystem && typeof params.subsystem === 'string') {
       requestParams.subsystem = params.subsystem
     }
 

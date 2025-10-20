@@ -53,12 +53,14 @@
             </el-form-item>
           </el-col>
 
-          <!-- 子系统选择 -->
+          <!-- 子系统选择（改为多选） -->
           <el-col :span="5">
             <el-form-item label="子系统">
               <el-select
                 v-model="store.searchForm.subsystem"
                 placeholder="请选择子系统"
+                multiple
+                collapse-tags
                 clearable
                 :loading="store.subsystemsLoading"
                 :disabled="!store.searchForm.partName"
@@ -75,7 +77,7 @@
             </el-form-item>
           </el-col>
 
-          <!-- 测点多选 -->
+          <!-- 测点多选（随车型/零件加载，不再依赖子系统） -->
           <el-col :span="4">
             <el-form-item label="测点">
               <el-select
@@ -85,7 +87,7 @@
                 collapse-tags
                 collapse-tags-tooltip
                 :loading="store.testPointsLoading"
-                :disabled="!store.searchForm.subsystem"
+                :disabled="!store.searchForm.vehicleModelId || !store.searchForm.partName"
                 style="width: 100%"
               >
                 <template #header>
@@ -130,55 +132,48 @@
       <template #header>
         <div class="card-header">
           <span class="card-title">基础信息</span>
-          <el-button 
-            type="primary" 
-            size="small"
-            @click="viewTestPhotos"
-            v-if="basicInfo?.testPhotoList && basicInfo.testPhotoList.length > 0"
-          >
-            查看测试照片
-          </el-button>
         </div>
       </template>
 
       <div class="basic-info">
-        <!-- 第一行：测试相关信息 -->
-        <el-row :gutter="24" class="info-row">
-          <el-col :span="8">
-            <div class="info-item">
-              <span class="label">测试时间：</span>
-              <span class="value">{{ basicInfo?.testDate || '-' }}</span>
+        <div class="info-banner">
+          <div class="info-grid">
+            <div class="info-chip">
+              <span class="label">车型：</span>
+              <span class="value">{{ basicInfo?.vehicleModelName || '-' }}</span>
             </div>
-          </el-col>
-          <el-col :span="8">
-            <div class="info-item">
+            <div class="info-chip">
+              <span class="label">悬挂类型：</span>
+              <span class="value">{{ basicInfo?.suspensionType || '-' }}</span>
+            </div>
+            <div class="info-chip">
               <span class="label">测试地点：</span>
               <span class="value">{{ basicInfo?.testLocation || '-' }}</span>
             </div>
-          </el-col>
-          <el-col :span="8">
-            <div class="info-item">
+
+            <div class="info-chip">
+              <span class="label">测试时间：</span>
+              <span class="value">{{ basicInfo?.testDate || '-' }}</span>
+            </div>
+            <div class="info-chip">
               <span class="label">测试人员：</span>
               <span class="value">{{ basicInfo?.testEngineer || '-' }}</span>
             </div>
-          </el-col>
-        </el-row>
-
-        <!-- 第二行：分析和技术信息 -->
-        <el-row :gutter="24" class="info-row">
-          <el-col :span="8">
-            <div class="info-item">
+            <div class="info-chip">
               <span class="label">分析人员：</span>
               <span class="value">{{ basicInfo?.analysisEngineer || '-' }}</span>
             </div>
-          </el-col>
-          <el-col :span="8">
-            <!-- 预留位置，可用于未来扩展 -->
-          </el-col>
-          <el-col :span="8">
-            <!-- 预留位置，可用于未来扩展 -->
-          </el-col>
-        </el-row>
+
+            <div class="info-chip">
+              <span class="label">测试图：</span>
+              <template v-if="Array.isArray(basicInfo?.testPhotoList) && basicInfo.testPhotoList.length > 0">
+                <el-button type="primary" link @click="viewTestPhotos">查看图片</el-button>
+                <span class="photo-count">共 {{ basicInfo.testPhotoList.length }} 张</span>
+              </template>
+              <span v-else class="value">-</span>
+            </div>
+          </div>
+        </div>
       </div>
     </el-card>
 
@@ -196,7 +191,7 @@
         class="result-table"
         stripe
         :span-method="handleSpanMethod"
-        :header-cell-style="{ backgroundColor: '#fafafa', color: '#606266', fontWeight: '600', fontSize: '14px' }"
+        :header-cell-style="{ backgroundColor: '#409EFF', color: '#ffffff', fontWeight: '600', fontSize: '14px' }"
       >
         <!-- 子系统列 -->
         <el-table-column prop="subsystem" label="子系统" width="100" align="center" />
@@ -208,14 +203,20 @@
         <el-table-column prop="direction" label="方向" width="60" align="center" />
 
         <!-- 动刚度目标列 -->
-        <el-table-column prop="target_stiffness" label="动刚度目标" width="120" align="center">
+        <el-table-column prop="target_stiffness" width="130" align="center">
+          <template #header>
+            <div>
+              动刚度目标<br />
+              <span>（N/mm）</span>
+            </div>
+          </template>
           <template #default="scope">
             <span>{{ formatTargetValue(scope.row.target_stiffness) }}</span>
           </template>
         </el-table-column>
 
         <!-- 50Hz -->
-        <el-table-column prop="freq_50" label="50Hz" width="80" align="center">
+        <el-table-column prop="freq_50" label="50Hz" width="100" align="center">
           <template #default="scope">
             <span :style="{ color: isValueBelowTarget(scope.row.freq_50, scope.row.target_stiffness) ? '#f56c6c' : '' }">
               {{ formatValue(scope.row.freq_50) }}
@@ -224,7 +225,7 @@
         </el-table-column>
 
         <!-- 63Hz -->
-        <el-table-column prop="freq_63" label="63Hz" width="80" align="center">
+        <el-table-column prop="freq_63" label="63Hz" width="100" align="center">
           <template #default="scope">
             <span :style="{ color: isValueBelowTarget(scope.row.freq_63, scope.row.target_stiffness) ? '#f56c6c' : '' }">
               {{ formatValue(scope.row.freq_63) }}
@@ -233,7 +234,7 @@
         </el-table-column>
 
         <!-- 80Hz -->
-        <el-table-column prop="freq_80" label="80Hz" width="80" align="center">
+        <el-table-column prop="freq_80" label="80Hz" width="100" align="center">
           <template #default="scope">
             <span :style="{ color: isValueBelowTarget(scope.row.freq_80, scope.row.target_stiffness) ? '#f56c6c' : '' }">
               {{ formatValue(scope.row.freq_80) }}
@@ -242,7 +243,7 @@
         </el-table-column>
 
         <!-- 100Hz -->
-        <el-table-column prop="freq_100" label="100Hz" width="80" align="center">
+        <el-table-column prop="freq_100" label="100Hz" width="100" align="center">
           <template #default="scope">
             <span :style="{ color: isValueBelowTarget(scope.row.freq_100, scope.row.target_stiffness) ? '#f56c6c' : '' }">
               {{ formatValue(scope.row.freq_100) }}
@@ -251,7 +252,7 @@
         </el-table-column>
 
         <!-- 125Hz -->
-        <el-table-column prop="freq_125" label="125Hz" width="80" align="center">
+        <el-table-column prop="freq_125" label="125Hz" width="100" align="center">
           <template #default="scope">
             <span :style="{ color: isValueBelowTarget(scope.row.freq_125, scope.row.target_stiffness) ? '#f56c6c' : '' }">
               {{ formatValue(scope.row.freq_125) }}
@@ -260,7 +261,7 @@
         </el-table-column>
 
         <!-- 160Hz -->
-        <el-table-column prop="freq_160" label="160Hz" width="80" align="center">
+        <el-table-column prop="freq_160" label="160Hz" width="100" align="center">
           <template #default="scope">
             <span :style="{ color: isValueBelowTarget(scope.row.freq_160, scope.row.target_stiffness) ? '#f56c6c' : '' }">
               {{ formatValue(scope.row.freq_160) }}
@@ -269,7 +270,7 @@
         </el-table-column>
 
         <!-- 200Hz -->
-        <el-table-column prop="freq_200" label="200Hz" width="80" align="center">
+        <el-table-column prop="freq_200" label="200Hz" width="100" align="center">
           <template #default="scope">
             <span :style="{ color: isValueBelowTarget(scope.row.freq_200, scope.row.target_stiffness) ? '#f56c6c' : '' }">
               {{ formatValue(scope.row.freq_200) }}
@@ -278,7 +279,7 @@
         </el-table-column>
 
         <!-- 250Hz -->
-        <el-table-column prop="freq_250" label="250Hz" width="80" align="center">
+        <el-table-column prop="freq_250" label="250Hz" width="100" align="center">
           <template #default="scope">
             <span :style="{ color: isValueBelowTarget(scope.row.freq_250, scope.row.target_stiffness) ? '#f56c6c' : '' }">
               {{ formatValue(scope.row.freq_250) }}
@@ -287,7 +288,7 @@
         </el-table-column>
 
         <!-- 315Hz -->
-        <el-table-column prop="freq_315" label="315Hz" width="80" align="center">
+        <el-table-column prop="freq_315" label="315Hz" width="100" align="center">
           <template #default="scope">
             <span :style="{ color: isValueBelowTarget(scope.row.freq_315, scope.row.target_stiffness) ? '#f56c6c' : '' }">
               {{ formatValue(scope.row.freq_315) }}
@@ -296,7 +297,7 @@
         </el-table-column>
 
         <!-- 400Hz -->
-        <el-table-column prop="freq_400" label="400Hz" width="80" align="center">
+        <el-table-column prop="freq_400" label="400Hz" width="100" align="center">
           <template #default="scope">
             <span :style="{ color: isValueBelowTarget(scope.row.freq_400, scope.row.target_stiffness) ? '#f56c6c' : '' }">
               {{ formatValue(scope.row.freq_400) }}
@@ -305,7 +306,7 @@
         </el-table-column>
 
         <!-- 操作列 -->
-        <el-table-column label="操作" width="100" align="center">
+        <el-table-column label="操作" width="120" align="center">
           <template #default="scope">
             <el-button
               type="primary"
@@ -429,6 +430,20 @@ const partNameOptions = computed(() => store.partNameOptions)
 const subsystemOptions = computed(() => store.subsystemOptions)
 const testPointOptions = computed(() => store.testPointOptions)
 const basicInfo = computed(() => store.basicInfo)
+// 基本信息卡片数据
+const basicInfoCards = computed(() => {
+  const info = basicInfo.value
+  if (!info) return []
+  return [
+    { key: 'vehicleModelName', label: '车型', value: info.vehicleModelName },
+    { key: 'suspensionType', label: '悬挂类型', value: info.suspensionType },
+    { key: 'testEngineer', label: '测试人员', value: info.testEngineer },
+    { key: 'analysisEngineer', label: '分析人员', value: info.analysisEngineer },
+    { key: 'testLocation', label: '测试地点', value: info.testLocation },
+    { key: 'testDate', label: '测试时间', value: info.testDate },
+    { key: 'testPhoto', label: '测试图', count: Array.isArray(info.testPhotoList) ? info.testPhotoList.length : 0 }
+  ]
+})
 
 // UI状态管理（组件职责）
 const testPhotoDialogVisible = ref(false)
@@ -620,7 +635,7 @@ const formatValue = (value) => {
   if (value === null || value === undefined) {
     return '-'
   }
-  return parseFloat(value).toFixed(2)
+  return parseFloat(value).toFixed(1)
 }
 
 // 目标值格式化 - 显示为 ≥数值 的形式
@@ -628,7 +643,7 @@ const formatTargetValue = (value) => {
   if (value === null || value === undefined) {
     return '-'
   }
-  return `≥${parseFloat(value).toFixed(0)}`
+  return `≥${parseFloat(value).toFixed(1)}`
 }
 
 // 检查数值是否小于目标值
@@ -720,37 +735,43 @@ onMounted(async () => {
 }
 
 /* 基本信息区域样式优化 */
-.basic-info {
-  padding: 16px 0;
+.basic-info { padding: 12px 0; }
+
+
+.info-banner {
+  width: 100%;
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 14px 16px;
 }
 
-.info-row {
-  margin-bottom: 16px;
-}
-
-.info-row:last-child {
-  margin-bottom: 0;
-}
-
-.info-item {
-  display: flex;
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px 24px;
   align-items: center;
-  height: 32px;
-  line-height: 32px;
 }
 
-.info-item .label {
-  font-weight: 600;
-  color: #606266;
-  min-width: 90px;
-  flex-shrink: 0;
-}
 
-.info-item .value {
+.info-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.info-chip .label {
   color: #303133;
-  flex: 1;
+  font-size: 15px;
+  font-weight: 550;
+}
+.info-chip .value {
+  color: #606266;
+  font-size: 15px;
+  font-weight: 500;
   word-break: break-all;
 }
+
+.photo-count { color: #606266; font-size: 12px; margin-left: 6px; }
 
 .result-table {
   width: 100%;
@@ -758,14 +779,22 @@ onMounted(async () => {
 
 /* 优化表格样式 */
 .result-table :deep(.el-table__cell) {
-  padding: 8px 4px;
+  padding: 12px 8px;
   font-size: 13px;
+  font-weight: 600;
+}
+
+.result-table :deep(.cell) {
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 .result-table :deep(.el-table__header-wrapper) {
   .el-table__header {
     th {
-      background-color: #fafafa !important;
+      background-color: #409EFF !important;
+      color: #ffffff !important;
       border-right: 1px solid #ebeef5;
     }
   }
