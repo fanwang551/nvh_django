@@ -89,7 +89,7 @@
         v-loading="loading"
         class="result-table"
         stripe
-        :header-cell-style="{ backgroundColor: '#fafafa', color: '#606266', fontWeight: '600', fontSize: '14px' }"
+        :header-cell-style="{ backgroundColor: '#409EFF', color: '#ffffff', fontWeight: '600', fontSize: '14px' }"
       >
         <el-table-column prop="component_category" label="零件分类" min-width="120" />
         <el-table-column prop="component_name" label="零件名称" min-width="160" />
@@ -418,10 +418,10 @@ onDeactivated(() => {
 }
 
 :deep(.el-table th) {
-  background-color: #f8f9fa !important;
-  border-bottom: 1px solid #e7e7e7;
+  background-color: #409EFF !important;
+  border-bottom: 1px solid #409EFF;
   font-weight: 600 !important;
-  color: #374151 !important;
+  color: #ffffff !important;
   font-size: 14px !important;
   padding: 12px 8px !important;
 }
@@ -443,7 +443,7 @@ onDeactivated(() => {
 .frequency-value {
   font-family: 'Monaco', 'Menlo', monospace;
   font-weight: 500;
-  color: #0052d9;
+  color: #409EFF;
 }
 
 /* 分页器 */
