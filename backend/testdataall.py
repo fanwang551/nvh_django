@@ -1,32 +1,32 @@
-# import os
-#
-# # 定义目录路径
-# directory_path = r"C:\Users\wangfan\Desktop\01-NVH数据库数据\整车隔声量图片"
-#
-# # 检查目录是否存在
-# if os.path.exists(directory_path):
-#     # 获取目录下所有文件
-#     files = os.listdir(directory_path)
-#
-#     # 定义常见图片格式
-#     image_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp', '.ico', '.mp4')
-#
-#     # 筛选出图片文件
-#     image_files = [f for f in files if f.lower().endswith(image_extensions)]
-#
-#     # 打印图片文件名
-#     print(f"找到 {len(image_files)} 个图片文件：\n")
-#     for idx, image_file in enumerate(image_files, 1):
-#         print(f"{idx}. {image_file}")
-#
-#     # 如果没有找到图片文件
-#     if not image_files:
-#         print("该目录下没有找到图片文件")
-#         print("\n目录下所有文件：")
-#         for f in files:
-#             print(f"  - {f}")
-# else:
-#     print(f"错误：目录不存在 - {directory_path}")
+import os
+
+# 定义目录路径
+directory_path = r"D:\pythonProject\zlbbses\nvh_django\backend\media\dynamic_stiffness\dynamic_stiffness"
+
+# 检查目录是否存在
+if os.path.exists(directory_path):
+    # 获取目录下所有文件
+    files = os.listdir(directory_path)
+
+    # 定义常见图片格式
+    image_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp', '.ico', '.mp4')
+
+    # 筛选出图片文件
+    image_files = [f for f in files if f.lower().endswith(image_extensions)]
+
+    # 打印图片文件名
+    print(f"找到 {len(image_files)} 个图片文件：\n")
+    for idx, image_file in enumerate(image_files, 1):
+        print(f"{idx}. {image_file}")
+
+    # 如果没有找到图片文件
+    if not image_files:
+        print("该目录下没有找到图片文件")
+        print("\n目录下所有文件：")
+        for f in files:
+            print(f"  - {f}")
+else:
+    print(f"错误：目录不存在 - {directory_path}")
 
 
 
@@ -154,188 +154,189 @@
 # print(f"共处理 {len(df)} 条记录")
 
 
-import pandas as pd
-import json
-from collections import defaultdict
 
-# 配置
-EXCEL_FILE = r"C:\Users\wangfan\Desktop\数据调试.xlsx"
-OUTPUT_SQL = r"C:\Users\wangfan\Desktop\01-NVH数据库数据\update_ntf_curve.sql"
-
-
-def calculate_stats(frequency, values):
-    """计算20-200和200-500频率段的最大值"""
-    df = pd.DataFrame({'freq': frequency, 'val': values})
-
-    max_20_200 = df[df['freq'] <= 200]['val'].max()
-    max_200_500 = df[(df['freq'] > 200) & (df['freq'] <= 500)]['val'].max()
-
-    return {
-        "max_20_200": round(float(max_20_200), 2) if pd.notna(max_20_200) else None,
-        "max_200_500": round(float(max_200_500), 2) if pd.notna(max_200_500) else None
-    }
-
-
-def parse_column_name(col_name):
-    """解析列名，返回(id, position, direction)
-    例如: '631_Front_X' -> ('631', 'front', 'x')
-    """
-    # 跳过频率列（可能是Frequency或频率）
-    if col_name in ['Frequency', '频率', 'frequency']:
-        return None, None, None
-
-    parts = str(col_name).split('_')
-    if len(parts) == 3:
-        record_id = parts[0]
-        position = parts[1].lower()  # Front -> front
-        direction = parts[2].lower()  # X -> x
-        return record_id, position, direction
-    return None, None, None
-
-
-def get_frequency_column(df):
-    """智能识别频率列"""
-    # 可能的频率列名
-    possible_names = ['Frequency', 'frequency', '频率', 'freq', 'Freq']
-
-    for name in possible_names:
-        if name in df.columns:
-            return name
-
-    # 如果都找不到，返回第一列
-    return df.columns[0]
-
-
-def process_excel(file_path):
-    """处理Excel文件，返回按ID组织的数据"""
-    data_by_id = defaultdict(lambda: {'front': None, 'middle': None, 'rear': None})
-
-    # 读取三个sheet
-    sheet_names = [0, 1, 2]  # Sheet1, Sheet2, Sheet3
-
-    for sheet_idx in sheet_names:
-        print(f"\n正在处理 Sheet {sheet_idx + 1}...")
-        df = pd.read_excel(file_path, sheet_name=sheet_idx)
-
-        # 清理列名（去除空格和制表符）
-        df.columns = df.columns.str.strip()
-
-        # 打印列名用于调试
-        print(f"列名: {df.columns.tolist()}")
-
-        # 智能识别频率列
-        freq_col = get_frequency_column(df)
-        print(f"使用频率列: {freq_col}")
-
-        # 获取频率列
-        frequency = df[freq_col].round(2).tolist()
-        print(f"频率范围: {frequency[0]} - {frequency[-1]}, 共 {len(frequency)} 个点")
-
-        # 处理每一列（除了频率列）
-        for col in df.columns:
-            if col == freq_col:
-                continue
-
-            record_id, position, direction = parse_column_name(col)
-
-            if record_id is None:
-                print(f"警告: 无法解析列名 '{col}'")
-                continue
-
-            print(f"  处理: ID={record_id}, Position={position}, Direction={direction}")
-
-            # 初始化该ID的position数据结构
-            if data_by_id[record_id][position] is None:
-                data_by_id[record_id][position] = {
-                    'frequency': frequency,
-                    'x_values': [],
-                    'y_values': [],
-                    'z_values': [],
-                    'stats': {'x': {}, 'y': {}, 'z': {}}
-                }
-
-            # 获取数值并保留两位小数
-            values = df[col].round(2).tolist()
-
-            # 存储数据到对应的方向
-            data_by_id[record_id][position][f'{direction}_values'] = values
-
-            # 计算stats
-            data_by_id[record_id][position]['stats'][direction] = calculate_stats(frequency, values)
-
-    return data_by_id
-
-
-def generate_sql(data_by_id, output_file):
-    """生成SQL更新语句"""
-    with open(output_file, 'w', encoding='utf-8') as f:
-        f.write("-- NTF Curve Update SQL\n")
-        f.write("-- Generated automatically\n\n")
-
-        for record_id, positions in sorted(data_by_id.items(), key=lambda x: int(x[0])):
-            # 构建JSON对象
-            ntf_curve = {
-                'front': positions['front'],
-                'middle': positions['middle'],
-                'rear': positions['rear']
-            }
-
-            # 转换为JSON字符串（紧凑格式）
-            json_str = json.dumps(ntf_curve, ensure_ascii=False, separators=(',', ':'))
-
-            # 转义单引号和反斜杠（MySQL要求）
-            json_str_escaped = json_str.replace('\\', '\\\\').replace("'", "\\'")
-
-            # 生成UPDATE语句
-            sql = f"UPDATE `ntf_test_result` SET `ntf_curve` = '{json_str_escaped}' WHERE `id` = {record_id};\n"
-            f.write(sql)
-
-        f.write(f"\n-- Total {len(data_by_id)} records updated\n")
-
-
-def main():
-    print("开始处理Excel文件...")
-    try:
-        data_by_id = process_excel(EXCEL_FILE)
-
-        print(f"\n找到 {len(data_by_id)} 条记录")
-
-        # 显示找到的所有ID
-        print(f"ID列表: {sorted([int(id) for id in data_by_id.keys()])}")
-
-        print("\n生成SQL文件...")
-        generate_sql(data_by_id, OUTPUT_SQL)
-
-        print(f"完成！SQL文件已保存到: {OUTPUT_SQL}")
-
-        # 打印第一条记录作为示例
-        if data_by_id:
-            first_id = sorted(data_by_id.keys(), key=lambda x: int(x))[0]
-            print(f"\n示例 (ID={first_id}):")
-            example_data = {
-                'front': data_by_id[first_id]['front'],
-                'middle': data_by_id[first_id]['middle'],
-                'rear': data_by_id[first_id]['rear']
-            }
-            # 只打印部分数据，避免输出太长
-            print(f"  Front频率点数: {len(example_data['front']['frequency']) if example_data['front'] else 0}")
-            print(f"  Middle频率点数: {len(example_data['middle']['frequency']) if example_data['middle'] else 0}")
-            print(f"  Rear频率点数: {len(example_data['rear']['frequency']) if example_data['rear'] else 0}")
-
-            # 打印stats示例
-            if example_data['front']:
-                print(f"\n  Front Stats示例:")
-                print(json.dumps(example_data['front']['stats'], indent=4, ensure_ascii=False))
-
-    except FileNotFoundError:
-        print(f"错误: 找不到文件 '{EXCEL_FILE}'")
-    except Exception as e:
-        print(f"错误: {e}")
-        import traceback
-        traceback.print_exc()
-
-
-if __name__ == '__main__':
-    main()
+# import pandas as pd
+# import json
+# from collections import defaultdict
+#
+# # 配置
+# EXCEL_FILE = r"C:\Users\wangfan\Desktop\数据调试.xlsx"
+# OUTPUT_SQL = r"C:\Users\wangfan\Desktop\01-NVH数据库数据\update_ntf_curve.sql"
+#
+#
+# def calculate_stats(frequency, values):
+#     """计算20-200和200-500频率段的最大值"""
+#     df = pd.DataFrame({'freq': frequency, 'val': values})
+#
+#     max_20_200 = df[df['freq'] <= 200]['val'].max()
+#     max_200_500 = df[(df['freq'] > 200) & (df['freq'] <= 500)]['val'].max()
+#
+#     return {
+#         "max_20_200": round(float(max_20_200), 2) if pd.notna(max_20_200) else None,
+#         "max_200_500": round(float(max_200_500), 2) if pd.notna(max_200_500) else None
+#     }
+#
+#
+# def parse_column_name(col_name):
+#     """解析列名，返回(id, position, direction)
+#     例如: '631_Front_X' -> ('631', 'front', 'x')
+#     """
+#     # 跳过频率列（可能是Frequency或频率）
+#     if col_name in ['Frequency', '频率', 'frequency']:
+#         return None, None, None
+#
+#     parts = str(col_name).split('_')
+#     if len(parts) == 3:
+#         record_id = parts[0]
+#         position = parts[1].lower()  # Front -> front
+#         direction = parts[2].lower()  # X -> x
+#         return record_id, position, direction
+#     return None, None, None
+#
+#
+# def get_frequency_column(df):
+#     """智能识别频率列"""
+#     # 可能的频率列名
+#     possible_names = ['Frequency', 'frequency', '频率', 'freq', 'Freq']
+#
+#     for name in possible_names:
+#         if name in df.columns:
+#             return name
+#
+#     # 如果都找不到，返回第一列
+#     return df.columns[0]
+#
+#
+# def process_excel(file_path):
+#     """处理Excel文件，返回按ID组织的数据"""
+#     data_by_id = defaultdict(lambda: {'front': None, 'middle': None, 'rear': None})
+#
+#     # 读取三个sheet
+#     sheet_names = [0, 1, 2]  # Sheet1, Sheet2, Sheet3
+#
+#     for sheet_idx in sheet_names:
+#         print(f"\n正在处理 Sheet {sheet_idx + 1}...")
+#         df = pd.read_excel(file_path, sheet_name=sheet_idx)
+#
+#         # 清理列名（去除空格和制表符）
+#         df.columns = df.columns.str.strip()
+#
+#         # 打印列名用于调试
+#         print(f"列名: {df.columns.tolist()}")
+#
+#         # 智能识别频率列
+#         freq_col = get_frequency_column(df)
+#         print(f"使用频率列: {freq_col}")
+#
+#         # 获取频率列
+#         frequency = df[freq_col].round(2).tolist()
+#         print(f"频率范围: {frequency[0]} - {frequency[-1]}, 共 {len(frequency)} 个点")
+#
+#         # 处理每一列（除了频率列）
+#         for col in df.columns:
+#             if col == freq_col:
+#                 continue
+#
+#             record_id, position, direction = parse_column_name(col)
+#
+#             if record_id is None:
+#                 print(f"警告: 无法解析列名 '{col}'")
+#                 continue
+#
+#             print(f"  处理: ID={record_id}, Position={position}, Direction={direction}")
+#
+#             # 初始化该ID的position数据结构
+#             if data_by_id[record_id][position] is None:
+#                 data_by_id[record_id][position] = {
+#                     'frequency': frequency,
+#                     'x_values': [],
+#                     'y_values': [],
+#                     'z_values': [],
+#                     'stats': {'x': {}, 'y': {}, 'z': {}}
+#                 }
+#
+#             # 获取数值并保留两位小数
+#             values = df[col].round(2).tolist()
+#
+#             # 存储数据到对应的方向
+#             data_by_id[record_id][position][f'{direction}_values'] = values
+#
+#             # 计算stats
+#             data_by_id[record_id][position]['stats'][direction] = calculate_stats(frequency, values)
+#
+#     return data_by_id
+#
+#
+# def generate_sql(data_by_id, output_file):
+#     """生成SQL更新语句"""
+#     with open(output_file, 'w', encoding='utf-8') as f:
+#         f.write("-- NTF Curve Update SQL\n")
+#         f.write("-- Generated automatically\n\n")
+#
+#         for record_id, positions in sorted(data_by_id.items(), key=lambda x: int(x[0])):
+#             # 构建JSON对象
+#             ntf_curve = {
+#                 'front': positions['front'],
+#                 'middle': positions['middle'],
+#                 'rear': positions['rear']
+#             }
+#
+#             # 转换为JSON字符串（紧凑格式）
+#             json_str = json.dumps(ntf_curve, ensure_ascii=False, separators=(',', ':'))
+#
+#             # 转义单引号和反斜杠（MySQL要求）
+#             json_str_escaped = json_str.replace('\\', '\\\\').replace("'", "\\'")
+#
+#             # 生成UPDATE语句
+#             sql = f"UPDATE `ntf_test_result` SET `ntf_curve` = '{json_str_escaped}' WHERE `id` = {record_id};\n"
+#             f.write(sql)
+#
+#         f.write(f"\n-- Total {len(data_by_id)} records updated\n")
+#
+#
+# def main():
+#     print("开始处理Excel文件...")
+#     try:
+#         data_by_id = process_excel(EXCEL_FILE)
+#
+#         print(f"\n找到 {len(data_by_id)} 条记录")
+#
+#         # 显示找到的所有ID
+#         print(f"ID列表: {sorted([int(id) for id in data_by_id.keys()])}")
+#
+#         print("\n生成SQL文件...")
+#         generate_sql(data_by_id, OUTPUT_SQL)
+#
+#         print(f"完成！SQL文件已保存到: {OUTPUT_SQL}")
+#
+#         # 打印第一条记录作为示例
+#         if data_by_id:
+#             first_id = sorted(data_by_id.keys(), key=lambda x: int(x))[0]
+#             print(f"\n示例 (ID={first_id}):")
+#             example_data = {
+#                 'front': data_by_id[first_id]['front'],
+#                 'middle': data_by_id[first_id]['middle'],
+#                 'rear': data_by_id[first_id]['rear']
+#             }
+#             # 只打印部分数据，避免输出太长
+#             print(f"  Front频率点数: {len(example_data['front']['frequency']) if example_data['front'] else 0}")
+#             print(f"  Middle频率点数: {len(example_data['middle']['frequency']) if example_data['middle'] else 0}")
+#             print(f"  Rear频率点数: {len(example_data['rear']['frequency']) if example_data['rear'] else 0}")
+#
+#             # 打印stats示例
+#             if example_data['front']:
+#                 print(f"\n  Front Stats示例:")
+#                 print(json.dumps(example_data['front']['stats'], indent=4, ensure_ascii=False))
+#
+#     except FileNotFoundError:
+#         print(f"错误: 找不到文件 '{EXCEL_FILE}'")
+#     except Exception as e:
+#         print(f"错误: {e}")
+#         import traceback
+#         traceback.print_exc()
+#
+#
+# if __name__ == '__main__':
+#     main()
 
 

@@ -326,13 +326,13 @@
     <el-dialog
       v-model="testPhotoDialogVisible"
       title="查看测试照片"
-      width="600px"
+      width="700px"
       :before-close="handleCloseTestPhotoDialog"
       class="test-photo-dialog"
     >
       <div class="test-photo-content">
         <div v-if="basicInfo?.testPhotoList && basicInfo.testPhotoList.length > 0" class="image-wrapper">
-          <div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;">
+          <div class="test-photo-list">
             <img
               v-for="(imgPath, idx) in basicInfo.testPhotoList"
               :key="idx"
@@ -340,7 +340,6 @@
               alt="测试照片"
               class="test-photo-image"
               @error="handleImageError"
-              style="max-width: 260px; max-height: 200px; object-fit: contain;"
             />
           </div>
         </div>
@@ -814,11 +813,23 @@ onMounted(async () => {
   text-align: center;
 }
 
+.test-photo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  width: 100%;
+}
+
+.test-photo-dialog .image-wrapper { display: block; width: 100%; }
+
 .test-photo-image {
-  max-width: 100%;
-  max-height: 400px;
+  width: 80%;
+  height: auto;
+  max-height: 350px;
   border-radius: 4px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  object-fit: contain;
 }
 
 .image-dialog .image-content {
