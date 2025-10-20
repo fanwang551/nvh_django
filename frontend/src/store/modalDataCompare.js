@@ -25,7 +25,13 @@ export const useModalDataCompareStore = defineStore('modalDataCompare', {
     compareLoading: false,
     
     // 业务数据状态 - 对比结果
-    compareResult: []
+    compareResult: [],
+    
+    // 全量模态数据
+    allModalData: [],
+    
+    // 筛选后的表格数据
+    filteredTableData: []
 
     // UI状态已移除：modalShapeDialogVisible, currentModalData, activeTab
     // 图表状态已移除：chartInstance, chartInitialized
@@ -187,64 +193,138 @@ export const useModalDataCompareStore = defineStore('modalDataCompare', {
     // 处理零件选择变化
     handleComponentChange(componentId) {
       this.compareForm.componentId = componentId
-      // 重置后续选择
-      this.compareForm.vehicleModelIds = []
-      this.compareForm.testStatuses = []
-      this.compareForm.modeTypes = []
-      this.vehicleModelOptions = []
-      this.testStatusOptions = []
-      this.modeTypeOptions = []
-      this.compareResult = []
-      
+      // 当选择零件时，加载对应的振型类型
       if (componentId) {
-        this.loadRelatedVehicleModels(componentId)
+        this.loadModeTypesByComponent(componentId)
+      } else {
+        this.modeTypeOptions = []
       }
     },
     
     // 处理车型选择变化
     handleVehicleModelChange(vehicleModelIds) {
       this.compareForm.vehicleModelIds = vehicleModelIds
-      // 重置后续选择
-      this.compareForm.testStatuses = []
-      this.compareForm.modeTypes = []
-      this.testStatusOptions = []
-      this.modeTypeOptions = []
-      this.compareResult = []
-      
-      if (vehicleModelIds.length > 0) {
-        this.loadTestStatuses()
-      }
-      
-      // 根据业务规则调整测试状态选择模式
-      if (!this.isTestStatusMultiple && this.compareForm.testStatuses.length > 1) {
-        // 从多选变为单选时，只保留第一个选项
-        this.compareForm.testStatuses = [this.compareForm.testStatuses[0]]
-      }
     },
     
     // 处理测试状态选择变化
     handleTestStatusChange(testStatuses) {
       this.compareForm.testStatuses = testStatuses
-      // 重置后续选择
-      this.compareForm.modeTypes = []
-      this.modeTypeOptions = []
-      this.compareResult = []
-      
-      if (testStatuses.length > 0) {
-        this.loadModeTypes()
-      }
     },
     
     // 处理振型类型选择变化
     handleModeTypeChange(modeTypes) {
       this.compareForm.modeTypes = modeTypes
-      // 清空对比结果
-      this.compareResult = []
     },
     
     // UI相关方法已移除：showModalShapeDialog, closeModalShapeDialog, switchDialogTab
     // 图表相关方法已移除：setChartInstance, clearDialogState
     // 这些方法现在由组件管理
+    
+    // 加载所有模态数据（单请求）
+    async loadAllModalData() {
+      try {
+        // 一次性获取所有模态数据（后端已支持 all=1 返回拍平数据、不分页）
+        const modalResponse = await modalApi.queryModalData({ all: 1 })
+
+        // 兼容两种返回结构：分页(results)与统一(data)
+        const rawList = modalResponse?.results || modalResponse?.data || []
+
+        // 规范化数据结构与类型
+        const allData = rawList.map(item => ({
+          id: item.id,
+          component_id: Number(item.component_id),
+          component_name: item.component_name || '',
+          vehicle_model_id: Number(item.vehicle_model_id),
+          vehicle_model_name: item.vehicle_model_name || '',
+          test_status: item.test_status || '',
+          mode_type: item.mode_type || item.mode_shape_description || '',
+          frequency: typeof item.frequency === 'number' ? item.frequency : (parseFloat(item.frequency) || 0),
+          mode_shape_file: item.mode_shape_file || null,
+          test_photo_file: item.test_photo_file || null,
+          notes: item.notes || ''
+        }))
+
+        this.allModalData = allData
+        this.filteredTableData = [...allData]
+
+        // 本地生成筛选选项，避免额外请求
+        const componentMap = new Map()
+        const vehicleMap = new Map()
+        const statusSet = new Set()
+
+        allData.forEach(d => {
+          if (d.component_id && d.component_name && !componentMap.has(d.component_id)) {
+            componentMap.set(d.component_id, { id: d.component_id, component_name: d.component_name })
+          }
+          if (d.vehicle_model_id && d.vehicle_model_name && !vehicleMap.has(d.vehicle_model_id)) {
+            vehicleMap.set(d.vehicle_model_id, { id: d.vehicle_model_id, vehicle_model_name: d.vehicle_model_name })
+          }
+          if (d.test_status) statusSet.add(d.test_status)
+        })
+
+        // 仅当尚未加载到对应选项时才覆盖，避免与其它地方加载冲突
+        if (this.componentOptions.length === 0) {
+          this.componentOptions = Array.from(componentMap.values()).sort((a, b) => a.component_name.localeCompare(b.component_name))
+        }
+        if (this.vehicleModelOptions.length === 0) {
+          this.vehicleModelOptions = Array.from(vehicleMap.values()).sort((a, b) => a.vehicle_model_name.localeCompare(b.vehicle_model_name))
+        }
+        this.testStatusOptions = Array.from(statusSet.values())
+        // 振型选项按零件动态加载，这里不预填充
+        this.modeTypeOptions = []
+
+      } catch (error) {
+        console.error('加载所有模态数据失败:', error)
+        throw error
+      }
+    },
+    
+    // 根据零件加载振型类型
+    async loadModeTypesByComponent(componentId) {
+      try {
+        this.modeTypesLoading = true
+        const response = await modalApi.getModeTypesByComponent({ component_id: componentId })
+        this.modeTypeOptions = response.data || []
+      } catch (error) {
+        console.error('根据零件加载振型类型失败:', error)
+        this.modeTypeOptions = []
+      } finally {
+        this.modeTypesLoading = false
+      }
+    },
+    
+    // 筛选表格数据
+    filterTableData() {
+      let filtered = [...this.allModalData]
+      
+      // 按零件筛选
+      if (this.compareForm.componentId) {
+        filtered = filtered.filter(item => item.component_id === this.compareForm.componentId)
+      }
+      
+      // 按车型筛选
+      if (this.compareForm.vehicleModelIds.length > 0) {
+        filtered = filtered.filter(item => 
+          this.compareForm.vehicleModelIds.includes(item.vehicle_model_id)
+        )
+      }
+      
+      // 按测试状态筛选
+      if (this.compareForm.testStatuses.length > 0) {
+        filtered = filtered.filter(item => 
+          this.compareForm.testStatuses.includes(item.test_status)
+        )
+      }
+      
+      // 按振型筛选
+      if (this.compareForm.modeTypes.length > 0) {
+        filtered = filtered.filter(item => 
+          this.compareForm.modeTypes.includes(item.mode_type)
+        )
+      }
+      
+      this.filteredTableData = filtered
+    },
     
     // 初始化页面数据（在onMounted或onActivated时调用）
     async initializePageData() {

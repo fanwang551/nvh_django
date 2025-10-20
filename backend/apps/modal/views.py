@@ -76,8 +76,61 @@ def component_list(request):
 @api_view(['GET'])
 @permission_classes([])
 def modal_data_query(request):
-    """模态数据查询（支持多零件筛选）"""
+    """模态数据查询（支持多零件筛选）
+
+    说明：
+    - 新增 all 参数（all=1/true/yes），传入时忽略 vehicle_model_id，直接返回全部模态数据（不分页），并拍平返回字段。
+    - 兼容原有按车型查询的分页逻辑。
+    """
     try:
+        all_flag = str(request.GET.get('all', '')).lower() in ['1', 'true', 'yes']
+
+        if all_flag:
+            # 加载全部模态数据（不分页）
+            queryset = ModalData.objects.select_related(
+                'test_project',
+                'test_project__vehicle_model',
+                'test_project__component'
+            ).all().order_by('id')
+
+            # 可选：多零件筛选
+            component_ids = request.GET.get('component_ids')
+            if component_ids:
+                try:
+                    component_id_list = [int(i.strip()) for i in component_ids.split(',') if i.strip()]
+                    if component_id_list:
+                        queryset = queryset.filter(test_project__component_id__in=component_id_list)
+                except ValueError:
+                    return Response.error(message="零件ID格式错误", status_code=status.HTTP_400_BAD_REQUEST)
+
+            # 可选：按测试类型筛选
+            test_type = request.GET.get('test_type')
+            if test_type:
+                queryset = queryset.filter(test_project__test_type__icontains=test_type)
+
+            # 扁平化返回
+            data = []
+            for m in queryset:
+                tp = m.test_project
+                data.append({
+                    'id': m.id,
+                    'component_id': tp.component.id if tp and tp.component else None,
+                    'component_name': tp.component.component_name if tp and tp.component else '',
+                    'vehicle_model_id': tp.vehicle_model.id if tp and tp.vehicle_model else None,
+                    'vehicle_model_name': tp.vehicle_model.vehicle_model_name if tp and tp.vehicle_model else '',
+                    'test_status': tp.test_status or '',
+                    'mode_type': (m.mode_shape_description or ''),
+                    'mode_shape_description': (m.mode_shape_description or ''),
+                    'frequency': float(m.frequency) if m.frequency is not None else None,
+                    'damping_ratio': float(m.damping_ratio) if m.damping_ratio is not None else None,
+                    'mode_shape_file': m.mode_shape_file,
+                    'test_photo_file': m.test_photo_file,
+                    'notes': m.notes,
+                })
+
+            return Response.success(data=data, message="获取全部模态数据成功")
+
+        # 兼容原有：按车型查询 + 分页
         # 获取查询参数
         vehicle_model_id = request.GET.get('vehicle_model_id')
         if not vehicle_model_id:
@@ -98,7 +151,6 @@ def modal_data_query(request):
         component_ids = request.GET.get('component_ids')
         if component_ids:
             try:
-                # 支持逗号分隔的多个零件ID
                 component_id_list = [int(id.strip()) for id in component_ids.split(',') if id.strip()]
                 if component_id_list:
                     queryset = queryset.filter(test_project__component_id__in=component_id_list)
@@ -224,6 +276,49 @@ def get_test_statuses(request):
 
     except Exception as e:
         return Response.error(message=f"获取测试状态失败: {str(e)}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([])  # 临时允许匿名访问用于测试
+def get_all_test_statuses(request):
+    """获取所有测试状态选项"""
+    try:
+        # 获取所有不重复的测试状态
+        test_statuses = TestProject.objects.values_list('test_status', flat=True).distinct()
+        test_statuses = [status for status in test_statuses if status]  # 过滤空值
+        
+        return Response.success(data=test_statuses)
+
+    except Exception as e:
+        return Response.error(message=f"获取所有测试状态失败: {str(e)}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([])  # 临时允许匿名访问用于测试
+def get_mode_types_by_component(request):
+    """根据零件获取振型类型选项"""
+    try:
+        component_id = request.GET.get('component_id')
+        if not component_id:
+            return Response.error(message="零件ID不能为空", status_code=status.HTTP_400_BAD_REQUEST)
+
+        # 验证零件是否存在
+        if not Component.objects.filter(id=component_id).exists():
+            return Response.error(message="指定的零件不存在", status_code=status.HTTP_400_BAD_REQUEST)
+
+        # 构建查询条件
+        queryset = ModalData.objects.select_related('test_project').filter(
+            test_project__component_id=component_id
+        )
+
+        # 获取不重复的振型类型
+        mode_types = queryset.values_list('mode_shape_description', flat=True).distinct()
+        mode_types = [mode_type for mode_type in mode_types if mode_type]  # 过滤空值
+        
+        return Response.success(data=mode_types)
+
+    except Exception as e:
+        return Response.error(message=f"获取振型类型失败: {str(e)}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['GET'])

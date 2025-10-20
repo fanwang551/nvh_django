@@ -42,7 +42,6 @@
                 collapse-tags-tooltip
                 clearable
                 :loading="vehicleModelsLoading"
-                :disabled="!compareForm.componentId"
                 @change="handleVehicleModelChange"
                 style="width: 100%"
               >
@@ -67,7 +66,6 @@
                 collapse-tags-tooltip
                 clearable
                 :loading="testStatusesLoading"
-                :disabled="!compareForm.vehicleModelIds.length"
                 @change="handleTestStatusChange"
                 style="width: 100%"
               >
@@ -92,7 +90,6 @@
                 collapse-tags-tooltip
                 clearable
                 :loading="modeTypesLoading"
-                :disabled="!compareForm.testStatuses.length"
                 @change="handleModeTypeChange"
                 style="width: 100%"
               >
@@ -125,62 +122,68 @@
       </el-form>
     </el-card>
 
-    <!-- 对比结果展示区域 -->
-    <div v-if="compareResult.length > 0" class="result-section">
-      <!-- 对比表格 -->
-      <el-card class="table-card" shadow="never">
-        <template #header>
-          <div class="card-header">
-            <span class="card-title">对比表格</span>
-          </div>
-        </template>
-
-        <div class="table-container">
-          <el-table
-            :data="tableData"
-            class="compare-table"
-            border
-            stripe
-            :header-cell-style="{ backgroundColor: '#f1f3f5', fontWeight: 'bold', textAlign: 'center' }"
-            :cell-style="{ textAlign: 'center' }"
-          >
-            <el-table-column prop="modeType" label="振型类型" width="200" fixed="left" />
-            <el-table-column
-              v-for="vehicle in vehicleColumns"
-              :key="vehicle.key"
-              :prop="vehicle.key"
-              :label="vehicle.label"
-              width="150"
-            >
-              <template #default="scope">
-                <span v-if="scope.row[vehicle.key]" class="frequency-value">
-                  {{ scope.row[vehicle.key] }} Hz
-                </span>
-                <span v-else class="no-data">-</span>
-              </template>
-            </el-table-column>
-          </el-table>
+    <!-- 模态数据表格 -->
+    <el-card class="table-card" shadow="never">
+      <template #header>
+        <div class="card-header">
+          <span class="card-title">模态信息表</span>
         </div>
-      </el-card>
+      </template>
 
-      <!-- 散点图 -->
-      <el-card class="chart-card" shadow="never">
-        <template #header>
-          <div class="card-header">
-            <span class="card-title">散点图对比</span>
-          </div>
-        </template>
+      <div class="table-container">
+        <el-table
+          :data="paginatedTableData"
+          class="modal-table"
+          border
+          stripe
+          height="calc(100vh - 300px)"
+          :header-cell-style="{ backgroundColor: '#409EFF', color: '#ffffff', fontWeight: 'bold', textAlign: 'center' }"
+          :cell-style="{ textAlign: 'center' }"
+          v-loading="tableLoading"
+          style="width: 100%"
+        >
+          <el-table-column prop="component_name" label="零件" />
+          <el-table-column prop="vehicle_model_name" label="车型" />
+          <el-table-column prop="test_status" label="测试状态" />
+          <el-table-column prop="mode_type" label="振型" />
+          <el-table-column prop="frequency" label="频率">
+            <template #default="scope">
+              <span v-if="scope.row.frequency" class="frequency-value">
+                {{ scope.row.frequency }} Hz
+              </span>
+              <span v-else class="no-data">-</span>
+            </template>
+          </el-table-column>
+        </el-table>
 
-        <div class="chart-container">
-          <div ref="chartContainer" class="echarts-container"></div>
+        <!-- 分页 -->
+        <div class="pagination-container">
+          <el-pagination
+            v-model:current-page="currentPage"
+            v-model:page-size="pageSize"
+            :page-sizes="[10, 20, 50, 100]"
+            :total="filteredTableData.length"
+            layout="total, sizes, prev, pager, next, jumper"
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+          />
         </div>
-      </el-card>
-    </div>
+      </div>
+    </el-card>
 
-    <!-- 空状态 -->
-    <div v-else-if="!compareLoading" class="empty-state">
-      <el-empty description="请选择条件并生成对比数据" />
-    </div>
+    <!-- 散点图 -->
+    <el-card v-if="showChart" class="chart-card" shadow="never">
+      <template #header>
+        <div class="card-header">
+          <span class="card-title">散点图对比</span>
+          <el-button type="text" @click="hideChart">隐藏</el-button>
+        </div>
+      </template>
+
+      <div class="chart-container">
+        <div ref="chartContainer" class="echarts-container"></div>
+      </div>
+    </el-card>
 
     <!-- 查看振型弹窗 -->
     <el-dialog
@@ -286,31 +289,70 @@ const tableData = computed(() => store.tableData)
 const vehicleColumns = computed(() => store.vehicleColumns)
 const canCompare = computed(() => store.canCompare)
 const isTestStatusMultiple = computed(() => store.isTestStatusMultiple)
+const allModalData = computed(() => store.allModalData)
+const filteredTableData = computed(() => store.filteredTableData)
 
 // UI状态管理（组件职责）
 const modalShapeDialogVisible = ref(false)
 const currentModalData = ref(null)
 const activeTab = ref('shape')
 
+// 分页状态管理
+const currentPage = ref(1)
+const pageSize = ref(20)
+const tableLoading = ref(false)
+const showChart = ref(false)
+
 // 图表状态管理（组件职责）
 const chartContainer = ref(null)
 let chartInstance = null
 
+// 计算分页数据
+const paginatedTableData = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return filteredTableData.value.slice(start, end)
+})
+
 // 事件处理方法
 const handleComponentChange = (componentId) => {
   store.handleComponentChange(componentId)
+  filterTableData()
 }
 
 const handleVehicleModelChange = (vehicleModelIds) => {
   store.handleVehicleModelChange(vehicleModelIds)
+  filterTableData()
 }
 
 const handleTestStatusChange = (testStatuses) => {
   store.handleTestStatusChange(testStatuses)
+  filterTableData()
 }
 
 const handleModeTypeChange = (modeTypes) => {
   store.handleModeTypeChange(modeTypes)
+  filterTableData()
+}
+
+// 分页处理
+const handleSizeChange = (size) => {
+  pageSize.value = size
+  currentPage.value = 1
+}
+
+const handleCurrentChange = (page) => {
+  currentPage.value = page
+}
+
+// 筛选表格数据
+const filterTableData = () => {
+  store.filterTableData()
+}
+
+// 隐藏散点图
+const hideChart = () => {
+  showChart.value = false
 }
 
 // 生成对比数据
@@ -325,6 +367,7 @@ const handleCompare = async () => {
     
     if (result.length > 0) {
       ElMessage.success('对比数据生成成功')
+      showChart.value = true
       // 等待DOM更新后渲染图表
       await nextTick()
       renderChart()
@@ -555,26 +598,54 @@ const handleImageError = (event) => {
 
 // 生命周期钩子 - 按照Vue组件生命周期处理模式
 onMounted(async () => {
-  // 初始化基础数据
-  await store.initializePageData()
+  try {
+    // 设置加载状态
+    tableLoading.value = true
+    
+    // 初始化基础数据和加载所有模态数据
+    await Promise.all([
+      store.initializePageData(),
+      store.loadAllModalData()
+    ])
+    
+    // 过滤表格数据
+    store.filterTableData()
+  } catch (error) {
+    console.error('页面初始化失败:', error)
+    ElMessage.error('页面数据加载失败，请刷新页面重试')
+  } finally {
+    tableLoading.value = false
+  }
 })
 
 // 保持活跃时 - 确保基础数据最新，但保持用户状态不变
 onActivated(async () => {
-  // 如果没有零件选项，重新加载
-  if (store.componentOptions.length === 0) {
-    await store.initializePageData()
-  }
-  
-  // 如果有对比结果，重新渲染图表
-  if (store.compareResult.length > 0) {
-    await nextTick()
-    // 等待容器完成渲染
-    setTimeout(() => {
-      if (chartContainer.value) {
-        renderChart()
-      }
-    }, 200)
+  try {
+    // 如果没有零件选项或模态数据，重新加载
+    if (store.componentOptions.length === 0 || store.allModalData.length === 0) {
+      tableLoading.value = true
+      await Promise.all([
+        store.initializePageData(),
+        store.loadAllModalData()
+      ])
+      store.filterTableData()
+    }
+    
+    // 如果有对比结果且显示图表，重新渲染图表
+    if (store.compareResult.length > 0 && showChart.value) {
+      await nextTick()
+      // 等待容器完成渲染
+      setTimeout(() => {
+        if (chartContainer.value) {
+          renderChart()
+        }
+      }, 200)
+    }
+  } catch (error) {
+    console.error('页面激活时数据加载失败:', error)
+    ElMessage.error('数据加载失败，请刷新页面重试')
+  } finally {
+    tableLoading.value = false
   }
 })
 
@@ -673,10 +744,33 @@ watch(() => store.compareResult, (newResult) => {
 .table-container {
   border-radius: 8px;
   overflow: hidden;
+  height: calc(100vh - 240px);
+  display: flex;
+  flex-direction: column;
 }
 
-.compare-table {
+.modal-table {
   border-radius: 8px;
+  flex: 1;
+}
+
+:deep(.modal-table .el-table) {
+  height: 100%;
+}
+
+:deep(.modal-table .el-table__body-wrapper) {
+  height: calc(100% - 40px);
+  overflow-y: auto;
+}
+
+/* 分页样式 */
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  padding: 16px;
+  background-color: #fafafa;
+  border-radius: 0 0 8px 8px;
+  flex-shrink: 0;
 }
 
 :deep(.compare-table .el-table__header-wrapper) {

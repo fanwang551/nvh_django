@@ -49,13 +49,16 @@ class ModalDataSerializer(serializers.ModelSerializer):
     vehicle_model_name = serializers.CharField(source='test_project.vehicle_model.vehicle_model_name', read_only=True)
     component_name = serializers.CharField(source='test_project.component.component_name', read_only=True)
     component_category = serializers.CharField(source='test_project.component.category', read_only=True)
+    test_status = serializers.CharField(source='test_project.test_status', read_only=True)
+    test_type = serializers.CharField(source='test_project.test_type', read_only=True)
+    test_date = serializers.DateField(source='test_project.test_date', read_only=True)
 
     class Meta:
         model = ModalData
         fields = [
             'id', 'test_project', 'test_project_id', 'vehicle_model_name', 'component_name', 'component_category',
             'frequency', 'damping_ratio', 'mode_shape_description',
-            'mode_shape_file', 'test_photo_file', 'notes'
+            'mode_shape_file', 'test_photo_file', 'notes', 'test_status', 'test_type', 'test_date'
         ]
         read_only_fields = ['id']
 

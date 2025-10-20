@@ -112,6 +112,24 @@ export const modalApi = {
    */
   getAirtightnessImages(params = {}) {
     return request.get('/modal/airtightness-images/', params)
+  },
+
+  /**
+   * 获取所有测试状态选项
+   * @returns {Promise} 测试状态列表
+   */
+  getAllTestStatuses() {
+    return request.get('/modal/modal-data/all-test-statuses/')
+  },
+
+  /**
+   * 根据零件获取振型类型选项
+   * @param {Object} params - 查询参数
+   * @param {number} params.component_id - 零件ID（必需）
+   * @returns {Promise} 振型类型列表
+   */
+  getModeTypesByComponent(params = {}) {
+    return request.get('/modal/modal-data/mode-types-by-component/', params)
   }
 }
 

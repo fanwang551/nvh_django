@@ -17,6 +17,10 @@ urlpatterns = [
     path('modal-data/related-vehicles/', views.get_related_vehicle_models, name='get_related_vehicle_models'),
     path('modal-data/test-statuses/', views.get_test_statuses, name='get_test_statuses'),
     path('modal-data/mode-types/', views.get_mode_types, name='get_mode_types'),
+    
+    # 新增接口
+    path('modal-data/all-test-statuses/', views.get_all_test_statuses, name='get_all_test_statuses'),
+    path('modal-data/mode-types-by-component/', views.get_mode_types_by_component, name='get_mode_types_by_component'),
 
     # 气密性测试相关接口
     path('airtightness-data/compare/', views.airtightness_data_compare, name='airtightness_data_compare'),
