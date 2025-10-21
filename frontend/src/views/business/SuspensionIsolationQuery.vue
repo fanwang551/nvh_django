@@ -385,12 +385,12 @@ const handleReset = () => {
   ElMessage.info('已重置查询条件')
 }
 
-// 数值格式化
+// 数值格式化（保留两位小数）
 const formatValue = (value) => {
   if (value === null || value === undefined) {
     return '-'
   }
-  return parseFloat(value).toFixed(6)
+  return parseFloat(value).toFixed(2)
 }
 
 // 表格数据转换 - 将每个测点的X/Y/Z方向数据展开为多行
@@ -565,26 +565,31 @@ onMounted(async () => {
 
 /* 基础信息样式 */
 .basic-info-content {
-  padding: 10px 0;
+  padding: 8px 0;
 }
 
 .info-item {
   display: flex;
-  align-items: center;
-  margin-bottom: 12px;
-  font-size: 14px;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-size: 15px;
 }
 
 .info-label {
-  font-weight: 500;
-  color: #606266;
-  min-width: 120px;
+  color: #303133;
+  font-size: 15px;
+  font-weight: 550;
+  min-width: auto;
   flex-shrink: 0;
 }
 
 .info-value {
-  color: #303133;
+  color: #606266;
+  font-size: 15px;
+  font-weight: 500;
   flex: 1;
+  word-break: break-all;
 }
 
 /* 表格样式 */
