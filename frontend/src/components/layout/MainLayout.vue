@@ -78,7 +78,15 @@ const cachedComponents = ref([
   'MaterialPorosityFlowResistanceQuery',
   'DynamicStiffnessQuery',
   'VehicleMountIsolationQuery',
-  'SuspensionIsolationQuery'
+  'SuspensionIsolationQuery',
+  // Vehicle Data Center
+  'VehicleDataCenter',
+  'IAQCenter',
+  'DataCenter',
+  'TraceabilityCenter',
+  'VocData',
+  'OdorData',
+  'FullSpectrumData'
 ])
 
 // 菜单选择处理
@@ -87,7 +95,8 @@ const handleMenuSelect = (menuKey) => {
     'home': { name: 'home', title: '首页', route: '/' },
     'business': { name: 'business', title: '业务中心', route: '/business' },
     'permission': { name: 'permission', title: '权限管理', route: '/permission' },
-    'others': { name: 'others', title: '其他', route: '/others' }
+    'others': { name: 'others', title: '其他', route: '/others' },
+    'vehicle-data': { name: 'vehicle-data', title: '车身数据中心', route: '/vehicle-data' }
   }
 
   const menu = menuConfig[menuKey]
@@ -105,6 +114,12 @@ const handleMenuSelect = (menuKey) => {
     // 切换到对应标签页
     activeTab.value = menu.name
     router.push(menu.route)
+    return
+  }
+
+  // 兼容：当子菜单直接传入的是路由路径时
+  if (typeof menuKey === 'string' && menuKey.startsWith('/')) {
+    router.push(menuKey)
   }
 }
 
@@ -160,6 +175,28 @@ const addBusinessTab = (routePath) => {
   }
 }
 
+// 添加车身数据中心子页面标签页
+const addVehicleDataTab = (routePath) => {
+  const vehicleDataTabConfig = {
+    '/vehicle-data': { name: 'vehicle-data', title: '车身数据中心' },
+    '/vehicle-data/iaq': { name: 'iaq-center', title: '车内空气质量中心' },
+    '/vehicle-data/data': { name: 'data-center', title: '数据中心' },
+    '/vehicle-data/data/voc': { name: 'voc-data', title: 'VOC数据' },
+    '/vehicle-data/data/odor': { name: 'odor-data', title: '气味数据' },
+    '/vehicle-data/data/full-spectrum': { name: 'full-spectrum-data', title: '全谱数据' },
+    '/vehicle-data/trace': { name: 'traceability-center', title: '溯源中心' }
+  }
+
+  const config = vehicleDataTabConfig[routePath]
+  if (!config) return
+
+  const existing = openTabs.find(tab => tab.name === config.name)
+  if (!existing) {
+    openTabs.push({ name: config.name, title: config.title, closable: true })
+  }
+  activeTab.value = config.name
+}
+
 // 标签页点击处理
 const handleTabClick = (tabName) => {
   activeTab.value = tabName
@@ -183,7 +220,15 @@ const handleTabClick = (tabName) => {
     'material-porosity-flow-resistance-query': '/business/material-porosity-flow-resistance-query',
     'dynamic-stiffness-query': '/business/dynamic-stiffness-query',
     'vehicle-mount-isolation-query': '/business/vehicle-mount-isolation-query',
-    'suspension-isolation-query': '/business/suspension-isolation-query'
+    'suspension-isolation-query': '/business/suspension-isolation-query',
+    // Vehicle Data Center
+    'vehicle-data': '/vehicle-data',
+    'iaq-center': '/vehicle-data/iaq',
+    'data-center': '/vehicle-data/data',
+    'voc-data': '/vehicle-data/data/voc',
+    'odor-data': '/vehicle-data/data/odor',
+    'full-spectrum-data': '/vehicle-data/data/full-spectrum',
+    'traceability-center': '/vehicle-data/trace'
   }
   // 经验数据库：追加路由映射
   allRoutes['experience-query'] = '/business/experience-query'
@@ -229,6 +274,8 @@ watch(() => route.path, (newPath) => {
       })
     }
     activeTab.value = 'business'
+  } else if (newPath.startsWith('/vehicle-data')) {
+    addVehicleDataTab(newPath)
   }
 }, { immediate: true })
 
@@ -250,6 +297,14 @@ const initializeTabsFromRoute = () => {
   } else if (currentPath.startsWith('/business/')) {
     // 业务子页面
     addBusinessTab(currentPath)
+  } else if (currentPath === '/vehicle-data') {
+    const existingVD = openTabs.find(tab => tab.name === 'vehicle-data')
+    if (!existingVD) {
+      openTabs.push({ name: 'vehicle-data', title: '车身数据中心', closable: true })
+    }
+    activeTab.value = 'vehicle-data'
+  } else if (currentPath.startsWith('/vehicle-data/')) {
+    addVehicleDataTab(currentPath)
   } else if (currentPath === '/permission') {
     const existingTab = openTabs.find(tab => tab.name === 'permission')
     if (!existingTab) {

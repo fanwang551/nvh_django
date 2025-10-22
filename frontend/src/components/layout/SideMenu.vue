@@ -35,6 +35,23 @@
         <template #title>权限管理</template>
       </el-menu-item>
 
+      <!-- 车身数据中心（含子菜单） -->
+      <el-sub-menu index="vehicle-data">
+        <template #title>
+          <el-icon><Collection /></el-icon>
+          <span>车身数据中心</span>
+        </template>
+        <el-menu-item index="/vehicle-data">中心概览</el-menu-item>
+        <el-menu-item index="/vehicle-data/iaq">车内空气质量中心</el-menu-item>
+        <el-sub-menu index="vehicle-data-data">
+          <template #title>数据中心</template>
+          <el-menu-item index="/vehicle-data/data/voc">VOC数据</el-menu-item>
+          <el-menu-item index="/vehicle-data/data/odor">气味数据</el-menu-item>
+          <el-menu-item index="/vehicle-data/data/full-spectrum">全谱数据</el-menu-item>
+        </el-sub-menu>
+        <el-menu-item index="/vehicle-data/trace">溯源中心</el-menu-item>
+      </el-sub-menu>
+
       <!-- 其他 -->
       <el-menu-item index="others">
         <el-icon><More /></el-icon>
@@ -47,14 +64,7 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import {
-  House,
-  OfficeBuilding,
-  Key,
-  More,
-  Fold,
-  Expand
-} from '@element-plus/icons-vue'
+import { House, OfficeBuilding, Key, More, Fold, Expand, Collection } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const emit = defineEmits(['menu-select', 'collapse-change'])
@@ -74,6 +84,10 @@ const setActiveMenuByRoute = () => {
     '/others': 'others'
   }
 
+  if (route.path.startsWith('/vehicle-data')) {
+    activeMenu.value = 'vehicle-data'
+    return
+  }
   activeMenu.value = routeMenuMap[route.path] || 'home'
 }
 

@@ -27,12 +27,63 @@ import DynamicStiffnessQuery from '@/views/business/DynamicStiffnessQuery.vue'
 import VehicleMountIsolationQuery from '@/views/business/VehicleMountIsolationQuery.vue'
 import SuspensionIsolationQuery from '@/views/business/SuspensionIsolationQuery.vue'
 
+// Vehicle Data Center views
+import VehicleDataCenter from '@/views/vehicle-data/VehicleDataCenter.vue'
+import IAQCenter from '@/views/vehicle-data/IAQCenter.vue'
+import DataCenter from '@/views/vehicle-data/DataCenter.vue'
+import TraceabilityCenter from '@/views/vehicle-data/TraceabilityCenter.vue'
+import VocData from '@/views/vehicle-data/VocData.vue'
+import OdorData from '@/views/vehicle-data/OdorData.vue'
+import FullSpectrumData from '@/views/vehicle-data/FullSpectrumData.vue'
+
 const routes = [
   {
     path: '/',
     name: 'Home',
     component: Home,
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/vehicle-data',
+    name: 'VehicleDataCenter',
+    component: VehicleDataCenter,
+    meta: { requiresAuth: true, title: '车身数据中心' }
+  },
+  {
+    path: '/vehicle-data/iaq',
+    name: 'IAQCenter',
+    component: IAQCenter,
+    meta: { requiresAuth: true, title: '车内空气质量中心' }
+  },
+  {
+    path: '/vehicle-data/data',
+    name: 'DataCenter',
+    component: DataCenter,
+    meta: { requiresAuth: true, title: '数据中心' }
+  },
+  {
+    path: '/vehicle-data/data/voc',
+    name: 'VocData',
+    component: VocData,
+    meta: { requiresAuth: true, title: 'VOC数据' }
+  },
+  {
+    path: '/vehicle-data/data/odor',
+    name: 'OdorData',
+    component: OdorData,
+    meta: { requiresAuth: true, title: '气味数据' }
+  },
+  {
+    path: '/vehicle-data/data/full-spectrum',
+    name: 'FullSpectrumData',
+    component: FullSpectrumData,
+    meta: { requiresAuth: true, title: '全谱数据' }
+  },
+  {
+    path: '/vehicle-data/trace',
+    name: 'TraceabilityCenter',
+    component: TraceabilityCenter,
+    meta: { requiresAuth: true, title: '溯源中心' }
   },
   {
     path: '/business/experience-query',
