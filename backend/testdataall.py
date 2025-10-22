@@ -1,7 +1,7 @@
 import os
 
 # 定义目录路径
-directory_path = r"D:\pythonProject\zlbbses\nvh_django\backend\media\dynamic_stiffness\dynamic_stiffness"
+directory_path = r"D:\pythonProject\zlbbses\nvh_django\backend\media\dynamic_stiffness\suspension_isolation"
 
 # 检查目录是否存在
 if os.path.exists(directory_path):
@@ -339,4 +339,31 @@ else:
 # if __name__ == '__main__':
 #     main()
 
+# 重命名
+# import os
+#
+# # 指定文件夹路径
+# folder_path = r"C:\Users\wangfan\Desktop\已解密--wangyulei\悬架隔振率\03--测试结果曲线图"
+#
+# # 遍历文件夹中的所有文件
+# for filename in os.listdir(folder_path):
+#     # 获取文件的完整路径
+#     old_file = os.path.join(folder_path, filename)
+#
+#     # 只处理文件，跳过文件夹
+#     if os.path.isfile(old_file):
+#         # 分离文件名和扩展名
+#         name, ext = os.path.splitext(filename)
+#
+#         # 检查是否是图片文件（可根据需要添加更多格式）
+#         if ext.lower() in ['.png', '.jpg', '.jpeg', '.bmp', '.gif', '.tiff']:
+#             # 构造新文件名
+#             new_filename = f"{name}曲线图{ext}"
+#             new_file = os.path.join(folder_path, new_filename)
+#
+#             # 重命名文件
+#             os.rename(old_file, new_file)
+#             print(f"已重命名: {filename} -> {new_filename}")
+#
+# print("所有图片文件重命名完成！")
 
