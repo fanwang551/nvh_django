@@ -24,6 +24,7 @@ urlpatterns = [
     path('api/NTF/', include('apps.NTF.urls')),
     path('api/acoustic-analysis/', include('apps.acoustic_analysis.urls')),
     path('api/experience/', include('apps.experience.urls')),
+    path('api/voc/', include('apps.voc.urls')),
     path('oidc/', include('mozilla_django_oidc.urls')),
 ]
 

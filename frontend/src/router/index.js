@@ -26,7 +26,7 @@ import MaterialPorosityFlowResistanceQuery from '@/views/business/MaterialPorosi
 import DynamicStiffnessQuery from '@/views/business/DynamicStiffnessQuery.vue'
 import VehicleMountIsolationQuery from '@/views/business/VehicleMountIsolationQuery.vue'
 import SuspensionIsolationQuery from '@/views/business/SuspensionIsolationQuery.vue'
-
+//import VOCQuery from '@/views/vehicle-data/VocData.vue'
 // Vehicle Data Center views
 import VehicleDataCenter from '@/views/vehicle-data/VehicleDataCenter.vue'
 import IAQCenter from '@/views/vehicle-data/IAQCenter.vue'
@@ -193,6 +193,12 @@ const routes = [
     component: SuspensionIsolationQuery,
     meta: { requiresAuth: true }
   },
+//  {
+//    path: '/business/voc-query',
+//    name: 'VOCQuery',
+//    component: VOCQuery,
+//    meta: { requiresAuth: true, title: 'VOC数据查询' }
+//  },
   {
     path: '/permission',
     name: 'PermissionManagement',
@@ -236,8 +242,3 @@ router.beforeEach((to, from, next) => {
 })
 
 export default router
-
-
-
-
-
