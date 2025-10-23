@@ -1,5 +1,6 @@
 <template>
-  <div class="voc-query">
+  <el-config-provider :locale="locale">
+    <div class="voc-query">
     <!-- 查询表单 -->
     <el-card class="form-card" shadow="never">
       <template #header>
@@ -355,7 +356,8 @@
     </div>
 
 
-  </div>
+    </div>
+  </el-config-provider>
 </template>
 
 <script setup>
@@ -363,6 +365,27 @@ import { ref, onMounted, computed } from 'vue'
 import { useVocQueryStore } from '@/store/vocQuery'
 import { ElMessage } from 'element-plus'
 import { ArrowDown } from '@element-plus/icons-vue'
+import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
+
+// 配置中文语言，自定义星期显示
+const locale = ref({
+  ...zhCn,
+  el: {
+    ...zhCn.el,
+    datepicker: {
+      ...zhCn.el.datepicker,
+      weeks: {
+        sun: '日',
+        mon: '一',
+        tue: '二',
+        wed: '三',
+        thu: '四',
+        fri: '五',
+        sat: '六'
+      }
+    }
+  }
+})
 
 // Store
 const store = useVocQueryStore()
