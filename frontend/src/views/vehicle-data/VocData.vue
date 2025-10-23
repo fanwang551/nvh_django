@@ -241,10 +241,12 @@
           <!-- VOC物质列 -->
           <el-table-column
             v-if="visibleColumns.includes('benzene')"
-            label="苯"
             width="90"
             align="center"
           >
+            <template #header>
+              <div>苯<br/>(mg/m³)</div>
+            </template>
             <template #default="scope">
               {{ scope.row.benzene_formatted }}
             </template>
@@ -252,10 +254,12 @@
 
           <el-table-column
             v-if="visibleColumns.includes('toluene')"
-            label="甲苯"
             width="90"
             align="center"
           >
+            <template #header>
+              <div>甲苯<br/>(mg/m³)</div>
+            </template>
             <template #default="scope">
               {{ scope.row.toluene_formatted }}
             </template>
@@ -263,10 +267,12 @@
 
           <el-table-column
             v-if="visibleColumns.includes('ethylbenzene')"
-            label="乙苯"
             width="90"
             align="center"
           >
+            <template #header>
+              <div>乙苯<br/>(mg/m³)</div>
+            </template>
             <template #default="scope">
               {{ scope.row.ethylbenzene_formatted }}
             </template>
@@ -274,10 +280,12 @@
 
           <el-table-column
             v-if="visibleColumns.includes('xylene')"
-            label="二甲苯"
             width="90"
             align="center"
           >
+            <template #header>
+              <div>二甲苯<br/>(mg/m³)</div>
+            </template>
             <template #default="scope">
               {{ scope.row.xylene_formatted }}
             </template>
@@ -285,10 +293,12 @@
 
           <el-table-column
             v-if="visibleColumns.includes('styrene')"
-            label="苯乙烯"
             width="90"
             align="center"
           >
+            <template #header>
+              <div>苯乙烯<br/>(mg/m³)</div>
+            </template>
             <template #default="scope">
               {{ scope.row.styrene_formatted }}
             </template>
@@ -296,10 +306,12 @@
 
           <el-table-column
             v-if="visibleColumns.includes('formaldehyde')"
-            label="甲醛"
             width="90"
             align="center"
           >
+            <template #header>
+              <div>甲醛<br/>(mg/m³)</div>
+            </template>
             <template #default="scope">
               {{ scope.row.formaldehyde_formatted }}
             </template>
@@ -307,10 +319,12 @@
 
           <el-table-column
             v-if="visibleColumns.includes('acetaldehyde')"
-            label="乙醛"
             width="90"
             align="center"
           >
+            <template #header>
+              <div>乙醛<br/>(mg/m³)</div>
+            </template>
             <template #default="scope">
               {{ scope.row.acetaldehyde_formatted }}
             </template>
@@ -318,10 +332,12 @@
 
           <el-table-column
             v-if="visibleColumns.includes('acrolein')"
-            label="丙烯醛"
             width="90"
             align="center"
           >
+            <template #header>
+              <div>丙烯醛<br/>(mg/m³)</div>
+            </template>
             <template #default="scope">
               {{ scope.row.acrolein_formatted }}
             </template>
@@ -329,10 +345,12 @@
 
           <el-table-column
             v-if="visibleColumns.includes('tvoc')"
-            label="TVOC"
             width="90"
             align="center"
           >
+            <template #header>
+              <div>TVOC<br/>(mg/m³)</div>
+            </template>
             <template #default="scope">
               {{ scope.row.tvoc_formatted }}
             </template>
