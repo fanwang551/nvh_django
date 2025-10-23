@@ -38,7 +38,7 @@ class VocResult(models.Model):
     acetaldehyde = models.DecimalField(max_digits=10, decimal_places=4, null=True, blank=True, verbose_name='乙醛 (mg/m³)')
     acrolein = models.DecimalField(max_digits=10, decimal_places=4, null=True, blank=True, verbose_name='丙烯醛 (mg/m³)')
     tvoc = models.DecimalField(max_digits=10, decimal_places=4, null=True, blank=True, verbose_name='TVOC (mg/m³)')
-    test_date = models.DateTimeField(null=True, blank=True, verbose_name='检测时间')
+    test_date = models.DateField(null=True, blank=True, verbose_name='检测时间')
     
     class Meta:
         db_table = 'voc_result'
