@@ -684,8 +684,8 @@ const store = useVocQueryStore()
 // VOC表格可见列管理 - 默认选择所有物质和委托单号
 const vocVisibleColumns = ref(['commission_number', 'benzene', 'toluene', 'ethylbenzene', 'xylene', 'styrene', 'formaldehyde', 'acetaldehyde', 'acrolein', 'tvoc'])
 
-// 气味表格可见列管理 - 默认不选择任何可选列
-const odorVisibleColumns = ref([])
+// 气味表格可见列管理 - 默认选择检测时间、零部件、开发阶段
+const odorVisibleColumns = ref(['test_date', 'part_name', 'development_stage'])
 
 // 样品图弹窗
 const imageDialogVisible = ref(false)
@@ -743,7 +743,7 @@ const handleFilterChange = () => {
 const handleReset = () => {
   store.resetSearchCriteria()
   vocVisibleColumns.value = ['commission_number', 'benzene', 'toluene', 'ethylbenzene', 'xylene', 'styrene', 'formaldehyde', 'acetaldehyde', 'acrolein', 'tvoc']
-  odorVisibleColumns.value = []
+  odorVisibleColumns.value = ['test_date', 'part_name', 'development_stage']
 }
 
 // VOC表格分页
