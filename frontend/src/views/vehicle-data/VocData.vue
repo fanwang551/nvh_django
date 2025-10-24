@@ -169,13 +169,13 @@
           <div class="card-header">
             <span>检测结果</span>
             <div class="column-selector">
-              <el-dropdown trigger="click">
+              <el-dropdown trigger="click" :hide-on-click="false">
                 <el-button size="small" type="primary">
                   列选择<el-icon class="el-icon--right"><arrow-down /></el-icon>
                 </el-button>
                 <template #dropdown>
                   <el-dropdown-menu>
-                    <el-dropdown-item key="commission_number">
+                    <el-dropdown-item key="commission_number" @click.stop>
                       <el-checkbox
                         :modelValue="visibleColumns.includes('commission_number')"
                         @change="(value) => toggleColumn('commission_number', value)"
@@ -183,7 +183,7 @@
                         委托单号
                       </el-checkbox>
                     </el-dropdown-item>
-                    <el-dropdown-item key="sample_number">
+                    <el-dropdown-item key="sample_number" @click.stop>
                       <el-checkbox
                         :modelValue="visibleColumns.includes('sample_number')"
                         @change="(value) => toggleColumn('sample_number', value)"
@@ -192,7 +192,8 @@
                       </el-checkbox>
                     </el-dropdown-item>
                     <el-dropdown-item v-for="compound in store.chart_config.compound_options"
-                                     :key="compound.value">
+                                     :key="compound.value"
+                                     @click.stop>
                       <el-checkbox
                         :modelValue="visibleColumns.includes(compound.value)"
                         @change="(value) => toggleColumn(compound.value, value)"
@@ -356,6 +357,18 @@
             </template>
           </el-table-column>
 
+          <el-table-column label="操作" width="100" align="center" fixed="right">
+            <template #default="scope">
+              <el-button
+                type="primary"
+                size="small"
+                @click="showSampleImage(scope.row.sample_info?.sample_image_url)"
+              >
+                样品图
+              </el-button>
+            </template>
+          </el-table-column>
+
         </el-table>
 
         <!-- 分页 -->
@@ -373,6 +386,28 @@
       </el-card>
     </div>
 
+    <!-- 样品图预览对话框 -->
+    <el-dialog
+      v-model="imageDialogVisible"
+      title="样品图"
+      width="60%"
+      center
+    >
+      <div style="text-align: center;">
+        <el-image
+          :src="currentImageUrl"
+          fit="contain"
+          style="max-width: 100%; max-height: 70vh;"
+        >
+          <template #error>
+            <div style="padding: 50px; color: #909399;">
+              <el-icon :size="60"><Picture /></el-icon>
+              <p>图片加载失败</p>
+            </div>
+          </template>
+        </el-image>
+      </div>
+    </el-dialog>
 
     </div>
   </el-config-provider>
@@ -382,7 +417,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useVocQueryStore } from '@/store/vocQuery'
 import { ElMessage } from 'element-plus'
-import { ArrowDown } from '@element-plus/icons-vue'
+import { ArrowDown, Picture } from '@element-plus/icons-vue'
 import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
 
 // 配置中文语言，自定义星期显示
@@ -411,6 +446,10 @@ const store = useVocQueryStore()
 // 可见列管理 - 默认选择所有物质和委托单号、样品编号
 const visibleColumns = ref(['commission_number', 'sample_number', 'benzene', 'toluene', 'ethylbenzene', 'xylene', 'styrene', 'formaldehyde', 'acetaldehyde', 'acrolein', 'tvoc'])
 
+// 样品图弹窗
+const imageDialogVisible = ref(false)
+const currentImageUrl = ref('')
+
 // 切换列显示
 const toggleColumn = (compound, visible) => {
   if (visible) {
@@ -425,11 +464,21 @@ const toggleColumn = (compound, visible) => {
   }
 }
 
+// 显示样品图
+const showSampleImage = (imageUrl) => {
+  if (imageUrl) {
+    currentImageUrl.value = imageUrl
+    imageDialogVisible.value = true
+  } else {
+    ElMessage.warning('该样品暂无图片')
+  }
+}
+
 // 方法
 const formatDate = (dateString) => {
   if (!dateString) return '-'
   const date = new Date(dateString)
-  return date.toLocaleString('zh-CN')
+  return date.toLocaleDateString('zh-CN')
 }
 
 const handleFilterChange = () => {
