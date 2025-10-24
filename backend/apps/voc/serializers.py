@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import SampleInfo, VocResult
+from .models import SampleInfo, VocOdorResult
 from apps.modal.models import VehicleModel
 
 
@@ -25,11 +25,11 @@ class SampleInfoSerializer(serializers.ModelSerializer):
         ]
 
 
-class VocResultSerializer(serializers.ModelSerializer):
-    """VOC检测结果序列化器"""
+class VocOdorResultSerializer(serializers.ModelSerializer):
+    """VOC和气味检测结果序列化器"""
     sample_info = SampleInfoSerializer(source='sample', read_only=True)
     
-    # 格式化显示保留3位小数
+    # 格式化显示保留3位小数（VOC数据）
     benzene_formatted = serializers.SerializerMethodField()
     toluene_formatted = serializers.SerializerMethodField()
     ethylbenzene_formatted = serializers.SerializerMethodField()
@@ -40,14 +40,24 @@ class VocResultSerializer(serializers.ModelSerializer):
     acrolein_formatted = serializers.SerializerMethodField()
     tvoc_formatted = serializers.SerializerMethodField()
     
+    # 格式化显示保留1位小数（气味数据）
+    static_front_formatted = serializers.SerializerMethodField()
+    static_rear_formatted = serializers.SerializerMethodField()
+    dynamic_front_formatted = serializers.SerializerMethodField()
+    dynamic_rear_formatted = serializers.SerializerMethodField()
+    odor_mean_formatted = serializers.SerializerMethodField()
+    
     class Meta:
-        model = VocResult
+        model = VocOdorResult
         fields = [
             'id', 'sample', 'sample_info', 'benzene', 'toluene', 'ethylbenzene', 
             'xylene', 'styrene', 'formaldehyde', 'acetaldehyde', 'acrolein', 'tvoc', 
             'test_date', 'benzene_formatted', 'toluene_formatted', 'ethylbenzene_formatted',
             'xylene_formatted', 'styrene_formatted', 'formaldehyde_formatted', 
-            'acetaldehyde_formatted', 'acrolein_formatted', 'tvoc_formatted'
+            'acetaldehyde_formatted', 'acrolein_formatted', 'tvoc_formatted',
+            'static_front', 'static_rear', 'dynamic_front', 'dynamic_rear', 'odor_mean',
+            'static_front_formatted', 'static_rear_formatted', 'dynamic_front_formatted',
+            'dynamic_rear_formatted', 'odor_mean_formatted'
         ]
     
     def get_benzene_formatted(self, obj):
@@ -76,6 +86,25 @@ class VocResultSerializer(serializers.ModelSerializer):
     
     def get_tvoc_formatted(self, obj):
         return f"{obj.tvoc:.3f}" if obj.tvoc is not None else None
+    
+    def get_static_front_formatted(self, obj):
+        return f"{obj.static_front:.1f}" if obj.static_front is not None else None
+    
+    def get_static_rear_formatted(self, obj):
+        return f"{obj.static_rear:.1f}" if obj.static_rear is not None else None
+    
+    def get_dynamic_front_formatted(self, obj):
+        return f"{obj.dynamic_front:.1f}" if obj.dynamic_front is not None else None
+    
+    def get_dynamic_rear_formatted(self, obj):
+        return f"{obj.dynamic_rear:.1f}" if obj.dynamic_rear is not None else None
+    
+    def get_odor_mean_formatted(self, obj):
+        return f"{obj.odor_mean:.1f}" if obj.odor_mean is not None else None
+
+
+# 保留别名以兼容旧代码
+VocResultSerializer = VocOdorResultSerializer
 
 
 class VocQuerySerializer(serializers.Serializer):

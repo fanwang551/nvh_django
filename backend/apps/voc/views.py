@@ -4,9 +4,9 @@ from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q, Count
 from django.core.paginator import Paginator
 from utils.response import Response
-from .models import SampleInfo, VocResult
+from .models import SampleInfo, VocOdorResult
 from .serializers import (
-    VocResultSerializer, VocQuerySerializer, VocChartDataSerializer,
+    VocOdorResultSerializer, VocQuerySerializer, VocChartDataSerializer,
     PartNameOptionSerializer, VehicleModelOptionSerializer, StatusOptionSerializer
 )
 from apps.modal.models import VehicleModel
@@ -30,7 +30,7 @@ def voc_data_list(request):
         page_size = query_serializer.validated_data.get('page_size', 10)
         
         # 构建查询条件
-        queryset = VocResult.objects.select_related('sample', 'sample__vehicle_model').all()
+        queryset = VocOdorResult.objects.select_related('sample', 'sample__vehicle_model').all()
         
         if vehicle_model_id:
             queryset = queryset.filter(sample__vehicle_model_id=vehicle_model_id)
@@ -46,7 +46,7 @@ def voc_data_list(request):
         page_obj = paginator.get_page(page)
         
         # 序列化数据
-        serializer = VocResultSerializer(page_obj, many=True)
+        serializer = VocOdorResultSerializer(page_obj, many=True)
         
         return Response.success(data={
             'results': serializer.data,
@@ -141,7 +141,7 @@ def voc_chart_data(request):
             selected_compounds = ['benzene', 'toluene', 'ethylbenzene', 'formaldehyde', 'tvoc']
         
         # 构建查询条件
-        queryset = VocResult.objects.select_related('sample', 'sample__vehicle_model').all()
+        queryset = VocOdorResult.objects.select_related('sample', 'sample__vehicle_model').all()
         
         # 根据主分组和副分组进行分组统计
         from django.db.models import Avg, Count
@@ -215,7 +215,7 @@ def voc_statistics(request):
         
         # VOC物质平均值统计
         from django.db.models import Avg
-        avg_values = VocResult.objects.aggregate(
+        avg_values = VocOdorResult.objects.aggregate(
             avg_benzene=Avg('benzene'),
             avg_toluene=Avg('toluene'),
             avg_ethylbenzene=Avg('ethylbenzene'),

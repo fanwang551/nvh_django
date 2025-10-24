@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import SampleInfo, VocResult
+from .models import SampleInfo, VocOdorResult
 
 
 @admin.register(SampleInfo)
@@ -10,9 +10,21 @@ class SampleInfoAdmin(admin.ModelAdmin):
     list_per_page = 20
 
 
-@admin.register(VocResult)
-class VocResultAdmin(admin.ModelAdmin):
-    list_display = ['id', 'sample', 'benzene', 'toluene', 'formaldehyde', 'tvoc', 'test_date']
+@admin.register(VocOdorResult)
+class VocOdorResultAdmin(admin.ModelAdmin):
+    list_display = ['id', 'sample', 'benzene', 'toluene', 'formaldehyde', 'tvoc', 'static_front', 'odor_mean', 'test_date']
     list_filter = ['test_date', 'sample__status']
     search_fields = ['sample__sample_no', 'sample__part_name']
     list_per_page = 20
+    fieldsets = (
+        ('样品信息', {
+            'fields': ('sample', 'test_date')
+        }),
+        ('VOC检测数据', {
+            'fields': ('benzene', 'toluene', 'ethylbenzene', 'xylene', 'styrene', 
+                      'formaldehyde', 'acetaldehyde', 'acrolein', 'tvoc')
+        }),
+        ('气味检测数据', {
+            'fields': ('static_front', 'static_rear', 'dynamic_front', 'dynamic_rear', 'odor_mean')
+        }),
+    )

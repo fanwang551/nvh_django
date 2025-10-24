@@ -25,11 +25,20 @@ export const useVocQueryStore = defineStore('vocQuery', {
     // 业务数据
     all_voc_data: [],
     filtered_voc_data: [],
+    filtered_odor_data: [],
     chart_data: [],
     statistics_data: null,
 
-    // 表格相关
+    // VOC表格分页
     pagination: {
+      current_page: 1,
+      total_pages: 0,
+      total_count: 0,
+      page_size: 10
+    },
+
+    // 气味表格独立分页
+    odor_pagination: {
       current_page: 1,
       total_pages: 0,
       total_count: 0,
@@ -69,16 +78,28 @@ export const useVocQueryStore = defineStore('vocQuery', {
       return state.filtered_voc_data.length > 0
     },
 
+    // 是否有气味数据
+    hasOdorResults: (state) => {
+      return state.filtered_odor_data.length > 0
+    },
+
     // 是否有图表数据
     hasChartData: (state) => {
       return state.chart_data.length > 0
     },
 
-    // 获取分页后的数据
+    // 获取VOC表格分页后的数据
     paginatedData: (state) => {
       const start = (state.pagination.current_page - 1) * state.pagination.page_size
       const end = start + state.pagination.page_size
       return state.filtered_voc_data.slice(start, end)
+    },
+
+    // 获取气味表格分页后的数据
+    paginatedOdorData: (state) => {
+      const start = (state.odor_pagination.current_page - 1) * state.odor_pagination.page_size
+      const end = start + state.odor_pagination.page_size
+      return state.filtered_odor_data.slice(start, end)
     }
   },
 
@@ -204,7 +225,7 @@ export const useVocQueryStore = defineStore('vocQuery', {
       }
     },
 
-    // 过滤VOC数据
+    // 过滤VOC和气味数据
     filterVocData() {
       let filtered = [...this.all_voc_data]
 
@@ -258,6 +279,19 @@ export const useVocQueryStore = defineStore('vocQuery', {
       this.filtered_voc_data = filtered
       this.pagination.total_count = filtered.length
       this.pagination.current_page = 1
+
+      // 过滤气味数据：只显示至少有一个气味字段不为空的记录
+      const odorFiltered = filtered.filter(item => {
+        return item.static_front !== null || 
+               item.static_rear !== null || 
+               item.dynamic_front !== null || 
+               item.dynamic_rear !== null || 
+               item.odor_mean !== null
+      })
+      
+      this.filtered_odor_data = odorFiltered
+      this.odor_pagination.total_count = odorFiltered.length
+      this.odor_pagination.current_page = 1
     },
 
     // 生成图表数据
@@ -318,15 +352,26 @@ export const useVocQueryStore = defineStore('vocQuery', {
       this.filterVocData()
     },
 
-    // 更新分页
+    // 更新VOC表格分页
     setPage(page) {
       this.pagination.current_page = page
     },
 
-    // 设置每页数量
+    // 设置VOC表格每页数量
     setPageSize(pageSize) {
       this.pagination.page_size = pageSize
       this.pagination.current_page = 1
+    },
+
+    // 更新气味表格分页
+    setOdorPage(page) {
+      this.odor_pagination.current_page = page
+    },
+
+    // 设置气味表格每页数量
+    setOdorPageSize(pageSize) {
+      this.odor_pagination.page_size = pageSize
+      this.odor_pagination.current_page = 1
     }
   }
 })
