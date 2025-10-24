@@ -180,8 +180,7 @@ const addVehicleDataTab = (routePath) => {
     '/vehicle-data': { name: 'vehicle-data', title: '车身数据中心' },
     '/vehicle-data/iaq': { name: 'iaq-center', title: '车内空气质量中心' },
     '/vehicle-data/data': { name: 'data-center', title: '数据中心' },
-    '/vehicle-data/data/voc': { name: 'voc-data', title: 'VOC数据' },
-    '/vehicle-data/data/odor': { name: 'odor-data', title: '气味数据' },
+    '/vehicle-data/data/voc': { name: 'voc-data', title: 'VOC及气味数据' },
     '/vehicle-data/data/full-spectrum': { name: 'full-spectrum-data', title: '全谱数据' },
     '/vehicle-data/trace': { name: 'traceability-center', title: '溯源中心' }
   }
@@ -225,7 +224,6 @@ const handleTabClick = (tabName) => {
     'iaq-center': '/vehicle-data/iaq',
     'data-center': '/vehicle-data/data',
     'voc-data': '/vehicle-data/data/voc',
-    'odor-data': '/vehicle-data/data/odor',
     'full-spectrum-data': '/vehicle-data/data/full-spectrum',
     'traceability-center': '/vehicle-data/trace'
   }
