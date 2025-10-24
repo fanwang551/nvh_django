@@ -33,7 +33,6 @@ import IAQCenter from '@/views/vehicle-data/IAQCenter.vue'
 import DataCenter from '@/views/vehicle-data/DataCenter.vue'
 import TraceabilityCenter from '@/views/vehicle-data/TraceabilityCenter.vue'
 import VocOdorData from '@/views/vehicle-data/VocOdorData.vue'
-import OdorData from '@/views/vehicle-data/OdorData.vue'
 import FullSpectrumData from '@/views/vehicle-data/FullSpectrumData.vue'
 
 const routes = [
@@ -65,13 +64,7 @@ const routes = [
     path: '/vehicle-data/data/voc',
     name: 'VocOdorData',
     component: VocOdorData,
-    meta: { requiresAuth: true, title: 'VOC/气味数据' }
-  },
-  {
-    path: '/vehicle-data/data/odor',
-    name: 'OdorData',
-    component: OdorData,
-    meta: { requiresAuth: true, title: '气味数据' }
+    meta: { requiresAuth: true, title: 'VOC及气味数据' }
   },
   {
     path: '/vehicle-data/data/full-spectrum',

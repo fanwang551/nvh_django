@@ -4,18 +4,14 @@
       <template #header>
         <div class="card-header">
           <span class="title">数据中心</span>
-          <span class="subtitle">包含 VOC 数据、气味数据、全谱数据</span>
+          <span class="subtitle">包含 VOC及气味数据、全谱数据</span>
         </div>
       </template>
 
       <div class="grid">
         <el-card class="grid-item" @click="go('/vehicle-data/data/voc')" shadow="hover">
-          <div class="item-title">VOC 数据</div>
-          <div class="item-desc">Volatile Organic Compounds</div>
-        </el-card>
-        <el-card class="grid-item" @click="go('/vehicle-data/data/odor')" shadow="hover">
-          <div class="item-title">气味数据</div>
-          <div class="item-desc">Odor</div>
+          <div class="item-title">VOC及气味数据</div>
+          <div class="item-desc">Volatile Organic Compounds & Odor</div>
         </el-card>
         <el-card class="grid-item" @click="go('/vehicle-data/data/full-spectrum')" shadow="hover">
           <div class="item-title">全谱数据</div>

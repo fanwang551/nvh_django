@@ -85,7 +85,6 @@ const cachedComponents = ref([
   'DataCenter',
   'TraceabilityCenter',
   'VocOdorData',
-  'OdorData',
   'FullSpectrumData'
 ])
 
