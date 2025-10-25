@@ -166,10 +166,8 @@
           <span class="card-title">NTF Function Map 热力图</span>
         </div>
       </template>
-      <div v-if="heatmap.points.length && heatmap.frequency.length">
-        <div ref="heatmapRef" class="heatmap" :style="{ height: heatmapHeight + 'px' }"></div>
-      </div>
-      <el-empty v-else description="暂无热力图数据" />
+      <div ref="heatmapRef" v-show="heatmap.points.length && heatmap.frequency.length" class="heatmap" :style="{ height: heatmapHeight + 'px' }"></div>
+      <el-empty v-show="!heatmap.points.length || !heatmap.frequency.length" description="暂无热力图数据" />
     </el-card>
   </div>
 
@@ -409,6 +407,22 @@ function buildHeatmapSeriesData() {
 
 function renderHeatmap() {
   if (!heatmapRef.value) return
+  
+  // 检查 chartInstance 是否还有效，如果 DOM 被重建则需要重新初始化
+  if (chartInstance) {
+    try {
+      const dom = chartInstance.getDom()
+      if (dom !== heatmapRef.value) {
+        // DOM 已改变，销毁旧实例
+        chartInstance.dispose()
+        chartInstance = null
+      }
+    } catch (e) {
+      // 实例已无效，重置
+      chartInstance = null
+    }
+  }
+  
   if (!chartInstance) chartInstance = echarts.init(heatmapRef.value)
   const data = buildHeatmapSeriesData()
   const valueRange = computeHeatmapRange()
@@ -478,8 +492,12 @@ watch(
   async (newValue) => {
     if (!newValue) return
     await nextTick()
-    if (newValue.points.length && newValue.frequency.length) renderHeatmap()
-    else if (chartInstance) chartInstance.clear()
+    await nextTick() // 额外等待确保 DOM 完全更新
+    if (newValue.points.length && newValue.frequency.length) {
+      renderHeatmap()
+    } else if (chartInstance) {
+      chartInstance.clear()
+    }
   },
   { deep: true }
 )
