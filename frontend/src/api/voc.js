@@ -67,6 +67,16 @@ export const vocApi = {
    */
   getStatistics() {
     return request.get('/voc/statistics/')
+  },
+
+  /**
+   * 获取单行VOC数据的图表数据
+   * @param {Object} params - 查询参数
+   * @param {number} params.result_id - VOC结果ID
+   * @returns {Promise} 图表数据
+   */
+  getRowChartData(params = {}) {
+    return request.get('/voc/row-chart-data/', params)
   }
 }
 

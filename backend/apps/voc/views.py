@@ -241,3 +241,97 @@ def voc_statistics(request):
         
     except Exception as e:
         return Response.error(message=f"获取VOC统计数据失败: {str(e)}")
+
+
+@api_view(['GET'])
+@permission_classes([])
+def voc_row_chart_data(request):
+    """获取单行VOC数据的图表数据"""
+    try:
+        # 获取参数
+        result_id = request.GET.get('result_id')
+        
+        if not result_id:
+            return Response.error(message="缺少result_id参数")
+        
+        # 获取当前行数据
+        try:
+            current_result = VocOdorResult.objects.select_related(
+                'sample', 'sample__vehicle_model'
+            ).get(id=result_id)
+        except VocOdorResult.DoesNotExist:
+            return Response.error(message="数据不存在")
+        
+        current_sample = current_result.sample
+        project_name = current_sample.vehicle_model.vehicle_model_name
+        part_name = current_sample.part_name
+        
+        # 判断场景：整车 vs 非整车
+        is_whole_vehicle = part_name == "整车"
+        
+        # 构建查询条件
+        if is_whole_vehicle:
+            # 场景A：整车 - 筛选项目名相同且零件名为"整车"的数据
+            queryset = VocOdorResult.objects.select_related(
+                'sample', 'sample__vehicle_model'
+            ).filter(
+                sample__vehicle_model__vehicle_model_name=project_name,
+                sample__part_name="整车"
+            )
+        else:
+            # 场景B：零部件 - 筛选项目名和零件名都相同的数据
+            queryset = VocOdorResult.objects.select_related(
+                'sample', 'sample__vehicle_model'
+            ).filter(
+                sample__vehicle_model__vehicle_model_name=project_name,
+                sample__part_name=part_name
+            )
+        
+        # X轴：固定8种物质
+        x_axis = ["苯", "甲苯", "二甲苯", "乙苯", "苯乙烯", "甲醛", "乙醛", "TVOC"]
+        compound_fields = ["benzene", "toluene", "xylene", "ethylbenzene", 
+                          "styrene", "formaldehyde", "acetaldehyde", "tvoc"]
+        
+        # 构建系列数据
+        series = []
+        series_data = {}
+        
+        for result in queryset:
+            sample = result.sample
+            
+            # 构建系列名称
+            if is_whole_vehicle:
+                # 场景A：检测状态-开发阶段
+                series_name = f"{sample.status or '未知'}-{sample.development_stage or '未知'}"
+            else:
+                # 场景B：零部件名-开发阶段
+                series_name = f"{sample.part_name or '未知'}-{sample.development_stage or '未知'}"
+            
+            # 提取VOC数据
+            voc_values = []
+            for field in compound_fields:
+                value = getattr(result, field)
+                # 转换为浮点数，None转为0
+                voc_values.append(float(value) if value is not None else 0)
+            
+            # 添加到系列数据（使用系列名称作为key）
+            if series_name not in series_data:
+                series_data[series_name] = {
+                    'name': series_name,
+                    'data': voc_values,
+                    'type': 'bar'
+                }
+        
+        # 转换为列表
+        series = list(series_data.values())
+        
+        return Response.success(data={
+            'xAxis': x_axis,
+            'series': series,
+            'scenario': 'whole_vehicle' if is_whole_vehicle else 'part',
+            'project_name': project_name,
+            'part_name': part_name
+        }, message="获取图表数据成功")
+        
+    except Exception as e:
+        return Response.error(message=f"获取图表数据失败: {str(e)}")

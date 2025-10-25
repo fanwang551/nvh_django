@@ -402,7 +402,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column label="操作" width="100" align="center" fixed="right">
+          <el-table-column label="操作" width="150" align="center">
             <template #default="scope">
               <el-button
                 type="primary"
@@ -410,6 +410,14 @@
                 @click="showSampleImage(scope.row.sample_info?.sample_image_url)"
               >
                 样品图
+              </el-button>
+              <el-button
+                type="warning"
+                size="small"
+                @click="showChart(scope.row.id)"
+                style="margin-left: 5px;"
+              >
+                图表
               </el-button>
             </template>
           </el-table-column>
@@ -596,7 +604,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column label="操作" width="100" align="center" fixed="right">
+          <el-table-column label="操作" width="100" align="center">
             <template #default="scope">
               <el-button
                 type="success"
@@ -620,6 +628,29 @@
             @size-change="handleOdorSizeChange"
             @current-change="handleOdorPageChange"
           />
+        </div>
+      </el-card>
+
+      <!-- VOC图表展示 -->
+      <el-card v-if="chartVisible" class="table-card" shadow="never" style="margin-top: 20px;">
+        <template #header>
+          <div class="card-header">
+            <span>VOC数据图表分析</span>
+            <el-button size="small" @click="chartVisible = false">关闭图表</el-button>
+          </div>
+        </template>
+        <div v-loading="chartLoading" style="min-height: 400px;">
+          <div v-if="chartData" style="padding: 10px;">
+            <div style="margin-bottom: 10px; color: #606266;">
+              <span style="font-weight: 600;">项目：</span>{{ chartData.project_name }}
+              <span style="margin-left: 20px; font-weight: 600;">零部件：</span>{{ chartData.part_name }}
+              <span style="margin-left: 20px; font-weight: 600;">场景：</span>
+              <el-tag :type="chartData.scenario === 'whole_vehicle' ? 'success' : 'info'" size="small">
+                {{ chartData.scenario === 'whole_vehicle' ? '整车场景' : '零部件场景' }}
+              </el-tag>
+            </div>
+            <div ref="chartContainer" style="width: 100%; height: 500px;"></div>
+          </div>
         </div>
       </el-card>
     </div>
@@ -652,11 +683,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, nextTick } from 'vue'
 import { useVocQueryStore } from '@/store/vocQuery'
+import { vocApi } from '@/api/voc'
 import { ElMessage } from 'element-plus'
 import { ArrowDown, Picture } from '@element-plus/icons-vue'
 import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
+import * as echarts from 'echarts'
 
 // 配置中文语言，自定义星期显示
 const locale = ref({
@@ -690,6 +723,13 @@ const odorVisibleColumns = ref(['test_date', 'part_name', 'development_stage'])
 // 样品图弹窗
 const imageDialogVisible = ref(false)
 const currentImageUrl = ref('')
+
+// 图表相关
+const chartVisible = ref(false)
+const chartLoading = ref(false)
+const chartData = ref(null)
+const chartContainer = ref(null)
+let chartInstance = null
 
 // 切换VOC列显示
 const toggleVocColumn = (compound, visible) => {
@@ -727,6 +767,119 @@ const showSampleImage = (imageUrl) => {
   } else {
     ElMessage.warning('该样品暂无图片')
   }
+}
+
+// 显示图表
+const showChart = async (resultId) => {
+  try {
+    chartLoading.value = true
+    chartVisible.value = true
+    
+    const response = await vocApi.getRowChartData({ result_id: resultId })
+    chartData.value = response.data
+    
+    await nextTick()
+    renderChart()
+  } catch (error) {
+    console.error('获取图表数据失败:', error)
+    ElMessage.error('获取图表数据失败')
+    chartVisible.value = false
+  } finally {
+    chartLoading.value = false
+  }
+}
+
+// 渲染图表
+const renderChart = () => {
+  if (!chartContainer.value || !chartData.value) return
+  
+  if (chartInstance) {
+    chartInstance.dispose()
+  }
+  
+  chartInstance = echarts.init(chartContainer.value)
+  
+  const option = {
+    title: {
+      text: 'VOC物质浓度对比分析',
+      left: 'center',
+      textStyle: {
+        fontSize: 18,
+        fontWeight: 'bold'
+      }
+    },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        type: 'shadow'
+      },
+      formatter: function(params) {
+        let result = params[0].axisValue + '<br/>'
+        params.forEach(item => {
+          result += item.marker + ' ' + item.seriesName + ': ' + item.value + ' mg/m³<br/>'
+        })
+        return result
+      }
+    },
+    legend: {
+      data: chartData.value.series.map(s => s.name),
+      top: 40,
+      type: 'scroll',
+      selected: chartData.value.series.reduce((acc, s) => {
+        acc[s.name] = true
+        return acc
+      }, {})
+    },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '60px',
+      top: 100,
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+      data: chartData.value.xAxis,
+      axisLabel: {
+        interval: 0,
+        rotate: 0,
+        fontSize: 12
+      },
+      name: '物质名称',
+      nameLocation: 'middle',
+      nameGap: 40,
+      nameTextStyle: {
+        fontSize: 14,
+        fontWeight: 'bold'
+      }
+    },
+    yAxis: {
+      type: 'value',
+      name: '浓度 (mg/m³)',
+      nameTextStyle: {
+        fontSize: 14,
+        fontWeight: 'bold'
+      }
+    },
+    series: chartData.value.series.map(s => ({
+      name: s.name,
+      type: 'bar',
+      data: s.data,
+      label: {
+        show: true,
+        position: 'top',
+        formatter: '{c}',
+        fontSize: 10
+      },
+      barMaxWidth: 50
+    }))
+  }
+  
+  chartInstance.setOption(option)
+  
+  window.addEventListener('resize', () => {
+    chartInstance && chartInstance.resize()
+  })
 }
 
 // 方法
