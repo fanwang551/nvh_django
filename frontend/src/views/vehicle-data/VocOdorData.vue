@@ -604,7 +604,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column label="操作" width="100" align="center">
+          <el-table-column label="操作" width="150" align="center">
             <template #default="scope">
               <el-button
                 type="success"
@@ -612,6 +612,14 @@
                 @click="showSampleImage(scope.row.sample_info?.sample_image_url)"
               >
                 样品图
+              </el-button>
+              <el-button
+                type="warning"
+                size="small"
+                @click="showOdorChart(scope.row.id)"
+                style="margin-left: 5px;"
+              >
+                图表
               </el-button>
             </template>
           </el-table-column>
@@ -650,6 +658,29 @@
               </el-tag>
             </div>
             <div ref="chartContainer" style="width: 100%; height: 500px;"></div>
+          </div>
+        </div>
+      </el-card>
+
+      <!-- 气味图表展示 -->
+      <el-card v-if="odorChartVisible" class="table-card" shadow="never" style="margin-top: 20px;">
+        <template #header>
+          <div class="card-header">
+            <span>气味数据图表分析</span>
+            <el-button size="small" @click="odorChartVisible = false">关闭图表</el-button>
+          </div>
+        </template>
+        <div v-loading="odorChartLoading" style="min-height: 400px;">
+          <div v-if="odorChartData" style="padding: 10px;">
+            <div style="margin-bottom: 10px; color: #606266;">
+              <span style="font-weight: 600;">项目：</span>{{ odorChartData.project_name }}
+              <span style="margin-left: 20px; font-weight: 600;">零部件：</span>{{ odorChartData.part_name }}
+              <span style="margin-left: 20px; font-weight: 600;">场景：</span>
+              <el-tag :type="odorChartData.scenario === 'whole_vehicle' ? 'success' : 'info'" size="small">
+                {{ odorChartData.scenario === 'whole_vehicle' ? '整车场景' : '零部件场景' }}
+              </el-tag>
+            </div>
+            <div ref="odorChartContainer" style="width: 100%; height: 500px;"></div>
           </div>
         </div>
       </el-card>
@@ -724,12 +755,19 @@ const odorVisibleColumns = ref(['test_date', 'part_name', 'development_stage'])
 const imageDialogVisible = ref(false)
 const currentImageUrl = ref('')
 
-// 图表相关
+// VOC图表相关
 const chartVisible = ref(false)
 const chartLoading = ref(false)
 const chartData = ref(null)
 const chartContainer = ref(null)
 let chartInstance = null
+
+// 气味图表相关
+const odorChartVisible = ref(false)
+const odorChartLoading = ref(false)
+const odorChartData = ref(null)
+const odorChartContainer = ref(null)
+let odorChartInstance = null
 
 // 切换VOC列显示
 const toggleVocColumn = (compound, visible) => {
@@ -769,7 +807,7 @@ const showSampleImage = (imageUrl) => {
   }
 }
 
-// 显示图表
+// 显示VOC图表
 const showChart = async (resultId) => {
   try {
     chartLoading.value = true
@@ -789,7 +827,27 @@ const showChart = async (resultId) => {
   }
 }
 
-// 渲染图表
+// 显示气味图表
+const showOdorChart = async (resultId) => {
+  try {
+    odorChartLoading.value = true
+    odorChartVisible.value = true
+    
+    const response = await vocApi.getOdorRowChartData({ result_id: resultId })
+    odorChartData.value = response.data
+    
+    await nextTick()
+    renderOdorChart()
+  } catch (error) {
+    console.error('获取气味图表数据失败:', error)
+    ElMessage.error('获取气味图表数据失败')
+    odorChartVisible.value = false
+  } finally {
+    odorChartLoading.value = false
+  }
+}
+
+// 渲染VOC图表
 const renderChart = () => {
   if (!chartContainer.value || !chartData.value) return
   
@@ -879,6 +937,101 @@ const renderChart = () => {
   
   window.addEventListener('resize', () => {
     chartInstance && chartInstance.resize()
+  })
+}
+
+// 渲染气味图表
+const renderOdorChart = () => {
+  if (!odorChartContainer.value || !odorChartData.value) return
+  
+  if (odorChartInstance) {
+    odorChartInstance.dispose()
+  }
+  
+  odorChartInstance = echarts.init(odorChartContainer.value)
+  
+  const option = {
+    title: {
+      text: '气味数据对比分析',
+      left: 'center',
+      textStyle: {
+        fontSize: 18,
+        fontWeight: 'bold'
+      }
+    },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        type: 'shadow'
+      },
+      formatter: function(params) {
+        let result = params[0].axisValue + '<br/>'
+        params.forEach(item => {
+          result += item.marker + ' ' + item.seriesName + ': ' + item.value + '<br/>'
+        })
+        return result
+      }
+    },
+    legend: {
+      data: odorChartData.value.series.map(s => s.name),
+      top: 40,
+      type: 'scroll',
+      selected: odorChartData.value.series.reduce((acc, s) => {
+        acc[s.name] = true
+        return acc
+      }, {})
+    },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '60px',
+      top: 100,
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+      data: odorChartData.value.xAxis,
+      axisLabel: {
+        interval: 0,
+        rotate: 0,
+        fontSize: 12
+      },
+      name: '位置',
+      nameLocation: 'middle',
+      nameGap: 40,
+      nameTextStyle: {
+        fontSize: 14,
+        fontWeight: 'bold'
+      }
+    },
+    yAxis: {
+      type: 'value',
+      name: '气味',
+      min: 0,
+      max: 10,
+      nameTextStyle: {
+        fontSize: 14,
+        fontWeight: 'bold'
+      }
+    },
+    series: odorChartData.value.series.map(s => ({
+      name: s.name,
+      type: 'bar',
+      data: s.data,
+      label: {
+        show: true,
+        position: 'top',
+        formatter: '{c}',
+        fontSize: 10
+      },
+      barMaxWidth: 50
+    }))
+  }
+  
+  odorChartInstance.setOption(option)
+  
+  window.addEventListener('resize', () => {
+    odorChartInstance && odorChartInstance.resize()
   })
 }
 

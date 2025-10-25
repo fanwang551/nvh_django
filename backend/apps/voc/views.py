@@ -335,3 +335,99 @@ def voc_row_chart_data(request):
         
     except Exception as e:
         return Response.error(message=f"获取图表数据失败: {str(e)}")
+
+
+@api_view(['GET'])
+@permission_classes([])
+def odor_row_chart_data(request):
+    """获取单行气味数据的图表数据"""
+    try:
+        # 获取参数
+        result_id = request.GET.get('result_id')
+        
+        if not result_id:
+            return Response.error(message="缺少result_id参数")
+        
+        # 获取当前行数据
+        try:
+            current_result = VocOdorResult.objects.select_related(
+                'sample', 'sample__vehicle_model'
+            ).get(id=result_id)
+        except VocOdorResult.DoesNotExist:
+            return Response.error(message="数据不存在")
+        
+        current_sample = current_result.sample
+        project_name = current_sample.vehicle_model.vehicle_model_name
+        part_name = current_sample.part_name
+        
+        # 判断场景：整车 vs 非整车
+        is_whole_vehicle = part_name == "整车"
+        
+        # 构建查询条件
+        if is_whole_vehicle:
+            # 场景A：整车 - 筛选项目名相同且零件名为"整车"的数据
+            queryset = VocOdorResult.objects.select_related(
+                'sample', 'sample__vehicle_model'
+            ).filter(
+                sample__vehicle_model__vehicle_model_name=project_name,
+                sample__part_name="整车"
+            )
+        else:
+            # 场景B：零部件 - 筛选项目名和零件名都相同的数据
+            queryset = VocOdorResult.objects.select_related(
+                'sample', 'sample__vehicle_model'
+            ).filter(
+                sample__vehicle_model__vehicle_model_name=project_name,
+                sample__part_name=part_name
+            )
+        
+        # X轴根据场景不同
+        if is_whole_vehicle:
+            x_axis = ["动态-前排", "动态-后排", "静态-前排", "静态-后排", "气味均值"]
+            odor_fields = ["dynamic_front", "dynamic_rear", "static_front", "static_rear", "odor_mean"]
+        else:
+            x_axis = ["气味均值"]
+            odor_fields = ["odor_mean"]
+        
+        # 构建系列数据
+        series_data = {}
+        
+        for result in queryset:
+            sample = result.sample
+            
+            # 构建系列名称
+            if is_whole_vehicle:
+                # 场景A：项目名-开发阶段
+                series_name = f"{project_name}-{sample.development_stage or '未知'}"
+            else:
+                # 场景B：零部件名-开发阶段
+                series_name = f"{part_name}-{sample.development_stage or '未知'}"
+            
+            # 提取气味数据
+            odor_values = []
+            for field in odor_fields:
+                value = getattr(result, field)
+                # 转换为浮点数，None转为0
+                odor_values.append(float(value) if value is not None else 0)
+            
+            # 添加到系列数据（使用系列名称作为key）
+            if series_name not in series_data:
+                series_data[series_name] = {
+                    'name': series_name,
+                    'data': odor_values,
+                    'type': 'bar'
+                }
+        
+        # 转换为列表
+        series = list(series_data.values())
+        
+        return Response.success(data={
+            'xAxis': x_axis,
+            'series': series,
+            'scenario': 'whole_vehicle' if is_whole_vehicle else 'part',
+            'project_name': project_name,
+            'part_name': part_name
+        }, message="获取气味图表数据成功")
+        
+    except Exception as e:
+        return Response.error(message=f"获取气味图表数据失败: {str(e)}")

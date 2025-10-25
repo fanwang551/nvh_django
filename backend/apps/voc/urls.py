@@ -7,6 +7,7 @@ urlpatterns = [
     path('statistics/', views.voc_statistics, name='voc_statistics'),
     path('chart-data/', views.voc_chart_data, name='voc_chart_data'),
     path('row-chart-data/', views.voc_row_chart_data, name='voc_row_chart_data'),
+    path('odor-row-chart-data/', views.odor_row_chart_data, name='odor_row_chart_data'),
     
     # 选项接口
     path('options/part-names/', views.part_name_options, name='part_name_options'),

@@ -77,6 +77,16 @@ export const vocApi = {
    */
   getRowChartData(params = {}) {
     return request.get('/voc/row-chart-data/', params)
+  },
+
+  /**
+   * 获取单行气味数据的图表数据
+   * @param {Object} params - 查询参数
+   * @param {number} params.result_id - 气味结果ID
+   * @returns {Promise} 图表数据
+   */
+  getOdorRowChartData(params = {}) {
+    return request.get('/voc/odor-row-chart-data/', params)
   }
 }
 
