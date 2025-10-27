@@ -14,4 +14,9 @@ urlpatterns = [
     path('options/vehicle-models/', views.vehicle_model_options, name='vehicle_model_options'),
     path('options/status/', views.status_options, name='status_options'),
     path('options/development-stages/', views.development_stage_options, name='development_stage_options'),
+    
+    # 全谱检测接口
+    path('substances/test-list/', views.substances_test_list, name='substances_test_list'),
+    path('substances/test-detail/', views.substances_test_detail, name='substances_test_detail'),
+    path('substances/substance-detail/', views.substance_detail, name='substance_detail'),
 ]

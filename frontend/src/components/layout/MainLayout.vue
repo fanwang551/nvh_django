@@ -85,7 +85,7 @@ const cachedComponents = ref([
   'DataCenter',
   'TraceabilityCenter',
   'VocOdorData',
-  'FullSpectrumData'
+  'SubstancesData'
 ])
 
 // 菜单选择处理
@@ -181,7 +181,7 @@ const addVehicleDataTab = (routePath) => {
     '/vehicle-data/iaq': { name: 'iaq-center', title: '车内空气质量中心' },
     '/vehicle-data/data': { name: 'data-center', title: '数据中心' },
     '/vehicle-data/data/voc': { name: 'voc-data', title: 'VOC及气味数据' },
-    '/vehicle-data/data/full-spectrum': { name: 'full-spectrum-data', title: '全谱数据' },
+    '/vehicle-data/data/SubstancesData': { name: 'SubstancesData', title: '全谱数据' },
     '/vehicle-data/trace': { name: 'traceability-center', title: '溯源中心' }
   }
 
@@ -224,7 +224,7 @@ const handleTabClick = (tabName) => {
     'iaq-center': '/vehicle-data/iaq',
     'data-center': '/vehicle-data/data',
     'voc-data': '/vehicle-data/data/voc',
-    'full-spectrum-data': '/vehicle-data/data/full-spectrum',
+    'SubstancesData': '/vehicle-data/data/SubstancesData',
     'traceability-center': '/vehicle-data/trace'
   }
   // 经验数据库：追加路由映射

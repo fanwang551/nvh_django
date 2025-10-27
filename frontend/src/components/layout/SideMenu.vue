@@ -46,7 +46,7 @@
         <el-sub-menu index="vehicle-data-data">
           <template #title>数据中心</template>
           <el-menu-item index="/vehicle-data/data/voc">VOC及气味数据</el-menu-item>
-          <el-menu-item index="/vehicle-data/data/full-spectrum">全谱数据</el-menu-item>
+          <el-menu-item index="/vehicle-data/data/SubstancesData">全谱数据</el-menu-item>
         </el-sub-menu>
         <el-menu-item index="/vehicle-data/trace">溯源中心</el-menu-item>
       </el-sub-menu>

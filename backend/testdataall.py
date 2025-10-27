@@ -160,8 +160,8 @@ import json
 from collections import defaultdict
 
 # 配置
-EXCEL_FILE = r"C:\Users\wangfan\Desktop\数据调试.xlsx"
-OUTPUT_SQL = r"C:\Users\wangfan\Desktop\01-NVH数据库数据\update_ntf_curve.sql"
+EXCEL_FILE = r"C:\Users\wangfan\Desktop\01-NVH数据库数据\39_岚图梦想家_NTF.xlsx"
+OUTPUT_SQL = r"C:\Users\wangfan\Desktop\01-NVH数据库数据\update_ntf_curve39.sql"
 
 
 def calculate_stats(frequency, values):

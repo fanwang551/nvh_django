@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from . import models
 from .models import SampleInfo, VocOdorResult
 from apps.modal.models import VehicleModel
 
@@ -152,3 +153,94 @@ class StatusOptionSerializer(serializers.Serializer):
     """状态选项序列化器"""
     value = serializers.CharField()
     label = serializers.CharField()
+
+
+class SubstanceSerializer(serializers.ModelSerializer):
+    """物质库序列化器"""
+    class Meta:
+        model = models.Substance
+        fields = [
+            'id', 'substance_name_cn', 'substance_name_en', 'cas_no',
+            'odor_threshold', 'organic_threshold', 'limit_value',
+            'odor_character', 'main_usage', 'remark'
+        ]
+
+
+class SubstancesTestDetailSerializer(serializers.ModelSerializer):
+    """全谱检测明细序列化器"""
+    substance_name_cn = serializers.CharField(source='substance.substance_name_cn', read_only=True)
+    substance_name_en = serializers.CharField(source='substance.substance_name_en', read_only=True)
+    cas_no = serializers.CharField(source='substance.cas_no', read_only=True)
+    substance_info = SubstanceSerializer(source='substance', read_only=True)
+    
+    match_degree_formatted = serializers.SerializerMethodField()
+    retention_time_formatted = serializers.SerializerMethodField()
+    concentration_ratio_formatted = serializers.SerializerMethodField()
+    concentration_formatted = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = models.SubstancesTestDetail
+        fields = [
+            'id', 'substance', 'substance_name_cn', 'substance_name_en', 'cas_no',
+            'substance_info', 'retention_time', 'retention_time_formatted',
+            'match_degree', 'match_degree_formatted', 'concentration', 'concentration_formatted',
+            'concentration_ratio', 'concentration_ratio_formatted',
+            'dilution_oij', 'dilution_wih'
+        ]
+    
+    def get_match_degree_formatted(self, obj):
+        return f"{obj.match_degree:.2f}%" if obj.match_degree is not None else None
+    
+    def get_retention_time_formatted(self, obj):
+        return f"{obj.retention_time:.4f}" if obj.retention_time is not None else None
+    
+    def get_concentration_ratio_formatted(self, obj):
+        return f"{obj.concentration_ratio:.3f}" if obj.concentration_ratio is not None else None
+    
+    def get_concentration_formatted(self, obj):
+        return f"{obj.concentration:.6f}" if obj.concentration is not None else None
+
+
+class SubstancesTestSerializer(serializers.ModelSerializer):
+    """全谱检测主表序列化器"""
+    sample_info = SampleInfoSerializer(source='sample', read_only=True)
+    details = SubstancesTestDetailSerializer(many=True, read_only=True)
+    
+    oi_formatted = serializers.SerializerMethodField()
+    goi_formatted = serializers.SerializerMethodField()
+    vi_formatted = serializers.SerializerMethodField()
+    gvi_formatted = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = models.SubstancesTest
+        fields = [
+            'id', 'sample', 'sample_info', 'oi', 'oi_formatted',
+            'goi', 'goi_formatted', 'vi', 'vi_formatted',
+            'gvi', 'gvi_formatted', 'test_date', 'details'
+        ]
+    
+    def get_oi_formatted(self, obj):
+        return f"{obj.oi:.3f}" if obj.oi is not None else None
+    
+    def get_goi_formatted(self, obj):
+        return f"{obj.goi:.3f}" if obj.goi is not None else None
+    
+    def get_vi_formatted(self, obj):
+        return f"{obj.vi:.3f}" if obj.vi is not None else None
+    
+    def get_gvi_formatted(self, obj):
+        return f"{obj.gvi:.3f}" if obj.gvi is not None else None
+
+
+class SubstancesQuerySerializer(serializers.Serializer):
+    """全谱检测查询序列化器"""
+    vehicle_model_id = serializers.IntegerField(required=False, allow_null=True)
+    part_name = serializers.CharField(required=False, allow_blank=True)
+    status = serializers.CharField(required=False, allow_blank=True)
+    development_stage = serializers.CharField(required=False, allow_blank=True)
+    test_order_no = serializers.CharField(required=False, allow_blank=True)
+    sample_no = serializers.CharField(required=False, allow_blank=True)
+    test_date_start = serializers.DateField(required=False, allow_null=True)
+    test_date_end = serializers.DateField(required=False, allow_null=True)
+    page = serializers.IntegerField(default=1)
+    page_size = serializers.IntegerField(default=10)

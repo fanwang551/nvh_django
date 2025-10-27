@@ -4,10 +4,12 @@ from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q, Count
 from django.core.paginator import Paginator
 from utils.response import Response
-from .models import SampleInfo, VocOdorResult
+from .models import SampleInfo, VocOdorResult, SubstancesTest, SubstancesTestDetail, Substance
 from .serializers import (
     VocOdorResultSerializer, VocQuerySerializer, VocChartDataSerializer,
-    PartNameOptionSerializer, VehicleModelOptionSerializer, StatusOptionSerializer
+    PartNameOptionSerializer, VehicleModelOptionSerializer, StatusOptionSerializer,
+    SubstancesTestSerializer, SubstancesTestDetailSerializer, SubstanceSerializer,
+    SubstancesQuerySerializer
 )
 from apps.modal.models import VehicleModel
 
@@ -431,3 +433,108 @@ def odor_row_chart_data(request):
         
     except Exception as e:
         return Response.error(message=f"获取气味图表数据失败: {str(e)}")
+
+
+@api_view(['GET'])
+@permission_classes([])
+def substances_test_list(request):
+    """获取全谱检测测试信息列表"""
+    try:
+        query_serializer = SubstancesQuerySerializer(data=request.GET)
+        query_serializer.is_valid(raise_exception=True)
+        
+        vehicle_model_id = query_serializer.validated_data.get('vehicle_model_id')
+        part_name = query_serializer.validated_data.get('part_name', '')
+        status_value = query_serializer.validated_data.get('status', '')
+        development_stage = query_serializer.validated_data.get('development_stage', '')
+        test_order_no = query_serializer.validated_data.get('test_order_no', '')
+        sample_no = query_serializer.validated_data.get('sample_no', '')
+        test_date_start = query_serializer.validated_data.get('test_date_start')
+        test_date_end = query_serializer.validated_data.get('test_date_end')
+        page = query_serializer.validated_data.get('page', 1)
+        page_size = query_serializer.validated_data.get('page_size', 10)
+        
+        queryset = SubstancesTest.objects.select_related('sample', 'sample__vehicle_model').all()
+        
+        if vehicle_model_id:
+            queryset = queryset.filter(sample__vehicle_model_id=vehicle_model_id)
+        if part_name:
+            queryset = queryset.filter(sample__part_name__icontains=part_name)
+        if status_value:
+            queryset = queryset.filter(sample__status=status_value)
+        if development_stage:
+            queryset = queryset.filter(sample__development_stage=development_stage)
+        if test_order_no:
+            queryset = queryset.filter(sample__test_order_no__icontains=test_order_no)
+        if sample_no:
+            queryset = queryset.filter(sample__sample_no__icontains=sample_no)
+        if test_date_start and test_date_end:
+            queryset = queryset.filter(test_date__range=[test_date_start, test_date_end])
+        
+        paginator = Paginator(queryset, page_size)
+        page_obj = paginator.get_page(page)
+        
+        serializer = SubstancesTestSerializer(page_obj, many=True)
+        
+        return Response.success(data={
+            'results': serializer.data,
+            'pagination': {
+                'current_page': page,
+                'total_pages': paginator.num_pages,
+                'total_count': paginator.count,
+                'page_size': page_size
+            }
+        }, message="获取全谱检测数据成功")
+        
+    except Exception as e:
+        return Response.error(message=f"获取全谱检测数据失败: {str(e)}")
+
+
+@api_view(['GET'])
+@permission_classes([])
+def substances_test_detail(request):
+    """获取全谱检测明细数据"""
+    try:
+        test_id = request.GET.get('test_id')
+        
+        if not test_id:
+            return Response.error(message="缺少test_id参数")
+        
+        try:
+            substances_test = SubstancesTest.objects.get(id=test_id)
+        except SubstancesTest.DoesNotExist:
+            return Response.error(message="全谱检测数据不存在")
+        
+        details = SubstancesTestDetail.objects.filter(
+            substances_test_id=test_id
+        ).select_related('substance').order_by('id')
+        
+        serializer = SubstancesTestDetailSerializer(details, many=True)
+        
+        return Response.success(data=serializer.data, message="获取全谱物质明细成功")
+        
+    except Exception as e:
+        return Response.error(message=f"获取全谱物质明细失败: {str(e)}")
+
+
+@api_view(['GET'])
+@permission_classes([])
+def substance_detail(request):
+    """获取物质详细信息"""
+    try:
+        substance_id = request.GET.get('substance_id')
+        
+        if not substance_id:
+            return Response.error(message="缺少substance_id参数")
+        
+        try:
+            substance = Substance.objects.get(id=substance_id)
+        except Substance.DoesNotExist:
+            return Response.error(message="物质信息不存在")
+        
+        serializer = SubstanceSerializer(substance)
+        
+        return Response.success(data=serializer.data, message="获取物质详细信息成功")
+        
+    except Exception as e:
+        return Response.error(message=f"获取物质详细信息失败: {str(e)}")
