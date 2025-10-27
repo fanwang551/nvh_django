@@ -122,7 +122,7 @@ class SubstancesTestDetail(models.Model):
     substance = models.ForeignKey(Substance, on_delete=models.CASCADE, verbose_name='物质')
     retention_time = models.DecimalField(max_digits=8, decimal_places=4, null=True, blank=True, verbose_name='保留时间')
     match_degree = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name='匹配度(0-100)')
-    concentration = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True, verbose_name='浓度(μg/m³)')
+    concentration = models.DecimalField(max_digits=12, decimal_places=3, null=True, blank=True, verbose_name='浓度(μg/m³)')
     concentration_ratio = models.DecimalField(max_digits=8, decimal_places=3, null=True, blank=True, verbose_name='浓度占比(%)')
     dilution_oij = models.DecimalField(max_digits=10, decimal_places=3, null=True, blank=True, verbose_name='稀释倍数Oij')
     dilution_wih = models.DecimalField(max_digits=10, decimal_places=3, null=True, blank=True, verbose_name='挥发性有机物阈稀释倍数Wih')
