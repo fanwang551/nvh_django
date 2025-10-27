@@ -100,7 +100,7 @@ class SubstancesTest(models.Model):
     goi = models.DecimalField(max_digits=10, decimal_places=3, null=True, blank=True, verbose_name='气味污染贡献度GOi')
     vi = models.DecimalField(max_digits=10, decimal_places=3, null=True, blank=True, verbose_name='有机污染指数Vi')
     gvi = models.DecimalField(max_digits=10, decimal_places=3, null=True, blank=True, verbose_name='有机污染贡献度GVi')
-    test_date = models.DateTimeField(null=True, blank=True, verbose_name='检测时间')
+    test_date = models.DateField(null=True, blank=True, verbose_name='检测时间')
     
     class Meta:
         db_table = 'substances_test'

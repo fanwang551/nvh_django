@@ -21,6 +21,7 @@
                   filterable
                   :loading="store.vehicle_models_loading"
                   style="width: 100%"
+                  @change="handleFilterChange"
                 >
                   <el-option
                     v-for="option in store.vehicle_models"
@@ -319,7 +320,7 @@
               </template>
             </el-table-column>
 
-            <el-table-column label="详情" width="200" align="center" fixed="right">
+            <el-table-column label="详情" width="200" align="center">
               <template #default="scope">
                 <el-button
                   type="primary"
@@ -370,7 +371,7 @@
             stripe
             :header-cell-style="{ backgroundColor: '#67C23A', color: '#ffffff', fontWeight: '600', fontSize: '14px' }"
           >
-            <el-table-column label="物质名称" width="180" align="center">
+            <el-table-column label="物质名称" min-width="180" align="center">
               <template #default="scope">
                 <el-button
                   type="text"
@@ -385,7 +386,7 @@
             <el-table-column
               prop="substance_name_en"
               label="物质英文名"
-              width="200"
+              min-width="200"
               align="center"
             >
               <template #default="scope">
@@ -396,14 +397,14 @@
             <el-table-column
               prop="cas_no"
               label="CAS号"
-              width="120"
+              min-width="120"
               align="center"
             />
 
             <el-table-column
               prop="match_degree_formatted"
               label="匹配度"
-              width="100"
+              min-width="100"
               align="center"
             >
               <template #default="scope">
@@ -414,7 +415,7 @@
             <el-table-column
               prop="retention_time_formatted"
               label="保留时间(分钟)"
-              width="140"
+              min-width="140"
               align="center"
             >
               <template #default="scope">
@@ -425,7 +426,7 @@
             <el-table-column
               prop="concentration_ratio_formatted"
               label="浓度占比(%)"
-              width="130"
+              min-width="130"
               align="center"
             >
               <template #default="scope">
@@ -436,7 +437,7 @@
             <el-table-column
               prop="concentration_formatted"
               label="浓度(μg/m³)"
-              width="140"
+              min-width="140"
               align="center"
             >
               <template #default="scope">

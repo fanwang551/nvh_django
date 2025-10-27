@@ -21,6 +21,7 @@
                 filterable
                 :loading="store.vehicle_models_loading"
                 style="width: 100%"
+                @change="handleFilterChange"
               >
                 <el-option
                   v-for="option in store.vehicle_models"
