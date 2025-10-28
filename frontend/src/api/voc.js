@@ -88,6 +88,17 @@ export const vocApi = {
   getOdorRowChartData(params = {}) {
     return request.get('/voc/odor-row-chart-data/', params)
   }
+  ,
+  /**
+   * 获取GOi/GVi贡献度TOP25
+   * @param {Object} params - 查询参数
+   * @param {number} [params.vehicle_model_id] - 车型ID（可选）
+   * @param {string} [params.vehicle_model_name] - 车型名称（可选）
+   * @returns {Promise}
+   */
+  getContributionTop25(params = {}) {
+    return request.get('/voc/contribution-top25/', params)
+  }
 }
 
 // 导出默认对象

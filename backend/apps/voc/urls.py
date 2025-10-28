@@ -19,4 +19,7 @@ urlpatterns = [
     path('substances/test-list/', views.substances_test_list, name='substances_test_list'),
     path('substances/test-detail/', views.substances_test_detail, name='substances_test_detail'),
     path('substances/substance-detail/', views.substance_detail, name='substance_detail'),
+
+    # 贡献度TOP25接口
+    path('contribution-top25/', views.contribution_top25, name='contribution_top25'),
 ]

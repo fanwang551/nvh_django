@@ -244,3 +244,16 @@ class SubstancesQuerySerializer(serializers.Serializer):
     test_date_end = serializers.DateField(required=False, allow_null=True)
     page = serializers.IntegerField(default=1)
     page_size = serializers.IntegerField(default=10)
+
+
+class ContributionTop25QuerySerializer(serializers.Serializer):
+    """贡献度TOP25查询序列化器"""
+    vehicle_model_id = serializers.IntegerField(required=False, allow_null=True)
+    vehicle_model_name = serializers.CharField(required=False, allow_blank=True)
+
+    def validate(self, attrs):
+        vm_id = attrs.get('vehicle_model_id')
+        vm_name = attrs.get('vehicle_model_name')
+        if vm_id is None and not vm_name:
+            raise serializers.ValidationError('必须提供vehicle_model_id或vehicle_model_name其一')
+        return attrs

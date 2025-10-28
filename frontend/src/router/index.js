@@ -34,6 +34,7 @@ import DataCenter from '@/views/vehicle-data/DataCenter.vue'
 import TraceabilityCenter from '@/views/vehicle-data/TraceabilityCenter.vue'
 import VocOdorData from '@/views/vehicle-data/VocOdorData.vue'
 import SubstancesData from '@/views/vehicle-data/SubstancesData.vue'
+import ContributionQuery from '@/views/vehicle-data/ContributionQuery.vue'
 
 const routes = [
   {
@@ -77,6 +78,12 @@ const routes = [
     name: 'TraceabilityCenter',
     component: TraceabilityCenter,
     meta: { requiresAuth: true, title: '溯源中心' }
+  },
+  {
+    path: '/vehicle-data/trace/contribution',
+    name: 'ContributionQuery',
+    component: ContributionQuery,
+    meta: { requiresAuth: true, title: '贡献度查询' }
   },
   {
     path: '/business/experience-query',

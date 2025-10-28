@@ -1,7 +1,7 @@
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Max
 from django.core.paginator import Paginator
 from utils.response import Response
 from .models import SampleInfo, VocOdorResult, SubstancesTest, SubstancesTestDetail, Substance
@@ -9,7 +9,7 @@ from .serializers import (
     VocOdorResultSerializer, VocQuerySerializer, VocChartDataSerializer,
     PartNameOptionSerializer, VehicleModelOptionSerializer, StatusOptionSerializer,
     SubstancesTestSerializer, SubstancesTestDetailSerializer, SubstanceSerializer,
-    SubstancesQuerySerializer
+    SubstancesQuerySerializer, ContributionTop25QuerySerializer
 )
 from apps.modal.models import VehicleModel
 
@@ -538,3 +538,85 @@ def substance_detail(request):
         
     except Exception as e:
         return Response.error(message=f"获取物质详细信息失败: {str(e)}")
+
+
+@api_view(['GET'])
+@permission_classes([])
+def contribution_top25(request):
+    """按项目（车型）输出GOi/GVi贡献度TOP25零部件"""
+    try:
+        # 校验参数：vehicle_model_id 或 vehicle_model_name 必须有其一
+        query_serializer = ContributionTop25QuerySerializer(data=request.GET)
+        query_serializer.is_valid(raise_exception=True)
+
+        vehicle_model_id = query_serializer.validated_data.get('vehicle_model_id')
+        vehicle_model_name = query_serializer.validated_data.get('vehicle_model_name')
+
+        # 基础查询：过滤同项目（车型），排除“整车”，去除空零部件名
+        queryset = SubstancesTest.objects.select_related('sample', 'sample__vehicle_model') \
+            .exclude(sample__part_name="整车") \
+            .exclude(sample__part_name__isnull=True) \
+            .exclude(sample__part_name__exact="")
+
+        if vehicle_model_id is not None:
+            queryset = queryset.filter(sample__vehicle_model_id=vehicle_model_id)
+        else:
+            queryset = queryset.filter(sample__vehicle_model__vehicle_model_name=vehicle_model_name)
+
+        # 唯一零部件数量及清单（基于SubstancesTest有记录的零部件）
+        unique_part_names_qs = queryset.values_list('sample__part_name', flat=True).distinct()
+        unique_part_names = list(unique_part_names_qs)
+        unique_count = len(unique_part_names)
+
+        # 数据量不足：仅返回提示信息与已存在的零部件清单，不返回榜单
+        if unique_count < 35:
+            msg = f"零部件数需≥35，当前项目仅有{unique_count}个零部件，数据不足"
+            return Response.success(data={
+                'vehicle_model_id': vehicle_model_id,
+                'vehicle_model_name': vehicle_model_name,
+                'parts_count': unique_count,
+                'insufficient': True,
+                'part_names': unique_part_names
+            }, message=msg)
+
+        # 生成 GOi TOP25
+        goi_top = list(
+            queryset.values('sample__part_name')
+            .annotate(value=Max('goi'))
+            .order_by('-value')[:25]
+        )
+        goi_top25 = [
+            {
+                'rank': idx + 1,
+                'part_name': item['sample__part_name'],
+                'goi': float(item['value']) if item['value'] is not None else None
+            }
+            for idx, item in enumerate(goi_top)
+        ]
+
+        # 生成 GVi TOP25
+        gvi_top = list(
+            queryset.values('sample__part_name')
+            .annotate(value=Max('gvi'))
+            .order_by('-value')[:25]
+        )
+        gvi_top25 = [
+            {
+                'rank': idx + 1,
+                'part_name': item['sample__part_name'],
+                'gvi': float(item['value']) if item['value'] is not None else None
+            }
+            for idx, item in enumerate(gvi_top)
+        ]
+
+        return Response.success(data={
+            'vehicle_model_id': vehicle_model_id,
+            'vehicle_model_name': vehicle_model_name,
+            'parts_count': unique_count,
+            'insufficient': False,
+            'goi_top25': goi_top25,
+            'gvi_top25': gvi_top25
+        }, message="获取贡献度TOP25成功")
+
+    except Exception as e:
+        return Response.error(message=f"获取贡献度TOP25失败: {str(e)}")

@@ -48,7 +48,11 @@
           <el-menu-item index="/vehicle-data/data/voc">VOC及气味数据</el-menu-item>
           <el-menu-item index="/vehicle-data/data/SubstancesData">全谱数据</el-menu-item>
         </el-sub-menu>
-        <el-menu-item index="/vehicle-data/trace">溯源中心</el-menu-item>
+        <el-sub-menu index="vehicle-data-trace">
+          <template #title>溯源中心</template>
+          <el-menu-item index="/vehicle-data/trace">溯源中心</el-menu-item>
+          <el-menu-item index="/vehicle-data/trace/contribution">贡献度查询</el-menu-item>
+        </el-sub-menu>
       </el-sub-menu>
 
       <!-- 其他 -->

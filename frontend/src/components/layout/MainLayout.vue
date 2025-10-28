@@ -85,7 +85,8 @@ const cachedComponents = ref([
   'DataCenter',
   'TraceabilityCenter',
   'VocOdorData',
-  'SubstancesData'
+  'SubstancesData',
+  'ContributionQuery'
 ])
 
 // 菜单选择处理
@@ -182,7 +183,8 @@ const addVehicleDataTab = (routePath) => {
     '/vehicle-data/data': { name: 'data-center', title: '数据中心' },
     '/vehicle-data/data/voc': { name: 'voc-data', title: 'VOC及气味数据' },
     '/vehicle-data/data/SubstancesData': { name: 'SubstancesData', title: '全谱数据' },
-    '/vehicle-data/trace': { name: 'traceability-center', title: '溯源中心' }
+    '/vehicle-data/trace': { name: 'traceability-center', title: '溯源中心' },
+    '/vehicle-data/trace/contribution': { name: 'contribution-query', title: '贡献度查询' }
   }
 
   const config = vehicleDataTabConfig[routePath]
@@ -225,7 +227,8 @@ const handleTabClick = (tabName) => {
     'data-center': '/vehicle-data/data',
     'voc-data': '/vehicle-data/data/voc',
     'SubstancesData': '/vehicle-data/data/SubstancesData',
-    'traceability-center': '/vehicle-data/trace'
+    'traceability-center': '/vehicle-data/trace',
+    'contribution-query': '/vehicle-data/trace/contribution'
   }
   // 经验数据库：追加路由映射
   allRoutes['experience-query'] = '/business/experience-query'

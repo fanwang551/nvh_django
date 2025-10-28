@@ -7,13 +7,22 @@
           <span class="subtitle">Traceability Center</span>
         </div>
       </template>
-      <div class="content">此页面用于数据溯源、流程追踪与审计。</div>
+      <div class="grid">
+        <el-card class="grid-item" @click="go('/vehicle-data/trace/contribution')" shadow="hover">
+          <div class="item-title">贡献度查询</div>
+          <div class="item-desc">按项目输出GOi/GVi TOP25</div>
+        </el-card>
+      </div>
     </el-card>
   </div>
+  
 </template>
 
 <script setup>
-// 预留：接入溯源业务逻辑
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+const go = (path) => router.push(path)
 </script>
 
 <style scoped>
@@ -21,6 +30,9 @@
 .card-header { display: flex; align-items: baseline; gap: 12px; }
 .title { font-size: 18px; font-weight: 600; }
 .subtitle { color: #909399; font-size: 13px; }
-.content { color: #606266; font-size: 14px; }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.grid-item { cursor: pointer; user-select: none; }
+.item-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+.item-desc { color: #909399; font-size: 13px; }
+@media (max-width: 1200px) { .grid { grid-template-columns: 1fr; } }
 </style>
-
