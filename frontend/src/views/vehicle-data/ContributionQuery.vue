@@ -1,14 +1,12 @@
 <template>
   <div class="page">
-    <el-card shadow="never" class="page-card">
+    <!-- 搜索框模块 -->
+    <el-card shadow="never" class="search-card">
       <template #header>
         <div class="card-header">
-          <span class="title">贡献度查询</span>
-          <span class="subtitle">按项目(车型)输出GOi/GVi TOP25</span>
+          <span class="title">搜索框</span>
         </div>
       </template>
-
-      <!-- 查询区域 -->
       <el-form :inline="true" class="query-form">
         <el-form-item label="项目名称">
           <el-select
@@ -32,36 +30,42 @@
           <el-button type="primary" :disabled="!selectedVehicleModelId" @click="handleQuery">查询</el-button>
         </el-form-item>
       </el-form>
+    </el-card>
 
-      <!-- 结果区域 -->
-      <div v-if="!insufficient && rows.length > 0" class="result-table">
-        <el-table
-          :data="rows"
-          border
-          style="width: 100%"
-          :header-cell-style="{ backgroundColor: '#f5f7fa', fontWeight: 600 }"
-        >
-          <el-table-column label="气味污染物可能来源" align="center">
-            <el-table-column prop="goi_rank" label="TOP25" width="80" align="center" />
-            <el-table-column prop="goi_part_name" label="零部件" align="center" />
-            <el-table-column prop="goi_value" label="贡献度Goi" width="140" align="center">
-              <template #default="scope">
-                {{ formatNumber(scope.row.goi_value) }}
-              </template>
-            </el-table-column>
+    <!-- 整车溯源结果模块 -->
+    <el-card shadow="never" class="result-card" v-if="!insufficient && rows.length > 0">
+      <template #header>
+        <div class="card-header">
+          <span class="title">整车溯源结果</span>
+          <span class="subtitle">按项目(车型)输出GOi/GVi TOP25</span>
+        </div>
+      </template>
+      <el-table
+        :data="rows"
+        border
+        style="width: 100%"
+        :header-cell-style="{ backgroundColor: '#409EFF', color: '#fff', fontWeight: 600 }"
+      >
+        <el-table-column label="气味污染物可能来源" align="center">
+          <el-table-column prop="goi_rank" label="TOP25" width="80" align="center" />
+          <el-table-column prop="goi_part_name" label="零部件" align="center" />
+          <el-table-column prop="goi_value" label="贡献度Goi" width="140" align="center">
+            <template #default="scope">
+              {{ formatNumber(scope.row.goi_value) }}
+            </template>
           </el-table-column>
+        </el-table-column>
 
-          <el-table-column label="挥发性有机污染物可能来源" align="center">
-            <el-table-column prop="gvi_rank" label="TOP25" width="80" align="center" />
-            <el-table-column prop="gvi_part_name" label="零部件" align="center" />
-            <el-table-column prop="gvi_value" label="贡献度Gvi" width="140" align="center">
-              <template #default="scope">
-                {{ formatNumber(scope.row.gvi_value) }}
-              </template>
-            </el-table-column>
+        <el-table-column label="挥发性有机污染物可能来源" align="center">
+          <el-table-column prop="gvi_rank" label="TOP25" width="80" align="center" />
+          <el-table-column prop="gvi_part_name" label="零部件" align="center" />
+          <el-table-column prop="gvi_value" label="贡献度Gvi" width="140" align="center">
+            <template #default="scope">
+              {{ formatNumber(scope.row.gvi_value) }}
+            </template>
           </el-table-column>
-        </el-table>
-      </div>
+        </el-table-column>
+      </el-table>
     </el-card>
 
     <!-- 数据不足弹窗 -->
@@ -174,7 +178,9 @@ onMounted(async () => {
 .card-header { display: flex; align-items: baseline; gap: 12px; }
 .title { font-size: 18px; font-weight: 600; }
 .subtitle { color: #909399; font-size: 13px; }
-.query-form { margin-bottom: 16px; }
+.search-card { margin-bottom: 16px; }
+.result-card { margin-top: 16px; }
+.query-form { margin: 0; }
 .insufficient-msg { color: #e6a23c; margin-bottom: 12px; }
 .part-list { display: flex; flex-wrap: wrap; }
 </style>
