@@ -41,14 +41,20 @@
           <el-icon><Collection /></el-icon>
           <span>车身数据中心</span>
         </template>
-        <el-menu-item index="/vehicle-data">中心概览</el-menu-item>
         <el-menu-item index="/vehicle-data/iaq">车内空气质量中心</el-menu-item>
         <el-sub-menu index="vehicle-data-data">
           <template #title>数据中心</template>
           <el-menu-item index="/vehicle-data/data/voc">VOC及气味数据</el-menu-item>
           <el-menu-item index="/vehicle-data/data/SubstancesData">全谱数据</el-menu-item>
         </el-sub-menu>
-        <el-menu-item index="/vehicle-data/contribution">贡献度查询</el-menu-item>
+        <!-- 溯源中心（二级子菜单） -->
+        <el-sub-menu index="traceability">
+          <template #title>
+            <el-icon><Search /></el-icon>
+            <span>溯源中心</span>
+          </template>
+          <el-menu-item index="/traceability/contribution">贡献度查询</el-menu-item>
+        </el-sub-menu>
       </el-sub-menu>
 
       <!-- 其他 -->
@@ -63,7 +69,7 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { House, OfficeBuilding, Key, More, Fold, Expand, Collection } from '@element-plus/icons-vue'
+import { House, OfficeBuilding, Key, More, Fold, Expand, Collection, Search } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const emit = defineEmits(['menu-select', 'collapse-change'])
@@ -83,10 +89,19 @@ const setActiveMenuByRoute = () => {
     '/others': 'others'
   }
 
-  if (route.path.startsWith('/vehicle-data')) {
-    activeMenu.value = 'vehicle-data'
+  // 溯源中心相关路由（现在是车身数据中心的子菜单）
+  if (route.path.startsWith('/traceability')) {
+    // 使用完整路径作为activeMenu，确保子菜单项正确高亮
+    activeMenu.value = route.path
     return
   }
+  
+  if (route.path.startsWith('/vehicle-data')) {
+    // 使用完整路径作为activeMenu，确保子菜单项正确高亮
+    activeMenu.value = route.path
+    return
+  }
+  
   activeMenu.value = routeMenuMap[route.path] || 'home'
 }
 

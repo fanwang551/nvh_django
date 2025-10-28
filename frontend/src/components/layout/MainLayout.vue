@@ -80,7 +80,6 @@ const cachedComponents = ref([
   'VehicleMountIsolationQuery',
   'SuspensionIsolationQuery',
   // Vehicle Data Center
-  'VehicleDataCenter',
   'IAQCenter',
   'DataCenter',
   'VocOdorData',
@@ -95,7 +94,8 @@ const handleMenuSelect = (menuKey) => {
     'business': { name: 'business', title: '业务中心', route: '/business' },
     'permission': { name: 'permission', title: '权限管理', route: '/permission' },
     'others': { name: 'others', title: '其他', route: '/others' },
-    'vehicle-data': { name: 'vehicle-data', title: '车身数据中心', route: '/vehicle-data' }
+    'vehicle-data': { name: 'vehicle-data', title: '车身数据中心', route: '/vehicle-data' },
+    'traceability': { name: 'traceability', title: '溯源中心', route: '/traceability' }
   }
 
   const menu = menuConfig[menuKey]
@@ -177,15 +177,30 @@ const addBusinessTab = (routePath) => {
 // 添加车身数据中心子页面标签页
 const addVehicleDataTab = (routePath) => {
   const vehicleDataTabConfig = {
-    '/vehicle-data': { name: 'vehicle-data', title: '车身数据中心' },
+
     '/vehicle-data/iaq': { name: 'iaq-center', title: '车内空气质量中心' },
     '/vehicle-data/data': { name: 'data-center', title: '数据中心' },
-    '/vehicle-data/data/voc': { name: 'voc-data', title: 'VOC及气味数据' },
     '/vehicle-data/data/SubstancesData': { name: 'SubstancesData', title: '全谱数据' },
-    '/vehicle-data/contribution': { name: 'contribution-query', title: '贡献度查询' }
+    '/vehicle-data/data/voc': { name: 'voc-data', title: 'VOC及气味数据' }
   }
 
   const config = vehicleDataTabConfig[routePath]
+  if (!config) return
+
+  const existing = openTabs.find(tab => tab.name === config.name)
+  if (!existing) {
+    openTabs.push({ name: config.name, title: config.title, closable: true })
+  }
+  activeTab.value = config.name
+}
+
+// 添加溯源中心子页面标签页
+const addTraceabilityTab = (routePath) => {
+  const traceabilityTabConfig = {
+    '/traceability/contribution': { name: 'contribution-query', title: '贡献度查询' }
+  }
+
+  const config = traceabilityTabConfig[routePath]
   if (!config) return
 
   const existing = openTabs.find(tab => tab.name === config.name)
@@ -225,7 +240,9 @@ const handleTabClick = (tabName) => {
     'data-center': '/vehicle-data/data',
     'voc-data': '/vehicle-data/data/voc',
     'SubstancesData': '/vehicle-data/data/SubstancesData',
-    'contribution-query': '/vehicle-data/contribution'
+    // Traceability Center
+    'traceability': '/traceability',
+    'contribution-query': '/traceability/contribution'
   }
   // 经验数据库：追加路由映射
   allRoutes['experience-query'] = '/business/experience-query'
@@ -271,6 +288,14 @@ watch(() => route.path, (newPath) => {
       })
     }
     activeTab.value = 'business'
+  } else if (newPath.startsWith('/traceability/')) {
+    addTraceabilityTab(newPath)
+  } else if (newPath === '/traceability') {
+    const existingTab = openTabs.find(tab => tab.name === 'traceability')
+    if (!existingTab) {
+      openTabs.push({ name: 'traceability', title: '溯源中心', closable: true })
+    }
+    activeTab.value = 'traceability'
   } else if (newPath.startsWith('/vehicle-data')) {
     addVehicleDataTab(newPath)
   }
@@ -291,15 +316,25 @@ const initializeTabsFromRoute = () => {
       })
     }
     activeTab.value = 'business'
+  } else if (currentPath === '/traceability') {
+    const existingTab = openTabs.find(tab => tab.name === 'traceability')
+    if (!existingTab) {
+      openTabs.push({ name: 'traceability', title: '溯源中心', closable: true })
+    }
+    activeTab.value = 'traceability'
+  } else if (currentPath.startsWith('/traceability/')) {
+    addTraceabilityTab(currentPath)
   } else if (currentPath.startsWith('/business/')) {
     // 业务子页面
     addBusinessTab(currentPath)
-  } else if (currentPath === '/vehicle-data') {
-    const existingVD = openTabs.find(tab => tab.name === 'vehicle-data')
-    if (!existingVD) {
-      openTabs.push({ name: 'vehicle-data', title: '车身数据中心', closable: true })
+  } else if (currentPath === '/traceability') {
+    const existingTab = openTabs.find(tab => tab.name === 'traceability')
+    if (!existingTab) {
+      openTabs.push({ name: 'traceability', title: '溯源中心', closable: true })
     }
-    activeTab.value = 'vehicle-data'
+    activeTab.value = 'traceability'
+  } else if (currentPath.startsWith('/traceability/')) {
+    addTraceabilityTab(currentPath)
   } else if (currentPath.startsWith('/vehicle-data/')) {
     addVehicleDataTab(currentPath)
   } else if (currentPath === '/permission') {
