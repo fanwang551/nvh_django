@@ -17,10 +17,6 @@
           <div class="item-title">数据中心</div>
           <div class="item-desc">VOC数据、气味数据、全谱数据</div>
         </el-card>
-        <el-card class="grid-item" @click="go('/vehicle-data/trace')" shadow="hover">
-          <div class="item-title">溯源中心</div>
-          <div class="item-desc">数据溯源与流程追踪</div>
-        </el-card>
       </div>
     </el-card>
   </div>

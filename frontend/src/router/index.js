@@ -31,7 +31,6 @@ import SuspensionIsolationQuery from '@/views/business/SuspensionIsolationQuery.
 import VehicleDataCenter from '@/views/vehicle-data/VehicleDataCenter.vue'
 import IAQCenter from '@/views/vehicle-data/IAQCenter.vue'
 import DataCenter from '@/views/vehicle-data/DataCenter.vue'
-import TraceabilityCenter from '@/views/vehicle-data/TraceabilityCenter.vue'
 import VocOdorData from '@/views/vehicle-data/VocOdorData.vue'
 import SubstancesData from '@/views/vehicle-data/SubstancesData.vue'
 import ContributionQuery from '@/views/vehicle-data/ContributionQuery.vue'
@@ -74,13 +73,7 @@ const routes = [
     meta: { requiresAuth: true, title: '全谱数据' }
   },
   {
-    path: '/vehicle-data/trace',
-    name: 'TraceabilityCenter',
-    component: TraceabilityCenter,
-    meta: { requiresAuth: true, title: '溯源中心' }
-  },
-  {
-    path: '/vehicle-data/trace/contribution',
+    path: '/vehicle-data/contribution',
     name: 'ContributionQuery',
     component: ContributionQuery,
     meta: { requiresAuth: true, title: '贡献度查询' }
