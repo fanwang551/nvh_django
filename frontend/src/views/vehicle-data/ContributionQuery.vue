@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page">
     <!-- 搜索框模块 -->
     <el-card shadow="never" class="search-card">
@@ -68,6 +68,27 @@
       </el-table>
     </el-card>
 
+    <!-- 溯源贡献度可视化模块：单独卡片，位于溯源结果表下方 -->
+    <el-card
+      v-if="!insufficient && (goiTop25.length > 0 || gviTop25.length > 0)"
+      shadow="never"
+      class="viz-card"
+    >
+      <template #header>
+        <div class="card-header">
+          <span class="title">溯源贡献度可视化</span>
+          <span class="subtitle">TOP10 + 其他（GOi / GVi）</span>
+        </div>
+      </template>
+      <div class="viz-grid">
+        <div>
+          <div ref="goiPieRef" class="pie-box"></div>
+        </div>
+        <div>
+          <div ref="gviPieRef" class="pie-box"></div>
+        </div>
+      </div>
+    </el-card>
     <!-- 数据不足弹窗 -->
     <el-dialog v-model="insufficientDialog" title="数据不足" width="600px">
       <div class="insufficient-msg">
@@ -92,9 +113,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import vocApi from '@/api/voc'
+
+import * as echarts from 'echarts'
 
 const selectedVehicleModelId = ref(null)
 const vehicleModelOptions = ref([])
@@ -187,7 +210,138 @@ const handleQuery = async () => {
 onMounted(async () => {
   await loadVehicleModels()
 })
-</script>
+
+
+// ================= 可视化：GOi/GVi 饼图（TOP10 + 其他） =================
+const goiPieRef = ref(null)
+const gviPieRef = ref(null)
+let goiPieChart = null
+let gviPieChart = null
+
+const formatFixed3 = (n) => {
+  const num = Number(n)
+  return isNaN(num) ? '-' : num.toFixed(3)
+}
+
+// 将TOP25数据处理为 TOP10 + 其他
+const buildPieSeriesData = (list, valueKey) => {
+  if (!Array.isArray(list) || list.length === 0) return []
+  const sorted = [...list].sort((a, b) => Number(b[valueKey] || 0) - Number(a[valueKey] || 0))
+  const top10 = sorted.slice(0, 10)
+  const others = sorted.slice(10)
+  const otherSum = others.reduce((acc, cur) => acc + Number(cur[valueKey] || 0), 0)
+
+  const seriesData = top10.map(item => ({
+    name: '[' + item.rank + '] ' + item.part_name,
+    value: Number(item[valueKey] || 0),
+    __raw: item
+  }))
+  if (otherSum > 0) {
+    seriesData.push({ name: '其他', value: otherSum, __raw: null })
+  }
+  return seriesData
+}
+
+const renderGoiPie = () => {
+  if (!goiPieRef.value) return
+  if (!goiPieChart) goiPieChart = echarts.init(goiPieRef.value)
+  const data = buildPieSeriesData(goiTop25.value, 'goi')
+  const option = {
+    title: { text: 'GOi 贡献度分布（TOP10+其他）', left: 'center' },
+    tooltip: {
+      trigger: 'item',
+      formatter: function(p) {
+        const val = formatFixed3(p.value)
+        return p.name + '<br/>值：' + val + '<br/>占比：' + p.percent + '%'
+      }
+    },
+    legend: { type: 'scroll', bottom: 0 },
+    series: [
+      {
+        name: 'GOi',
+        type: 'pie',
+        radius: ['30%', '70%'],
+        center: ['50%', '50%'],
+        avoidLabelOverlap: true,
+        label: {
+          show: true,
+          formatter: function(params) { return params.name + '  ' + params.percent + '%' },
+        },
+        data: data
+      }
+    ]
+  }
+  goiPieChart.setOption(option)
+}
+
+const renderGviPie = () => {
+  if (!gviPieRef.value) return
+  if (!gviPieChart) gviPieChart = echarts.init(gviPieRef.value)
+  const data = buildPieSeriesData(gviTop25.value, 'gvi')
+  const option = {
+    title: { text: 'GVi 贡献度分布（TOP10+其他）', left: 'center' },
+    tooltip: {
+      trigger: 'item',
+      formatter: function(p) {
+        const val = formatFixed3(p.value)
+        return p.name + '<br/>值：' + val + '<br/>占比：' + p.percent + '%'
+      }
+    },
+    legend: { type: 'scroll', bottom: 0 },
+    series: [
+      {
+        name: 'GVi',
+        type: 'pie',
+        radius: ['30%', '70%'],
+        center: ['50%', '50%'],
+        avoidLabelOverlap: true,
+        label: {
+          show: true,
+          formatter: function(params) { return params.name + '  ' + params.percent + '%' },
+        },
+        data: data
+      }
+    ]
+  }
+  gviPieChart.setOption(option)
+}
+
+const disposeCharts = () => {
+  if (goiPieChart) { goiPieChart.dispose(); goiPieChart = null }
+  if (gviPieChart) { gviPieChart.dispose(); gviPieChart = null }
+}
+
+const resizeHandler = () => {
+  if (goiPieChart) goiPieChart.resize()
+  if (gviPieChart) gviPieChart.resize()
+}
+
+watch([goiTop25, gviTop25, insufficient], async () => {
+  if (insufficient.value) {
+    disposeCharts()
+    return
+  }
+  await nextTick()
+  if (goiTop25.value && goiTop25.value.length) {
+    renderGoiPie()
+  } else if (goiPieChart) {
+    goiPieChart.clear()
+  }
+  if (gviTop25.value && gviTop25.value.length) {
+    renderGviPie()
+  } else if (gviPieChart) {
+    gviPieChart.clear()
+  }
+})
+
+onMounted(() => {
+  window.addEventListener('resize', resizeHandler)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', resizeHandler)
+  disposeCharts()
+})</script>
 
 <style scoped>
 .page { padding: 12px; }
@@ -199,5 +353,20 @@ onMounted(async () => {
 .query-form { margin: 0; }
 .insufficient-msg { color: #e6a23c; margin-bottom: 12px; }
 .part-list { display: flex; flex-wrap: wrap; }
+
+/* 可视化模块样式 */
+.viz-card { margin-top: 16px; }
+.viz-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+.pie-box { height: 360px; }
+
+@media (max-width: 1024px) {
+  .viz-grid { grid-template-columns: 1fr; }
+}
 </style>
+
+
 
