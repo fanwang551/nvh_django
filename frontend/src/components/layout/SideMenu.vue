@@ -54,6 +54,7 @@
             <span>溯源中心</span>
           </template>
           <el-menu-item index="/traceability/contribution">贡献度查询</el-menu-item>
+          <el-menu-item index="/traceability/substance-item">物质分项溯源</el-menu-item>
         </el-sub-menu>
       </el-sub-menu>
 

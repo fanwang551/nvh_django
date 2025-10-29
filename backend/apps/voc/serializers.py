@@ -257,3 +257,47 @@ class ContributionTop25QuerySerializer(serializers.Serializer):
         if vm_id is None and not vm_name:
             raise serializers.ValidationError('必须提供vehicle_model_id或vehicle_model_name其一')
         return attrs
+
+
+class SubstanceItemTraceabilityQuerySerializer(serializers.Serializer):
+    """物质分项溯源查询序列化器"""
+    vehicle_model_id = serializers.IntegerField(required=True)
+    substance_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=True,
+        allow_empty=False
+    )
+
+    def validate(self, attrs):
+        vehicle_model_id = attrs.get('vehicle_model_id')
+        substance_ids = attrs.get('substance_ids')
+        
+        if not vehicle_model_id:
+            raise serializers.ValidationError('必须提供vehicle_model_id')
+        if not substance_ids:
+            raise serializers.ValidationError('必须选择至少一种物质')
+        
+        return attrs
+
+
+class SubstanceTraceabilityTopSourceSerializer(serializers.Serializer):
+    """物质溯源Top5来源序列化器"""
+    rank = serializers.IntegerField()
+    part_name = serializers.CharField()
+    qij = serializers.DecimalField(max_digits=12, decimal_places=2, allow_null=True, required=False)
+    wih = serializers.DecimalField(max_digits=12, decimal_places=2, allow_null=True, required=False)
+    concentration = serializers.DecimalField(max_digits=12, decimal_places=3, allow_null=True, required=False)
+
+
+class SubstanceTraceabilityDetailSerializer(serializers.Serializer):
+    """物质溯源详细信息序列化器"""
+    substance_id = serializers.IntegerField()
+    substance_name_cn = serializers.CharField()
+    substance_name_en = serializers.CharField(allow_null=True, allow_blank=True)
+    cas_no = serializers.CharField()
+    retention_time = serializers.DecimalField(max_digits=8, decimal_places=2, allow_null=True)
+    match_degree = serializers.DecimalField(max_digits=5, decimal_places=1, allow_null=True)
+    concentration_ratio = serializers.DecimalField(max_digits=8, decimal_places=1, allow_null=True)
+    concentration = serializers.DecimalField(max_digits=12, decimal_places=3, allow_null=True)
+    odor_top5 = SubstanceTraceabilityTopSourceSerializer(many=True)
+    organic_top5 = SubstanceTraceabilityTopSourceSerializer(many=True)

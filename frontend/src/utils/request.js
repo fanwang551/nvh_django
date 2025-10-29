@@ -8,6 +8,22 @@ const http = axios.create({
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json'
+  },
+  // 配置参数序列化器，确保数组参数正确序列化为 Django REST Framework 期望的格式
+  paramsSerializer: {
+    serialize: (params) => {
+      const searchParams = new URLSearchParams()
+      Object.keys(params).forEach(key => {
+        const value = params[key]
+        if (Array.isArray(value)) {
+          // 数组参数：substance_ids=11&substance_ids=15 (不带[])
+          value.forEach(item => searchParams.append(key, item))
+        } else if (value !== null && value !== undefined) {
+          searchParams.append(key, value)
+        }
+      })
+      return searchParams.toString()
+    }
   }
 })
 

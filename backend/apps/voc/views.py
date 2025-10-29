@@ -9,7 +9,8 @@ from .serializers import (
     VocOdorResultSerializer, VocQuerySerializer, VocChartDataSerializer,
     PartNameOptionSerializer, VehicleModelOptionSerializer, StatusOptionSerializer,
     SubstancesTestSerializer, SubstancesTestDetailSerializer, SubstanceSerializer,
-    SubstancesQuerySerializer, ContributionTop25QuerySerializer
+    SubstancesQuerySerializer, ContributionTop25QuerySerializer,
+    SubstanceItemTraceabilityQuerySerializer, SubstanceTraceabilityDetailSerializer
 )
 from apps.modal.models import VehicleModel
 
@@ -620,3 +621,153 @@ def contribution_top25(request):
 
     except Exception as e:
         return Response.error(message=f"获取贡献度TOP25失败: {str(e)}")
+
+
+@api_view(['GET'])
+@permission_classes([])
+def substance_item_traceability(request):
+    """物质分项溯源查询"""
+    try:
+        query_serializer = SubstanceItemTraceabilityQuerySerializer(data=request.GET)
+        query_serializer.is_valid(raise_exception=True)
+        
+        vehicle_model_id = query_serializer.validated_data.get('vehicle_model_id')
+        substance_ids = query_serializer.validated_data.get('substance_ids')
+        
+        # 1. 获取该车型整车样品的全谱检测数据
+        vehicle_tests = SubstancesTest.objects.select_related('sample', 'sample__vehicle_model').filter(
+            sample__vehicle_model_id=vehicle_model_id,
+            sample__part_name='整车'
+        )
+        
+        if not vehicle_tests.exists():
+            return Response.error(message="该车型暂无整车全谱检测数据")
+        
+        # 取最新的整车检测数据
+        vehicle_test = vehicle_tests.order_by('-test_date', '-id').first()
+        
+        # 2. 获取整车检测中选择物质的详细数据
+        vehicle_details = SubstancesTestDetail.objects.select_related('substance').filter(
+            substances_test=vehicle_test,
+            substance_id__in=substance_ids
+        )
+        
+        if not vehicle_details.exists():
+            return Response.error(message="未找到所选物质的整车检测数据")
+        
+        # 3. 获取所有零部件样品的全谱检测数据（排除整车）
+        part_tests = SubstancesTest.objects.select_related('sample').filter(
+            sample__vehicle_model_id=vehicle_model_id
+        ).exclude(sample__part_name='整车')
+        
+        # 4. 获取所有零部件对这些物质的检测明细
+        part_details = SubstancesTestDetail.objects.select_related(
+            'substances_test__sample', 'substance'
+        ).filter(
+            substances_test__in=part_tests,
+            substance_id__in=substance_ids
+        )
+        
+        # 5. 构建结果数据
+        results = []
+        
+        for vehicle_detail in vehicle_details:
+            substance = vehicle_detail.substance
+            
+            # 整车检测数据
+            substance_data = {
+                'substance_id': substance.id,
+                'substance_name_cn': substance.substance_name_cn,
+                'substance_name_en': substance.substance_name_en or '',
+                'cas_no': substance.cas_no,
+                'retention_time': float(vehicle_detail.retention_time) if vehicle_detail.retention_time else None,
+                'match_degree': float(vehicle_detail.match_degree) if vehicle_detail.match_degree else None,
+                'concentration_ratio': float(vehicle_detail.concentration_ratio) if vehicle_detail.concentration_ratio else None,
+                'concentration': float(vehicle_detail.concentration) if vehicle_detail.concentration else None,
+            }
+            
+            # 筛选该物质在零部件中的检测数据
+            substance_part_details = [d for d in part_details if d.substance_id == substance.id]
+            
+            # 按零件名称分组，计算平均值
+            from collections import defaultdict
+            part_data = defaultdict(lambda: {'qij_sum': 0, 'wih_sum': 0, 'concentration_sum': 0, 'count': 0})
+            
+            for detail in substance_part_details:
+                part_name = detail.substances_test.sample.part_name
+                if detail.dilution_oij is not None:
+                    part_data[part_name]['qij_sum'] += float(detail.dilution_oij)
+                if detail.dilution_wih is not None:
+                    part_data[part_name]['wih_sum'] += float(detail.dilution_wih)
+                if detail.concentration is not None:
+                    part_data[part_name]['concentration_sum'] += float(detail.concentration)
+                part_data[part_name]['count'] += 1
+            
+            # 计算每个零件的平均值
+            part_averages = []
+            for part_name, data in part_data.items():
+                count = data['count']
+                part_averages.append({
+                    'part_name': part_name,
+                    'qij_avg': data['qij_sum'] / count if count > 0 else 0,
+                    'wih_avg': data['wih_sum'] / count if count > 0 else 0,
+                    'concentration_avg': data['concentration_sum'] / count if count > 0 else 0
+                })
+            
+            # 按Qij排序，取Top5（气味污染物来源）
+            odor_top5_data = sorted(part_averages, key=lambda x: x['qij_avg'], reverse=True)[:5]
+            odor_top5 = []
+            for idx, item in enumerate(odor_top5_data):
+                odor_top5.append({
+                    'rank': idx + 1,
+                    'part_name': item['part_name'],
+                    'qij': round(item['qij_avg'], 2) if item['qij_avg'] > 0 else None,
+                    'concentration': round(item['concentration_avg'], 3) if item['concentration_avg'] > 0 else None
+                })
+            
+            # 补足5个位置（如果不足）
+            while len(odor_top5) < 5:
+                odor_top5.append({
+                    'rank': len(odor_top5) + 1,
+                    'part_name': None,
+                    'qij': None,
+                    'concentration': None
+                })
+            
+            # 按Wih排序，取Top5（有机污染物来源）
+            organic_top5_data = sorted(part_averages, key=lambda x: x['wih_avg'], reverse=True)[:5]
+            organic_top5 = []
+            for idx, item in enumerate(organic_top5_data):
+                organic_top5.append({
+                    'rank': idx + 1,
+                    'part_name': item['part_name'],
+                    'wih': round(item['wih_avg'], 2) if item['wih_avg'] > 0 else None,
+                    'concentration': round(item['concentration_avg'], 3) if item['concentration_avg'] > 0 else None
+                })
+            
+            # 补足5个位置（如果不足）
+            while len(organic_top5) < 5:
+                organic_top5.append({
+                    'rank': len(organic_top5) + 1,
+                    'part_name': None,
+                    'wih': None,
+                    'concentration': None
+                })
+            
+            substance_data['odor_top5'] = odor_top5
+            substance_data['organic_top5'] = organic_top5
+            
+            results.append(substance_data)
+        
+        # 序列化返回
+        serializer = SubstanceTraceabilityDetailSerializer(results, many=True)
+        
+        return Response.success(data={
+            'vehicle_model_id': vehicle_model_id,
+            'substances': serializer.data
+        }, message="获取物质分项溯源数据成功")
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return Response.error(message=f"获取物质分项溯源数据失败: {str(e)}")

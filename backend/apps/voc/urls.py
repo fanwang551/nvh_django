@@ -22,4 +22,7 @@ urlpatterns = [
 
     # 贡献度TOP25接口
     path('contribution-top25/', views.contribution_top25, name='contribution_top25'),
+    
+    # 物质分项溯源接口
+    path('substances/item-traceability/', views.substance_item_traceability, name='substance_item_traceability'),
 ]

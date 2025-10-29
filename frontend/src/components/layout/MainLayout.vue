@@ -84,6 +84,7 @@ const cachedComponents = ref([
   'DataCenter',
   'VocOdorData',
   'SubstancesData',
+  'SubstanceTraceability',
   'ContributionQuery'
 ])
 
@@ -197,7 +198,8 @@ const addVehicleDataTab = (routePath) => {
 // 添加溯源中心子页面标签页
 const addTraceabilityTab = (routePath) => {
   const traceabilityTabConfig = {
-    '/traceability/contribution': { name: 'contribution-query', title: '贡献度查询' }
+    '/traceability/contribution': { name: 'contribution-query', title: '贡献度查询' },
+    '/traceability/substance-item': { name: 'substance-item-traceability', title: '物质分项溯源' }
   }
 
   const config = traceabilityTabConfig[routePath]
@@ -241,6 +243,7 @@ const handleTabClick = (tabName) => {
     'voc-data': '/vehicle-data/data/voc',
     'SubstancesData': '/vehicle-data/data/SubstancesData',
     // Traceability Center
+    'substance-item-traceability': '/traceability/substance-item',
     'traceability': '/traceability',
     'contribution-query': '/traceability/contribution'
   }
