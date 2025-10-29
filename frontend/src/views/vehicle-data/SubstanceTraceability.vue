@@ -143,10 +143,7 @@
             :class-name="'fixed-column'"
           >
             <template #header>
-              <div class="header-group header-vehicle" :rowspan="3" colspan="5">
-                <div class="header-title">全谱检测结果</div>
-                <div class="header-subtitle">(整车检测数据)</div>
-              </div>
+              <span>物质名称</span>
             </template>
             <template #default="scope">
               <div class="substance-name">{{ scope.row.substance_name_cn }}</div>
@@ -157,9 +154,7 @@
             prop="retention_time"
             label="保留时间"
             width="100"
-            fixed
             align="center"
-            :class-name="'fixed-column'"
           >
             <template #default="scope">
               <span class="number-cell">{{ formatNumber(scope.row.retention_time, 2) }}</span>
@@ -170,9 +165,7 @@
             prop="match_degree"
             label="匹配度"
             width="80"
-            fixed
             align="center"
-            :class-name="'fixed-column'"
           >
             <template #default="scope">
               <span class="number-cell">{{ formatNumber(scope.row.match_degree, 1) }}</span>
@@ -183,9 +176,7 @@
             prop="concentration_ratio"
             label="浓度占比"
             width="90"
-            fixed
             align="center"
-            :class-name="'fixed-column'"
           >
             <template #default="scope">
               <span class="number-cell">{{ formatNumber(scope.row.concentration_ratio, 1) }}</span>
@@ -196,9 +187,7 @@
             prop="concentration"
             label="浓度(μg/m³)"
             width="100"
-            fixed
             align="center"
-            :class-name="'fixed-column fixed-column-last'"
           >
             <template #default="scope">
               <span class="number-cell">{{ formatNumber(scope.row.concentration, 3) }}</span>
@@ -459,29 +448,17 @@ onMounted(async () => {
 }
 
 :deep(.el-table th) {
+  background-color: #1890ff !important;
+  color: #ffffff !important;
   font-weight: 600;
   font-size: 14px;
   line-height: 22px;
   padding: 12px 0;
 }
 
-/* 不同区域的表头背景色 */
-:deep(.el-table th.fixed-column) {
-  background-color: #f0f5ff !important;
-}
-
-:deep(.el-table th:not(.fixed-column)) {
-  background-color: #f5f7fa;
-}
-
 /* 固定列样式 */
 :deep(.el-table .fixed-column) {
-  background-color: #ffffff;
-}
-
-:deep(.el-table .fixed-column-last) {
-  border-right: 2px solid #d9d9d9;
-  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
+  /* 移除背景色，与其他列保持一致 */
 }
 
 /* 行样式 */
@@ -514,7 +491,7 @@ onMounted(async () => {
 }
 
 .part-name {
-  color: #1890ff;
+  color: #1f2937;
   font-weight: 500;
 }
 
@@ -545,9 +522,7 @@ onMounted(async () => {
   font-weight: normal;
 }
 
-.header-vehicle {
-  background-color: #f0f5ff;
-}
+
 
 /* 响应式 */
 @media (max-width: 1600px) {
