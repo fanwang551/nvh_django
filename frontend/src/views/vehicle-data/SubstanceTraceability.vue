@@ -147,7 +147,13 @@
               <span>物质名称</span>
             </template>
             <template #default="scope">
-              <div class="substance-name">{{ scope.row.substance_name_cn }}</div>
+              <el-button
+                type="text"
+                @click="showSubstanceDetail(scope.row.substance_id, scope.row.substance_info)"
+                style="color: #409EFF; font-weight: 600;"
+              >
+                {{ scope.row.substance_name_cn }}
+              </el-button>
             </template>
           </el-table-column>
 
@@ -321,16 +327,61 @@
     <div v-if="store.query_loading" class="loading-container">
       <el-skeleton :rows="6" animated />
     </div>
+
+    <!-- 物质详情对话框 -->
+    <el-dialog
+      v-model="substanceDialogVisible"
+      title="物质详细信息"
+      width="50%"
+      center
+    >
+      <el-card v-if="currentSubstance" shadow="never" style="border: none;">
+        <el-descriptions :column="1" border>
+          <el-descriptions-item label="物质中文名">
+            {{ currentSubstance.substance_name_cn || '-' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="物质英文名">
+            {{ currentSubstance.substance_name_en || '-' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="CAS号">
+            {{ currentSubstance.cas_no || '-' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="嗅阈值(μg/m³)">
+            {{ currentSubstance.odor_threshold || '-' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="有机物阈值">
+            {{ currentSubstance.organic_threshold || '-' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="限值">
+            {{ currentSubstance.limit_value || '-' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="气味特性">
+            {{ currentSubstance.odor_character || '-' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="主要用途">
+            {{ currentSubstance.main_usage || '-' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="备注">
+            {{ currentSubstance.remark || '-' }}
+          </el-descriptions-item>
+        </el-descriptions>
+      </el-card>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useSubstanceTraceabilityStore } from '@/store/substanceTraceability'
+import { substancesApi } from '@/api/substances'
 import { ElMessage } from 'element-plus'
 import { ArrowDown } from '@element-plus/icons-vue'
 
 const store = useSubstanceTraceabilityStore()
+
+// 物质详情弹窗
+const substanceDialogVisible = ref(false)
+const currentSubstance = ref(null)
 
 // 车型变化处理
 const handleVehicleModelChange = (selectedKey) => {
@@ -379,6 +430,23 @@ const formatConcentration = (concentration) => {
 }
 
 
+
+// 显示物质详情
+const showSubstanceDetail = async (substanceId, substanceInfo) => {
+  try {
+    if (substanceInfo) {
+      currentSubstance.value = substanceInfo
+      substanceDialogVisible.value = true
+    } else {
+      const response = await substancesApi.getSubstanceDetail({ substance_id: substanceId })
+      currentSubstance.value = response.data
+      substanceDialogVisible.value = true
+    }
+  } catch (error) {
+    console.error('获取物质详情失败:', error)
+    ElMessage.error('获取物质详情失败')
+  }
+}
 
 // 表格行类名
 const getRowClassName = ({ rowIndex }) => {
