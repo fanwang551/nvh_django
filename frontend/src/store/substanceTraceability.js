@@ -6,7 +6,10 @@ export const useSubstanceTraceabilityStore = defineStore('substanceTraceability'
     // 查询条件
     searchCriteria: {
       vehicle_model_id: null,
-      substance_ids: []
+      status: null,
+      development_stage: null,
+      substance_ids: [],
+      selected_key: null  // 用于存储选中的唯一标识
     },
 
     // 选项数据
@@ -43,7 +46,7 @@ export const useSubstanceTraceabilityStore = defineStore('substanceTraceability'
 
     // 是否可以查询
     canQuery: (state) => {
-      return state.searchCriteria.vehicle_model_id && state.searchCriteria.substance_ids.length > 0
+      return state.searchCriteria.selected_key && state.searchCriteria.substance_ids.length > 0
     }
   },
 
@@ -55,11 +58,28 @@ export const useSubstanceTraceabilityStore = defineStore('substanceTraceability'
         this.error = null
         const response = await substancesApi.getVehicleModelOptions()
         
-        // 确保数据格式正确
+        // 数据格式: {label, vehicle_model_id, status, development_stage}
         const data = response.data || []
-        this.vehicle_models = Array.isArray(data) ? data : []
         
-        console.log('车型选项加载成功:', this.vehicle_models.length, '个车型')
+        // 为每个选项生成唯一的key
+        this.vehicle_models = (Array.isArray(data) ? data : []).map((item, index) => {
+          // 确保status和development_stage有值
+          const status = item.status || '未知状态'
+          const stage = item.development_stage || '未知阶段'
+          // 使用索引作为key，避免特殊字符问题
+          const key = `key_${index}_${item.vehicle_model_id}`
+          return {
+            value: item.vehicle_model_id,
+            label: item.label,
+            vehicle_model_id: item.vehicle_model_id,
+            status: status,
+            development_stage: stage,
+            key: key
+          }
+        })
+        
+        console.log('车型选项加载成功:', this.vehicle_models.length, '个选项')
+        console.log('第一个选项示例:', this.vehicle_models[0])
       } catch (error) {
         this.error = error.message
         console.error('获取车型选项失败:', error)
@@ -70,8 +90,8 @@ export const useSubstanceTraceabilityStore = defineStore('substanceTraceability'
     },
 
     // 加载物质选项（从整车全谱数据获取，按浓度降序）
-    async fetchSubstanceOptions(vehicleModelId) {
-      if (!vehicleModelId) {
+    async fetchSubstanceOptions(selectedOption) {
+      if (!selectedOption) {
         this.substance_options = []
         return
       }
@@ -80,17 +100,27 @@ export const useSubstanceTraceabilityStore = defineStore('substanceTraceability'
         this.substance_options_loading = true
         this.error = null
 
-        // 获取该车型整车的全谱检测数据
-        const response = await substancesApi.getTestList({
-          vehicle_model_id: vehicleModelId,
+        // 获取该车型+状态+开发阶段的整车全谱检测数据
+        const queryParams = {
+          vehicle_model_id: selectedOption.vehicle_model_id,
           part_name: '整车',
           page_size: 1000
-        })
+        }
+        
+        // 添加状态和开发阶段过滤
+        if (selectedOption.status && selectedOption.status !== '未知状态') {
+          queryParams.status = selectedOption.status
+        }
+        if (selectedOption.development_stage && selectedOption.development_stage !== '未知阶段') {
+          queryParams.development_stage = selectedOption.development_stage
+        }
+
+        const response = await substancesApi.getTestList(queryParams)
 
         const testData = response.data.results || []
         
         if (testData.length === 0) {
-          console.warn('未找到该车型的整车检测数据')
+          console.warn('未找到匹配的整车检测数据')
           this.substance_options = []
           return
         }
@@ -153,10 +183,20 @@ export const useSubstanceTraceabilityStore = defineStore('substanceTraceability'
         this.query_loading = true
         this.error = null
 
-        const response = await substancesApi.getSubstanceTraceability({
+        const params = {
           vehicle_model_id: this.searchCriteria.vehicle_model_id,
           substance_ids: this.searchCriteria.substance_ids
-        })
+        }
+        
+        // 添加状态和开发阶段参数
+        if (this.searchCriteria.status) {
+          params.status = this.searchCriteria.status
+        }
+        if (this.searchCriteria.development_stage) {
+          params.development_stage = this.searchCriteria.development_stage
+        }
+
+        const response = await substancesApi.getSubstanceTraceability(params)
 
         this.traceability_data = response.data.substances || []
       } catch (error) {
@@ -230,21 +270,40 @@ export const useSubstanceTraceabilityStore = defineStore('substanceTraceability'
     resetSearchCriteria() {
       this.searchCriteria = {
         vehicle_model_id: null,
-        substance_ids: []
+        status: null,
+        development_stage: null,
+        substance_ids: [],
+        selected_key: null
       }
       this.substance_options = []
       this.traceability_data = []
     },
 
     // 车型变化处理
-    handleVehicleModelChange(vehicleModelId) {
-      this.searchCriteria.vehicle_model_id = vehicleModelId
+    handleVehicleModelChange(selectedKey) {
+      // 清空之前的选择
       this.searchCriteria.substance_ids = []
       this.traceability_data = []
       
-      if (vehicleModelId) {
-        this.fetchSubstanceOptions(vehicleModelId)
+      if (selectedKey) {
+        // 根据key找到完整的选项信息
+        const selectedOption = this.vehicle_models.find(item => item.key === selectedKey)
+        
+        if (selectedOption) {
+          this.searchCriteria.selected_key = selectedKey
+          this.searchCriteria.vehicle_model_id = selectedOption.vehicle_model_id
+          this.searchCriteria.status = selectedOption.status
+          this.searchCriteria.development_stage = selectedOption.development_stage
+          
+          // 加载该选项对应的物质列表
+          this.fetchSubstanceOptions(selectedOption)
+        }
       } else {
+        // 清空选择
+        this.searchCriteria.selected_key = null
+        this.searchCriteria.vehicle_model_id = null
+        this.searchCriteria.status = null
+        this.searchCriteria.development_stage = null
         this.substance_options = []
       }
     }

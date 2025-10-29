@@ -82,16 +82,35 @@ def part_name_options(request):
 @api_view(['GET'])
 @permission_classes([])
 def vehicle_model_options(request):
-    """获取车型选项列表"""
+    """获取车型选项列表（用于物质溯源，返回整车数据组合）"""
     try:
-        # 只返回有VOC数据的车型
-        vehicle_models = VehicleModel.objects.filter(
-            id__in=SampleInfo.objects.values_list('vehicle_model_id', flat=True).distinct()
-        ).values('id', 'vehicle_model_name').order_by('vehicle_model_name')
+        # 获取有整车全谱检测数据的样品信息，按车型+状态+开发阶段组合
+        vehicle_samples = SampleInfo.objects.filter(
+            part_name='整车',
+            substancestest__isnull=False  # 确保有全谱检测数据
+        ).select_related('vehicle_model').values(
+            'vehicle_model_id',
+            'vehicle_model__vehicle_model_name',
+            'status',
+            'development_stage'
+        ).distinct().order_by('vehicle_model__vehicle_model_name', 'status', 'development_stage')
         
-        options = [{'value': item['id'], 'label': item['vehicle_model_name']} for item in vehicle_models]
-        serializer = VehicleModelOptionSerializer(options, many=True)
-        return Response.success(data=serializer.data, message="获取车型选项成功")
+        # 构建选项列表：车型名称-检测状态-开发阶段
+        options = []
+        for item in vehicle_samples:
+            vehicle_name = item['vehicle_model__vehicle_model_name']
+            status = item['status'] or '未知状态'
+            stage = item['development_stage'] or '未知阶段'
+            
+            options.append({
+                'value': item['vehicle_model_id'],
+                'label': f"{vehicle_name}-{status}-{stage}",
+                'vehicle_model_id': item['vehicle_model_id'],
+                'status': status,
+                'development_stage': stage
+            })
+        
+        return Response.success(data=options, message="获取车型选项成功")
         
     except Exception as e:
         return Response.error(message=f"获取车型选项失败: {str(e)}")
@@ -632,18 +651,28 @@ def substance_item_traceability(request):
         query_serializer.is_valid(raise_exception=True)
         
         vehicle_model_id = query_serializer.validated_data.get('vehicle_model_id')
+        status = query_serializer.validated_data.get('status')
+        development_stage = query_serializer.validated_data.get('development_stage')
         substance_ids = query_serializer.validated_data.get('substance_ids')
         
-        # 1. 获取该车型整车样品的全谱检测数据
-        vehicle_tests = SubstancesTest.objects.select_related('sample', 'sample__vehicle_model').filter(
+        # 1. 获取该车型整车样品的全谱检测数据（使用车型+状态+开发阶段精确匹配）
+        vehicle_tests_query = SubstancesTest.objects.select_related('sample', 'sample__vehicle_model').filter(
             sample__vehicle_model_id=vehicle_model_id,
             sample__part_name='整车'
         )
         
-        if not vehicle_tests.exists():
-            return Response.error(message="该车型暂无整车全谱检测数据")
+        # 添加 status 和 development_stage 过滤条件
+        if status:
+            vehicle_tests_query = vehicle_tests_query.filter(sample__status=status)
+        if development_stage:
+            vehicle_tests_query = vehicle_tests_query.filter(sample__development_stage=development_stage)
         
-        # 取最新的整车检测数据
+        vehicle_tests = vehicle_tests_query
+        
+        if not vehicle_tests.exists():
+            return Response.error(message="未找到匹配的整车全谱检测数据")
+        
+        # 取最新的整车检测数据（在满足条件的记录中选最新）
         vehicle_test = vehicle_tests.order_by('-test_date', '-id').first()
         
         # 2. 获取整车检测中选择物质的详细数据

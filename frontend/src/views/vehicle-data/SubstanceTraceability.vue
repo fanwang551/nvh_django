@@ -5,20 +5,21 @@
       <el-form class="filter-form">
         <el-form-item label="车型选择">
           <el-select
-            v-model="store.searchCriteria.vehicle_model_id"
+            v-model="store.searchCriteria.selected_key"
             placeholder="请选择车型"
             clearable
             filterable
             :loading="store.vehicle_models_loading"
-            style="width: 300px"
+            style="width: 280px"
             @change="handleVehicleModelChange"
           >
             <el-option
               v-for="option in store.vehicle_models"
-              :key="option.value"
+              :key="option.key"
               :label="option.label"
-              :value="option.value"
-            />
+              :value="option.key"
+            >
+            </el-option>
           </el-select>
         </el-form-item>
 
@@ -32,8 +33,8 @@
             clearable
             filterable
             :loading="store.substance_options_loading"
-            :disabled="!store.searchCriteria.vehicle_model_id"
-            style="width: 500px"
+            :disabled="!store.searchCriteria.selected_key"
+            style="width: 400px"
           >
             <template #footer>
               <div style="padding: 8px; text-align: center; border-top: 1px solid #e4e7ed;">
@@ -332,8 +333,10 @@ import { ArrowDown } from '@element-plus/icons-vue'
 const store = useSubstanceTraceabilityStore()
 
 // 车型变化处理
-const handleVehicleModelChange = (vehicleModelId) => {
-  store.handleVehicleModelChange(vehicleModelId)
+const handleVehicleModelChange = (selectedKey) => {
+  console.log('车型选择变化:', selectedKey)
+  console.log('可用选项:', store.vehicle_models)
+  store.handleVehicleModelChange(selectedKey)
 }
 
 // 清空物质选择
@@ -356,7 +359,7 @@ const handleQuery = async () => {
 // 获取当前车型名称
 const getCurrentVehicleModelName = () => {
   const currentModel = store.vehicle_models.find(
-    (m) => m.value === store.searchCriteria.vehicle_model_id
+    (m) => m.key === store.searchCriteria.selected_key
   )
   return currentModel ? currentModel.label : '未知车型'
 }
@@ -411,11 +414,12 @@ onMounted(async () => {
   display: flex;
   align-items: flex-start;
   gap: 20px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .filter-form :deep(.el-form-item) {
   margin-bottom: 0;
+  flex-shrink: 0;
 }
 
 .filter-form :deep(.el-form-item:last-child) {

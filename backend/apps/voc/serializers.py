@@ -262,6 +262,8 @@ class ContributionTop25QuerySerializer(serializers.Serializer):
 class SubstanceItemTraceabilityQuerySerializer(serializers.Serializer):
     """物质分项溯源查询序列化器"""
     vehicle_model_id = serializers.IntegerField(required=True)
+    status = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    development_stage = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     substance_ids = serializers.ListField(
         child=serializers.IntegerField(),
         required=True,
