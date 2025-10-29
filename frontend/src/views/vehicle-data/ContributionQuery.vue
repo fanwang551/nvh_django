@@ -136,7 +136,23 @@ const loadVehicleModels = async () => {
   vmLoading.value = true
   try {
     const resp = await vocApi.getVehicleModelOptions()
-    vehicleModelOptions.value = resp.data || []
+    const data = resp.data || []
+    
+    // 按 vehicle_model_id 去重，只保留唯一车型
+    const uniqueVehicles = new Map()
+    data.forEach(item => {
+      if (!uniqueVehicles.has(item.vehicle_model_id)) {
+        // 提取车型名称（去掉 "-状态-阶段" 部分）
+        const vehicleName = item.label.split('-')[0]
+        uniqueVehicles.set(item.vehicle_model_id, {
+          value: item.vehicle_model_id,
+          label: vehicleName
+        })
+      }
+    })
+    
+    // 转换为数组
+    vehicleModelOptions.value = Array.from(uniqueVehicles.values())
   } catch (e) {
     console.error(e)
     ElMessage.error('获取项目名称失败')
