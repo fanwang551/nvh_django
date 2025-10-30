@@ -35,6 +35,7 @@
             :loading="isLoading && !localPoints.length"
             @change="handlePointsChange"
           >
+            <el-option label="全选" value="__SELECT_ALL__" />
             <el-option v-for="p in measurementPointOptions" :key="p" :label="p" :value="p" />
           </el-select>
         </el-form-item>
@@ -504,29 +505,63 @@ watch(
 
 async function handleVehicleChange(ids) {
   store.selectedVehicleIds = Array.isArray(ids) ? ids : []
+  // 选择车型后加载对应的测点选项，但不立即查询数据
   await store.fetchFilters()
-  await store.multiQuery()
+  // 只有同时选择了车型和测点才查询数据
+  if (store.selectedVehicleIds.length > 0 && store.selectedPoints.length > 0) {
+    await store.multiQuery()
+  } else {
+    // 清空数据
+    store.resetData()
+  }
 }
 
 async function handlePointsChange(points) {
-  store.selectedPoints = Array.isArray(points) ? points : []
+  let actualPoints = Array.isArray(points) ? points : []
+  
+  // 处理全选逻辑
+  if (actualPoints.includes('__SELECT_ALL__')) {
+    // 如果选中了全选
+    if (localPoints.value.includes('__SELECT_ALL__') && actualPoints.length - 1 < measurementPointOptions.value.length) {
+      // 如果之前就有全选，但现在取消了某个选项，则取消全选
+      actualPoints = actualPoints.filter(p => p !== '__SELECT_ALL__')
+    } else {
+      // 否则选择所有测点
+      actualPoints = [...measurementPointOptions.value]
+    }
+    localPoints.value = actualPoints
+  }
+  
+  store.selectedPoints = actualPoints
   await store.fetchFilters()
-  await store.multiQuery()
+  // 只有同时选择了车型和测点才查询数据
+  if (store.selectedVehicleIds.length > 0 && store.selectedPoints.length > 0) {
+    await store.multiQuery()
+  } else {
+    // 清空数据
+    store.resetData()
+  }
 }
 
 async function handlePositionsChange(positions) {
   store.selectedPositions = Array.isArray(positions) ? positions : []
-  await store.multiQuery()
+  // 只有同时选择了车型和测点才查询数据
+  if (store.selectedVehicleIds.length > 0 && store.selectedPoints.length > 0) {
+    await store.multiQuery()
+  }
 }
 
 async function handleDirectionsChange(directions) {
   store.selectedDirections = Array.isArray(directions) ? directions : []
-  await store.multiQuery()
+  // 只有同时选择了车型和测点才查询数据
+  if (store.selectedVehicleIds.length > 0 && store.selectedPoints.length > 0) {
+    await store.multiQuery()
+  }
 }
 
 onMounted(async () => {
+  // 只加载车型选项，不加载其他数据
   await store.fetchVehicleOptions()
-  await store.fetchFilters()
   window.addEventListener('resize', handleResize)
 })
 
