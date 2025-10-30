@@ -71,7 +71,23 @@ export const useSubstancesQueryStore = defineStore('substancesQuery', {
       try {
         this.vehicle_models_loading = true
         const response = await substancesApi.getVehicleModelOptions()
-        this.vehicle_models = response.data
+        const data = response.data || []
+        
+        // 按 vehicle_model_id 去重，只保留唯一车型
+        const uniqueVehicles = new Map()
+        data.forEach(item => {
+          if (!uniqueVehicles.has(item.value)) {
+            // 提取车型名称（去掉 "-状态-阶段" 部分）
+            const vehicleName = item.label.split('-')[0]
+            uniqueVehicles.set(item.value, {
+              value: item.value,
+              label: vehicleName
+            })
+          }
+        })
+        
+        // 转换为数组
+        this.vehicle_models = Array.from(uniqueVehicles.values())
       } catch (error) {
         this.error = error.message
         console.error('获取车型选项失败:', error)

@@ -235,7 +235,7 @@ def voc_statistics(request):
             count=Count('id')
         ).order_by('-count')
         
-        # VOC物质平均值统计
+        # VOC物质平均值统计 前端未使用，如果统计需要可使用；未添加丙酮数据
         from django.db.models import Avg
         avg_values = VocOdorResult.objects.aggregate(
             avg_benzene=Avg('benzene'),
