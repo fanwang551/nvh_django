@@ -31,15 +31,16 @@ class VocOdorResult(models.Model):
     sample = models.ForeignKey(SampleInfo, on_delete=models.CASCADE, verbose_name='样品')
     
     # VOC检测数据
-    benzene = models.DecimalField(max_digits=10, decimal_places=4, null=True, blank=True, verbose_name='苯 (mg/m³)')
-    toluene = models.DecimalField(max_digits=10, decimal_places=4, null=True, blank=True, verbose_name='甲苯 (mg/m³)')
-    ethylbenzene = models.DecimalField(max_digits=10, decimal_places=4, null=True, blank=True, verbose_name='乙苯 (mg/m³)')
-    xylene = models.DecimalField(max_digits=10, decimal_places=4, null=True, blank=True, verbose_name='二甲苯 (mg/m³)')
-    styrene = models.DecimalField(max_digits=10, decimal_places=4, null=True, blank=True, verbose_name='苯乙烯 (mg/m³)')
-    formaldehyde = models.DecimalField(max_digits=10, decimal_places=4, null=True, blank=True, verbose_name='甲醛 (mg/m³)')
-    acetaldehyde = models.DecimalField(max_digits=10, decimal_places=4, null=True, blank=True, verbose_name='乙醛 (mg/m³)')
-    acrolein = models.DecimalField(max_digits=10, decimal_places=4, null=True, blank=True, verbose_name='丙烯醛 (mg/m³)')
-    tvoc = models.DecimalField(max_digits=10, decimal_places=4, null=True, blank=True, verbose_name='TVOC (mg/m³)')
+    benzene = models.DecimalField(max_digits=10, decimal_places=4, null=True, blank=True, verbose_name='苯 (μg/m³)')
+    toluene = models.DecimalField(max_digits=10, decimal_places=4, null=True, blank=True, verbose_name='甲苯 (μg/m³)')
+    ethylbenzene = models.DecimalField(max_digits=10, decimal_places=4, null=True, blank=True, verbose_name='乙苯 (μg/m³)')
+    xylene = models.DecimalField(max_digits=10, decimal_places=4, null=True, blank=True, verbose_name='二甲苯 (μg/m³)')
+    styrene = models.DecimalField(max_digits=10, decimal_places=4, null=True, blank=True, verbose_name='苯乙烯 (μg/m³)')
+    formaldehyde = models.DecimalField(max_digits=10, decimal_places=4, null=True, blank=True, verbose_name='甲醛 (μg/m³)')
+    acetaldehyde = models.DecimalField(max_digits=10, decimal_places=4, null=True, blank=True, verbose_name='乙醛 (μg/m³)')
+    acrolein = models.DecimalField(max_digits=10, decimal_places=4, null=True, blank=True, verbose_name='丙烯醛 (μg/m³)')
+    acetone = models.DecimalField(max_digits=10, decimal_places=4, null=True, blank=True, verbose_name='丙酮 (μg/m³)')
+    tvoc = models.DecimalField(max_digits=10, decimal_places=4, null=True, blank=True, verbose_name='TVOC (μg/m³)')
     test_date = models.DateField(null=True, blank=True, verbose_name='检测时间')
     
     # 气味检测数据

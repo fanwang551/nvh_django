@@ -160,7 +160,7 @@ def voc_chart_data(request):
         
         # 默认选择的VOC物质（如果未指定）
         if not selected_compounds:
-            selected_compounds = ['benzene', 'toluene', 'ethylbenzene', 'formaldehyde', 'tvoc']
+            selected_compounds = ['benzene', 'toluene', 'ethylbenzene', 'formaldehyde', 'acetone', 'tvoc']
         
         # 构建查询条件
         queryset = VocOdorResult.objects.select_related('sample', 'sample__vehicle_model').all()
@@ -187,7 +187,7 @@ def voc_chart_data(request):
         aggregates = {}
         for compound in selected_compounds:
             if compound in ['benzene', 'toluene', 'ethylbenzene', 'xylene', 'styrene', 
-                           'formaldehyde', 'acetaldehyde', 'acrolein', 'tvoc']:
+                           'formaldehyde', 'acetaldehyde', 'acrolein', 'acetone', 'tvoc']:
                 aggregates[compound] = Avg(compound)
         
         # 分组统计数据
@@ -309,10 +309,10 @@ def voc_row_chart_data(request):
                 sample__part_name=part_name
             )
         
-        # X轴：固定8种物质
-        x_axis = ["苯", "甲苯", "二甲苯", "乙苯", "苯乙烯", "甲醛", "乙醛", "TVOC"]
+        # X轴：固定物质（加入丙酮）
+        x_axis = ["苯", "甲苯", "二甲苯", "乙苯", "苯乙烯", "甲醛", "乙醛", "丙酮", "TVOC"]
         compound_fields = ["benzene", "toluene", "xylene", "ethylbenzene", 
-                          "styrene", "formaldehyde", "acetaldehyde", "tvoc"]
+                          "styrene", "formaldehyde", "acetaldehyde", "acetone", "tvoc"]
         
         # 构建系列数据
         series = []

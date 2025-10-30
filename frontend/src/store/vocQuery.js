@@ -57,6 +57,7 @@ export const useVocQueryStore = defineStore('vocQuery', {
         { value: 'formaldehyde', label: '甲醛' },
         { value: 'acetaldehyde', label: '乙醛' },
         { value: 'acrolein', label: '丙烯醛' },
+        { value: 'acetone', label: '丙酮' },
         { value: 'tvoc', label: 'TVOC' }
       ]
     },

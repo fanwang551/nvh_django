@@ -292,7 +292,7 @@
             align="center"
           >
             <template #header>
-              <div>苯<br/>(mg/m³)</div>
+              <div>苯<br/>(μg/m³)</div>
             </template>
             <template #default="scope">
               {{ scope.row.benzene_formatted }}
@@ -305,7 +305,7 @@
             align="center"
           >
             <template #header>
-              <div>甲苯<br/>(mg/m³)</div>
+              <div>甲苯<br/>(μg/m³)</div>
             </template>
             <template #default="scope">
               {{ scope.row.toluene_formatted }}
@@ -318,7 +318,7 @@
             align="center"
           >
             <template #header>
-              <div>乙苯<br/>(mg/m³)</div>
+              <div>乙苯<br/>(μg/m³)</div>
             </template>
             <template #default="scope">
               {{ scope.row.ethylbenzene_formatted }}
@@ -331,7 +331,7 @@
             align="center"
           >
             <template #header>
-              <div>二甲苯<br/>(mg/m³)</div>
+              <div>二甲苯<br/>(μg/m³)</div>
             </template>
             <template #default="scope">
               {{ scope.row.xylene_formatted }}
@@ -344,7 +344,7 @@
             align="center"
           >
             <template #header>
-              <div>苯乙烯<br/>(mg/m³)</div>
+              <div>苯乙烯<br/>(μg/m³)</div>
             </template>
             <template #default="scope">
               {{ scope.row.styrene_formatted }}
@@ -357,7 +357,7 @@
             align="center"
           >
             <template #header>
-              <div>甲醛<br/>(mg/m³)</div>
+              <div>甲醛<br/>(μg/m³)</div>
             </template>
             <template #default="scope">
               {{ scope.row.formaldehyde_formatted }}
@@ -370,7 +370,7 @@
             align="center"
           >
             <template #header>
-              <div>乙醛<br/>(mg/m³)</div>
+              <div>乙醛<br/>(μg/m³)</div>
             </template>
             <template #default="scope">
               {{ scope.row.acetaldehyde_formatted }}
@@ -383,10 +383,23 @@
             align="center"
           >
             <template #header>
-              <div>丙烯醛<br/>(mg/m³)</div>
+              <div>丙烯醛<br/>(μg/m³)</div>
             </template>
             <template #default="scope">
               {{ scope.row.acrolein_formatted }}
+            </template>
+          </el-table-column>
+
+          <el-table-column
+            v-if="vocVisibleColumns.includes('acetone')"
+            width="90"
+            align="center"
+          >
+            <template #header>
+              <div>丙酮<br/>(μg/m³)</div>
+            </template>
+            <template #default="scope">
+              {{ scope.row.acetone_formatted }}
             </template>
           </el-table-column>
 
@@ -396,7 +409,7 @@
             align="center"
           >
             <template #header>
-              <div>TVOC<br/>(mg/m³)</div>
+              <div>TVOC<br/>(μg/m³)</div>
             </template>
             <template #default="scope">
               {{ scope.row.tvoc_formatted }}
@@ -747,7 +760,7 @@ const locale = ref({
 const store = useVocQueryStore()
 
 // VOC表格可见列管理 - 默认选择所有物质和委托单号
-const vocVisibleColumns = ref(['commission_number', 'benzene', 'toluene', 'ethylbenzene', 'xylene', 'styrene', 'formaldehyde', 'acetaldehyde', 'acrolein', 'tvoc'])
+const vocVisibleColumns = ref(['commission_number', 'benzene', 'toluene', 'ethylbenzene', 'xylene', 'styrene', 'formaldehyde', 'acetaldehyde', 'acrolein', 'acetone', 'tvoc'])
 
 // 气味表格可见列管理 - 默认选择检测时间、零部件、开发阶段
 const odorVisibleColumns = ref(['test_date', 'part_name', 'development_stage'])
@@ -875,7 +888,7 @@ const renderChart = () => {
       formatter: function(params) {
         let result = params[0].axisValue + '<br/>'
         params.forEach(item => {
-          result += item.marker + ' ' + item.seriesName + ': ' + item.value + ' mg/m³<br/>'
+          result += item.marker + ' ' + item.seriesName + ': ' + item.value + ' μg/m³<br/>'
         })
         return result
       }
@@ -914,7 +927,7 @@ const renderChart = () => {
     },
     yAxis: {
       type: 'value',
-      name: '浓度 (mg/m³)',
+      name: '浓度 (μg/m³)',
       nameTextStyle: {
         fontSize: 14,
         fontWeight: 'bold'
@@ -1049,7 +1062,7 @@ const handleFilterChange = () => {
 
 const handleReset = () => {
   store.resetSearchCriteria()
-  vocVisibleColumns.value = ['commission_number', 'benzene', 'toluene', 'ethylbenzene', 'xylene', 'styrene', 'formaldehyde', 'acetaldehyde', 'acrolein', 'tvoc']
+  vocVisibleColumns.value = ['commission_number', 'benzene', 'toluene', 'ethylbenzene', 'xylene', 'styrene', 'formaldehyde', 'acetaldehyde', 'acrolein', 'acetone', 'tvoc']
   odorVisibleColumns.value = ['test_date', 'part_name', 'development_stage']
 }
 

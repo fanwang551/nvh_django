@@ -12,7 +12,7 @@ class SampleInfoAdmin(admin.ModelAdmin):
 
 @admin.register(VocOdorResult)
 class VocOdorResultAdmin(admin.ModelAdmin):
-    list_display = ['id', 'sample', 'benzene', 'toluene', 'formaldehyde', 'tvoc', 'static_front', 'odor_mean', 'test_date']
+    list_display = ['id', 'sample', 'benzene', 'toluene', 'formaldehyde', 'acetone', 'tvoc', 'static_front', 'odor_mean', 'test_date']
     list_filter = ['test_date', 'sample__status']
     search_fields = ['sample__sample_no', 'sample__part_name']
     list_per_page = 20
@@ -22,7 +22,7 @@ class VocOdorResultAdmin(admin.ModelAdmin):
         }),
         ('VOC检测数据', {
             'fields': ('benzene', 'toluene', 'ethylbenzene', 'xylene', 'styrene', 
-                      'formaldehyde', 'acetaldehyde', 'acrolein', 'tvoc')
+                      'formaldehyde', 'acetaldehyde', 'acrolein', 'acetone', 'tvoc')
         }),
         ('气味检测数据', {
             'fields': ('static_front', 'static_rear', 'dynamic_front', 'dynamic_rear', 'odor_mean')

@@ -39,6 +39,7 @@ class VocOdorResultSerializer(serializers.ModelSerializer):
     formaldehyde_formatted = serializers.SerializerMethodField()
     acetaldehyde_formatted = serializers.SerializerMethodField()
     acrolein_formatted = serializers.SerializerMethodField()
+    acetone_formatted = serializers.SerializerMethodField()
     tvoc_formatted = serializers.SerializerMethodField()
     
     # 格式化显示保留1位小数（气味数据）
@@ -52,10 +53,10 @@ class VocOdorResultSerializer(serializers.ModelSerializer):
         model = VocOdorResult
         fields = [
             'id', 'sample', 'sample_info', 'benzene', 'toluene', 'ethylbenzene', 
-            'xylene', 'styrene', 'formaldehyde', 'acetaldehyde', 'acrolein', 'tvoc', 
+            'xylene', 'styrene', 'formaldehyde', 'acetaldehyde', 'acrolein', 'acetone', 'tvoc', 
             'test_date', 'benzene_formatted', 'toluene_formatted', 'ethylbenzene_formatted',
             'xylene_formatted', 'styrene_formatted', 'formaldehyde_formatted', 
-            'acetaldehyde_formatted', 'acrolein_formatted', 'tvoc_formatted',
+            'acetaldehyde_formatted', 'acrolein_formatted', 'acetone_formatted', 'tvoc_formatted',
             'static_front', 'static_rear', 'dynamic_front', 'dynamic_rear', 'odor_mean',
             'static_front_formatted', 'static_rear_formatted', 'dynamic_front_formatted',
             'dynamic_rear_formatted', 'odor_mean_formatted'
@@ -84,6 +85,9 @@ class VocOdorResultSerializer(serializers.ModelSerializer):
     
     def get_acrolein_formatted(self, obj):
         return f"{obj.acrolein:.3f}" if obj.acrolein is not None else None
+    
+    def get_acetone_formatted(self, obj):
+        return f"{obj.acetone:.3f}" if getattr(obj, 'acetone', None) is not None else None
     
     def get_tvoc_formatted(self, obj):
         return f"{obj.tvoc:.3f}" if obj.tvoc is not None else None
@@ -134,6 +138,7 @@ class VocChartDataSerializer(serializers.Serializer):
     formaldehyde = serializers.DecimalField(max_digits=10, decimal_places=4, allow_null=True)
     acetaldehyde = serializers.DecimalField(max_digits=10, decimal_places=4, allow_null=True)
     acrolein = serializers.DecimalField(max_digits=10, decimal_places=4, allow_null=True)
+    acetone = serializers.DecimalField(max_digits=10, decimal_places=4, allow_null=True)
     tvoc = serializers.DecimalField(max_digits=10, decimal_places=4, allow_null=True)
 
 
