@@ -521,19 +521,27 @@ async function handlePointsChange(points) {
   
   // 处理全选逻辑
   if (actualPoints.includes('__SELECT_ALL__')) {
-    // 如果选中了全选
-    if (localPoints.value.includes('__SELECT_ALL__') && actualPoints.length - 1 < measurementPointOptions.value.length) {
-      // 如果之前就有全选，但现在取消了某个选项，则取消全选
-      actualPoints = actualPoints.filter(p => p !== '__SELECT_ALL__')
+    // 获取当前实际选中的测点（排除全选标记）
+    const currentSelected = localPoints.value.filter(p => p !== '__SELECT_ALL__')
+    const allOptions = measurementPointOptions.value || []
+    
+    // 判断当前是否已全选（实际选中数等于总数）
+    if (currentSelected.length === allOptions.length && allOptions.length > 0) {
+      // 已全选，点击全选 → 取消所有
+      actualPoints = []
     } else {
-      // 否则选择所有测点
-      actualPoints = [...measurementPointOptions.value]
+      // 未全选，点击全选 → 选择所有
+      actualPoints = [...allOptions]
     }
-    localPoints.value = actualPoints
+  } else {
+    // 移除全选标记
+    actualPoints = actualPoints.filter(p => p !== '__SELECT_ALL__')
   }
   
+  localPoints.value = actualPoints
   store.selectedPoints = actualPoints
   await store.fetchFilters()
+  
   // 只有同时选择了车型和测点才查询数据
   if (store.selectedVehicleIds.length > 0 && store.selectedPoints.length > 0) {
     await store.multiQuery()
