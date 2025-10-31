@@ -126,28 +126,28 @@ const handleMenuSelect = (menuKey) => {
 // 添加业务子页面标签页
 const addBusinessTab = (routePath) => {
   const businessTabConfig = {
-    '/business/modal-data-query': { name: 'modal-data-query', title: '模态数据查询' },
-    '/business/modal-data-compare': { name: 'modal-data-compare', title: '模态数据对比' },
-    '/business/airtight-leak-compare': { name: 'airtight-leak-compare', title: '气密性泄漏量对比' },
-    '/business/airtightness-image-query': { name: 'airtightness-image-query', title: '气密性测试图片查询' },
-    '/business/sound-insulation-compare': { name: 'sound-insulation-compare', title: '区域隔声量（ATF）对比' },
-    '/business/acoustic-analysis': { name: 'acoustic-analysis', title: '声学测试数据分析' },
-    '/business/vehicle-sound-insulation-query': { name: 'vehicle-sound-insulation-query', title: '车型隔声量查询' },
-    '/business/vehicle-reverberation-query': { name: 'vehicle-reverberation-query', title: '车辆混响时间查询' },
-    '/business/wheel-performance-query': { name: 'wheel-performance-query', title: '车轮性能查询' },
-    '/business/ntf-query': { name: 'ntf-query', title: 'NTF查询' },
-    '/business/sound-absorption-query': { name: 'sound-absorption-query', title: '吸声系数查询' },
-    '/business/sound-insulation-coefficient-query': { name: 'sound-insulation-coefficient-query', title: '隔声量查询' },
-    '/business/material-porosity-flow-resistance-query': { name: 'material-porosity-flow-resistance-query', title: '材料孔隙率流阻查询' },
-    '/business/dynamic-stiffness-query': { name: 'dynamic-stiffness-query', title: '动刚度查询' },
-    '/business/vehicle-mount-isolation-query': { name: 'vehicle-mount-isolation-query', title: '整车悬置隔振率查询' },
-    '/business/suspension-isolation-query': { name: 'suspension-isolation-query', title: '整车悬架隔振率查询' }
+    '/business/modal-data-query': { name: 'modal-data-query', title: '模态查询' },
+    '/business/modal-data-compare': { name: 'modal-data-compare', title: '模态对比' },
+    '/business/airtight-leak-compare': { name: 'airtight-leak-compare', title: '气密性泄漏量' },
+    '/business/airtightness-image-query': { name: 'airtightness-image-query', title: '气密性测试图' },
+    '/business/sound-insulation-compare': { name: 'sound-insulation-compare', title: '区域隔声量' },
+    '/business/acoustic-analysis': { name: 'acoustic-analysis', title: '原始数据分析' },
+    '/business/vehicle-sound-insulation-query': { name: 'vehicle-sound-insulation-query', title: '整车隔声量' },
+    '/business/vehicle-reverberation-query': { name: 'vehicle-reverberation-query', title: '整车混响时间' },
+    '/business/wheel-performance-query': { name: 'wheel-performance-query', title: '车轮性能' },
+    '/business/ntf-query': { name: 'ntf-query', title: '传递函数' },
+    '/business/sound-absorption-query': { name: 'sound-absorption-query', title: '材料吸声' },
+    '/business/sound-insulation-coefficient-query': { name: 'sound-insulation-coefficient-query', title: '材料隔声量' },
+    '/business/material-porosity-flow-resistance-query': { name: 'material-porosity-flow-resistance-query', title: '孔隙率流阻' },
+    '/business/dynamic-stiffness-query': { name: 'dynamic-stiffness-query', title: '动刚度' },
+    '/business/vehicle-mount-isolation-query': { name: 'vehicle-mount-isolation-query', title: '整车悬置隔振率' },
+    '/business/suspension-isolation-query': { name: 'suspension-isolation-query', title: '整车悬架隔振率' }
   }
 
   // 经验数据库：单独处理路由映射
   let tabConfig = businessTabConfig[routePath]
   if (!tabConfig && routePath === '/business/experience-query') {
-    tabConfig = { name: 'experience-query', title: '经验数据' }
+    tabConfig = { name: 'experience-query', title: '经验库' }
   }
   if (tabConfig) {
     // 确保业务中心标签存在
