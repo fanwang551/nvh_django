@@ -190,7 +190,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import * as echarts from 'echarts/core'
-import { HeatmapChart } from 'echarts/charts'
+import { HeatmapChart, CustomChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, VisualMapComponent, TitleComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 import { useNTFQueryStore } from '@/store'
@@ -199,7 +199,7 @@ defineOptions({ name: 'NTFQuery' })
 
 const VALUE_LEVEL = { HIGH: 'high', MEDIUM: 'medium', LOW: 'low' }
 
-echarts.use([HeatmapChart, GridComponent, TooltipComponent, VisualMapComponent, TitleComponent, CanvasRenderer])
+echarts.use([HeatmapChart, CustomChart, GridComponent, TooltipComponent, VisualMapComponent, TitleComponent, CanvasRenderer])
 
 const store = useNTFQueryStore()
 const { vehicleOptions, measurementPointOptions, seatColumns, tableRows, heatmap, isLoading, error, vehicleCards } = storeToRefs(store)
@@ -214,12 +214,17 @@ const directionStaticOptions = ['x', 'y', 'z']
 const heatmapRef = ref(null)
 let chartInstance = null
 
-// 动态计算热力图容器高度：确保每个测点有足够行高，超出容器时外层可滚动
+// 动态计算热力图容器高度：确保每个测点有足够行高，包括像素级间隔线
 const heatmapHeight = computed(() => {
   const rows = Array.isArray(heatmap.value?.points) ? heatmap.value.points.length : 0
+  if (rows === 0) return 420
   const BASE_OFFSET = 110 // 顶/底部 grid 留白等
-  const ROW_HEIGHT = 20   // 每个测点期望行高
-  return Math.max(420, BASE_OFFSET + rows * ROW_HEIGHT)
+  const ROW_HEIGHT = 20   // 每个数据行期望行高
+  const GAP_HEIGHT = 2    // 间隔行高度（相对较小）
+  // 总行数 = 数据行数 + 间隔行数（数据行之间）
+  const totalDataRows = rows
+  const totalGapRows = Math.max(0, rows - 1) // 间隔数 = 数据行数 - 1
+  return Math.max(420, BASE_OFFSET + totalDataRows * ROW_HEIGHT + totalGapRows * GAP_HEIGHT)
 })
 
 function formatValue(value) {
@@ -385,10 +390,9 @@ const levelStats = computed(() => {
   return stats
 })
 
-function buildHeatmapSeriesData() {
-  if (!heatmap.value?.matrix?.length) return []
+function buildHeatmapSeriesData(matrix) {
+  if (!matrix?.length) return []
   const data = []
-  const matrix = heatmap.value.matrix
   matrix.forEach((row, rowIndex) => {
     row.forEach((value, colIndex) => {
       const numeric = Number(value)
@@ -425,17 +429,48 @@ function renderHeatmap() {
   }
   
   if (!chartInstance) chartInstance = echarts.init(heatmapRef.value)
-  const data = buildHeatmapSeriesData()
+  
+  // 使用原始点位与矩阵（不再把“间隔行”插为分类行）
+  const originalPoints = heatmap.value.points || []
+  const originalMatrix = heatmap.value.matrix || []
+  const originalFrequency = heatmap.value.frequency || []
+
+  const data = buildHeatmapSeriesData(originalMatrix)
   const valueRange = computeHeatmapRange()
-  const total = Array.isArray(heatmap.value.frequency) ? heatmap.value.frequency.length : 0
+  const total = originalFrequency.length
   const step = Math.max(1, Math.floor(total / 10))
+
+  // 计算每两行之间需要绘制的像素分隔条（2px）
+  const gapIndices = [] // 在第 i 行与 i+1 行之间绘制
+  for (let i = 0; i < originalPoints.length - 1; i += 1) gapIndices.push(i)
+
+  // 自定义渲染函数：绘制覆盖全宽的水平矩形作为分隔线
+  const GAP_PX = 5
+  const renderGapItem = (params, api) => {
+    const i = api.value(0) // 行索引 i 与 i+1 之间
+    // y 方向：位于 i 与 i+1 的中间
+    const yTop = api.coord([0, i + 1])[1]
+    const yBottom = api.coord([0, i])[1]
+    const yMiddle = (yTop + yBottom) / 2
+    // x 方向：覆盖分类轴的可视宽度（以 -0.5 到 N-0.5 近似单元边界）
+    const left = api.coord([-0.5, 0])[0]
+    const right = api.coord([originalFrequency.length - 0.5, 0])[0]
+    const width = right - left
+    return {
+      type: 'rect',
+      silent: true,
+      shape: { x: left, y: Math.round(yMiddle - GAP_PX / 2), width, height: GAP_PX },
+      style: api.style({ fill: '#ffffff' })
+    }
+  }
   const option = {
     title: { left: 'center', text: 'Frequency vs Measurement Point' },
     tooltip: {
       trigger: 'item',
       formatter(params) {
-        const point = heatmap.value.points[params.value[1]]
-        const frequency = heatmap.value.frequency[params.value[0]]
+        const rowIndex = params.value[1]
+        const point = originalPoints[rowIndex]
+        const frequency = originalFrequency[params.value[0]]
         // 第4维保存原始值，优先展示原始值
         const raw = params.value?.[3]
         const value = Number.isFinite(raw) ? raw : params.value?.[2]
@@ -446,7 +481,7 @@ function renderHeatmap() {
     grid: { top: 60, left: 80, right: 20, bottom: 50 },
     xAxis: {
       type: 'category',
-      data: heatmap.value.frequency,
+      data: originalFrequency,
       name: '频率 (Hz)',
       nameGap: 18,
       axisLabel: {
@@ -459,7 +494,13 @@ function renderHeatmap() {
         }
       }
     },
-    yAxis: { type: 'category', data: heatmap.value.points, name: '测点', nameGap: 16, axisLabel: { fontSize: 12 } },
+    yAxis: { 
+      type: 'category', 
+      data: originalPoints, 
+      name: '测点', 
+      nameGap: 16, 
+      axisLabel: { fontSize: 12 }
+    },
     visualMap: {
       // 固定映射区间 49-69
       min: valueRange.min,
@@ -474,7 +515,23 @@ function renderHeatmap() {
         color: ['#1a237e', '#3949ab', '#42a5f5', '#66bb6a', '#fdd835', '#fb8c00', '#e53935', '#b71c1c']
       }
     },
-    series: [{ name: 'NTF Heatmap', type: 'heatmap', data, label: { show: false } }]
+    series: [
+      { 
+        name: 'NTF Heatmap', 
+        type: 'heatmap', 
+        data, 
+        label: { show: false },
+        itemStyle: { borderWidth: 0 }
+      },
+      {
+        name: 'Row Gaps',
+        type: 'custom',
+        renderItem: renderGapItem,
+        data: gapIndices.map((i) => [i]),
+        z: 5,
+        silent: true
+      }
+    ]
   }
   chartInstance.setOption(option)
   // 高度变化后触发布局刷新
