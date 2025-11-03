@@ -83,12 +83,18 @@ def _collect_filtered_queryset(params) -> List[NTFTestResult]:
     positions = set(_normalize_csv(params.get('positions')))
     directions = set(_normalize_csv(params.get('directions')))
 
-    qs = NTFTestResult.objects.select_related('ntf_info__vehicle_model').all()
+    # 避免使用默认 Meta.ordering 触发数据库排序，清除排序以降低 MySQL sort buffer 压力
+    qs = (
+        NTFTestResult.objects.select_related('ntf_info__vehicle_model')
+        .all()
+        .order_by()  # 清除默认 ordering=['measurement_point']，避免 DB 排序
+    )
     if vehicle_ids:
         qs = qs.filter(ntf_info__vehicle_model_id__in=vehicle_ids)
     if points:
         qs = qs.filter(measurement_point__in=points)
 
+    # 读取结果到内存后再进行 Python 侧排序/筛选，避免 DB 层大规模排序
     results = list(qs)
 
     def _has_branch(curve: dict, pos: str) -> bool:
@@ -116,13 +122,39 @@ def _collect_filtered_queryset(params) -> List[NTFTestResult]:
 @permission_classes([AllowAny])
 def ntf_filters(request):
     """返回级联过滤项：车型/测点/位置/方向（根据入参收敛）。"""
-    results = _collect_filtered_queryset(request.GET)
+    params = request.GET
+    vehicle_ids = _normalize_csv(params.get('vehicle_ids'))
+    points = _normalize_csv(params.get('points'))
 
-    vehicle_set: Set[int] = set()
-    vehicles_data: Dict[int, Dict[str, object]] = {}
+    # 目标：当仅选择了车型时，不去加载大 JSON，
+    # 只基于 DB 去重给出测点列表；位置/方向延后到选定测点后再计算。
     points_set: Set[str] = set()
     pos_set: Set[str] = set()
     dir_set: Set[str] = set()
+
+    # 仅车型条件下，直接用 values_list + distinct 获取测点，避免加载 ntf_curve
+    if vehicle_ids and not points:
+        qs_points = (
+            NTFTestResult.objects
+            .filter(ntf_info__vehicle_model_id__in=vehicle_ids)
+            .order_by()  # 清理排序，避免 DB 排序
+            .values_list('measurement_point', flat=True)
+            .distinct()
+        )
+        points_set.update([p for p in qs_points if p])
+        data = {
+            'vehicles': [],  # 前端当前未使用该字段，输出空以降低负载
+            'measurement_points': sorted(points_set),
+            'positions': [],  # 延后到选择测点后再计算
+            'directions': [],
+        }
+        return Response.success(data=data, message='获取NTF过滤项成功')
+
+    # 指定了测点（以及可选位置/方向）时，按需加载结果后在内存计算位置/方向
+    results = _collect_filtered_queryset(params)
+
+    vehicle_set: Set[int] = set()
+    vehicles_data: Dict[int, Dict[str, object]] = {}
 
     for r in results:
         vm = r.ntf_info.vehicle_model
@@ -133,7 +165,8 @@ def ntf_filters(request):
                 'vehicle_model_name': vm.vehicle_model_name,
                 'cle_model_code': vm.cle_model_code,
             }
-        points_set.add(r.measurement_point)
+        if r.measurement_point:
+            points_set.add(r.measurement_point)
         curve = r.ntf_curve or {}
         for pos in ('front', 'middle', 'rear'):
             b = (curve or {}).get(pos)
@@ -285,4 +318,3 @@ def ntf_query(request):
         }
     }
     return Response.success(data=data, message='获取NTF综合查询结果成功')
-
