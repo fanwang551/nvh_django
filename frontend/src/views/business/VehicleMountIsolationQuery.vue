@@ -9,8 +9,9 @@
       </template>
 
       <el-form label-width="90px" class="search-form">
-        <el-row :gutter="16">
-          <el-col :span="10">
+        <!-- 第一行：车型、测点、按钮 同行显示 -->
+        <el-row :gutter="12">
+          <el-col :span="8">
             <el-form-item label="车型" required>
               <el-select
                 v-model="selectedVehicles"
@@ -53,7 +54,18 @@
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="6">
+          <el-col :span="8">
+            <el-form-item label=" ">
+              <div class="form-actions">
+                <el-button type="primary" :loading="store.loadingQuery" :disabled="!store.canQuery" @click="handleSearch">查询</el-button>
+                <el-button @click="handleReset">重置</el-button>
+              </div>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <!-- 第二行：方向选择 -->
+        <el-row :gutter="12">
+          <el-col :span="24">
             <el-form-item label="方向">
               <el-checkbox-group v-model="store.selectedDirections">
                 <el-checkbox label="X" />
@@ -63,10 +75,6 @@
             </el-form-item>
           </el-col>
         </el-row>
-        <div class="form-actions">
-          <el-button type="primary" :loading="store.loadingQuery" :disabled="!store.canQuery" @click="handleSearch">查询</el-button>
-          <el-button @click="handleReset">重置</el-button>
-        </div>
       </el-form>
     </el-card>
 
@@ -113,6 +121,19 @@
       <div v-if="isolationSeries.length" ref="isolationRef" class="echarts-container" />
       <el-empty v-else description="暂无隔振率曲线数据" />
     </el-card>
+
+    <!-- 测试布置图弹窗 -->
+    <el-dialog v-model="imageDialogVisible" title="测试布置图" width="60%" @close="closeImageDialog">
+      <div v-if="currentImageData && currentImageData.layout_image_path" class="image-container">
+        <img :src="getImageUrl(currentImageData.layout_image_path)" alt="测试布置图" class="test-image" @error="(e) => handleImageError(e, { showMessage: true })" />
+      </div>
+      <div v-else class="no-image">
+        <el-empty description="暂无测试图" />
+      </div>
+      <template #footer>
+        <el-button @click="closeImageDialog">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -123,6 +144,7 @@ import * as echarts from 'echarts/core'
 import { LineChart } from 'echarts/charts'
 import { TooltipComponent, LegendComponent, GridComponent, DataZoomComponent, ToolboxComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
+import { getImageUrl, handleImageError } from '@/utils/imageService'
 
 echarts.use([LineChart, TooltipComponent, LegendComponent, GridComponent, DataZoomComponent, ToolboxComponent, CanvasRenderer])
 
@@ -149,10 +171,14 @@ const onVehiclesChange = async () => {
 // 工具函数
 const formatDate = (d) => {
   if (!d) return '-'
+  if (typeof d === 'string') {
+    // 仅取日期部分，统一为YYYY-MM-DD
+    const s = d.trim()
+    if (s.length >= 10) return s.slice(0, 10).replaceAll('/', '-')
+  }
   const dt = new Date(d)
   if (isNaN(dt.getTime())) return '-'
-  const pad = (n) => String(n).padStart(2, '0')
-  return `${dt.getFullYear()}/${pad(dt.getMonth() + 1)}/${pad(dt.getDate())} ${pad(dt.getHours())}:${pad(dt.getMinutes())}`
+  return dt.toISOString().slice(0, 10)
 }
 
 // 查询
@@ -176,6 +202,16 @@ let isolationChart = null
 
 const xAxisData = computed(() => store.queryResult?.data?.[0]?.speed_or_rpm || [])
 
+// 格式化横坐标名称：将括号部分换行，解决显示不全问题
+const xAxisName = computed(() => {
+  const raw = store.queryResult?.x_axis_label || ''
+  if (!raw) return ''
+  // 处理类似 "速度 (km/h)" 或 "速度(km/h)" 的情况
+  const m = raw.match(/^(.*?)[\s]*\(([^)]*)\)$/)
+  if (m) return `${m[1]}\n(${m[2]})`
+  return raw
+})
+
 const vibrationSeries = computed(() => {
   const res = []
   if (!store.queryResult?.data) return res
@@ -188,11 +224,15 @@ const vibrationSeries = computed(() => {
       if (!group) return
       res.push({
         name: `${item.vehicle_name}-${item.measuring_point}-${D}-主动端`,
-        type: 'line', data: group.active || [], symbol: 'circle', symbolSize: 6, lineStyle: { width: 2 }
+        type: 'line',
+        data: (group.active || []).map(v => ({ value: v, itemData: item })),
+        symbol: 'circle', symbolSize: 6, lineStyle: { width: 2 }
       })
       res.push({
         name: `${item.vehicle_name}-${item.measuring_point}-${D}-被动端`,
-        type: 'line', data: group.passive || [], symbol: 'circle', symbolSize: 6, lineStyle: { width: 2, type: 'dashed' }
+        type: 'line',
+        data: (group.passive || []).map(v => ({ value: v, itemData: item })),
+        symbol: 'circle', symbolSize: 6, lineStyle: { width: 2, type: 'dashed' }
       })
     })
   })
@@ -211,7 +251,9 @@ const isolationSeries = computed(() => {
       if (!group) return
       res.push({
         name: `${item.vehicle_name}-${item.measuring_point}-${D}-隔振率`,
-        type: 'line', data: group.isolation || [], symbol: 'circle', symbolSize: 6, lineStyle: { width: 2 }
+        type: 'line',
+        data: (group.isolation || []).map(v => ({ value: v, itemData: item })),
+        symbol: 'circle', symbolSize: 6, lineStyle: { width: 2 }
       })
     })
   })
@@ -224,7 +266,7 @@ const vibrationOption = computed(() => ({
   legend: { type: 'scroll', bottom: 0 },
   grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
   toolbox: { feature: { dataZoom: { yAxisIndex: 'none' }, saveAsImage: {}, dataView: { readOnly: true } } },
-  xAxis: { type: 'category', name: store.queryResult?.x_axis_label || '', data: xAxisData.value },
+  xAxis: { type: 'category', name: xAxisName.value, nameGap: 28, nameLocation: 'end', data: xAxisData.value },
   yAxis: { type: 'value', name: '振动加速度 (m/s²)' },
   series: vibrationSeries.value
 }))
@@ -235,7 +277,7 @@ const isolationOption = computed(() => ({
   legend: { type: 'scroll', bottom: 0 },
   grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
   toolbox: { feature: { dataZoom: { yAxisIndex: 'none' }, saveAsImage: {}, dataView: { readOnly: true } } },
-  xAxis: { type: 'category', name: store.queryResult?.x_axis_label || '', data: xAxisData.value },
+  xAxis: { type: 'category', name: xAxisName.value, nameGap: 28, nameLocation: 'end', data: xAxisData.value },
   yAxis: { type: 'value', name: '隔振率 (dB)' },
   series: isolationSeries.value
 }))
@@ -245,11 +287,25 @@ const renderCharts = () => {
   if (vibrationRef.value) {
     if (!vibrationChart) vibrationChart = echarts.init(vibrationRef.value)
     vibrationChart.setOption(vibrationOption.value, true)
+    // 绑定点击事件，弹出图片
+    vibrationChart.off('click')
+    vibrationChart.on('click', (params) => {
+      if (params && params.data && params.data.itemData) {
+        showImageDialog(params.data.itemData)
+      }
+    })
   }
   // 隔振率
   if (isolationRef.value) {
     if (!isolationChart) isolationChart = echarts.init(isolationRef.value)
     isolationChart.setOption(isolationOption.value, true)
+    // 绑定点击事件，弹出图片
+    isolationChart.off('click')
+    isolationChart.on('click', (params) => {
+      if (params && params.data && params.data.itemData) {
+        showImageDialog(params.data.itemData)
+      }
+    })
   }
 }
 
@@ -272,6 +328,18 @@ onBeforeUnmount(() => {
 })
 
 defineExpose({})
+
+// 弹窗状态与方法
+const imageDialogVisible = ref(false)
+const currentImageData = ref(null)
+const showImageDialog = (data) => {
+  currentImageData.value = data || null
+  imageDialogVisible.value = true
+}
+const closeImageDialog = () => {
+  imageDialogVisible.value = false
+  currentImageData.value = null
+}
 </script>
 
 <style scoped>
@@ -280,12 +348,15 @@ defineExpose({})
 .card-title { font-size: 16px; font-weight: 600; }
 .card-subtitle { font-size: 12px; color: #909399; }
 .search-form { padding-top: 8px; }
-.form-actions { display: flex; gap: 12px; margin-top: 8px; }
+.form-actions { display: flex; gap: 12px; justify-content: flex-start; }
 .info-card-list { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; }
 .test-info-card { min-width: 320px; border: 1px solid #ebeef5; border-radius: 8px; padding: 12px; background: #fff; }
 .vehicle-name { font-weight: 600; margin-bottom: 8px; }
 .info-row { margin: 4px 0; font-size: 13px; }
 .info-row .label { color: #606266; margin-right: 6px; }
 .echarts-container { width: 100%; height: 480px; }
-</style>
 
+.image-container { text-align: center; padding: 12px; background-color: #f5f7fa; border-radius: 6px; }
+.test-image { max-width: 100%; max-height: 60vh; border-radius: 4px; }
+.no-image { padding: 24px; text-align: center; }
+</style>

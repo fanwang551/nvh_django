@@ -357,7 +357,7 @@ def isolation_data_query(request):
         if measuring_points:
             base_queryset = base_queryset.filter(measuring_point__in=measuring_points)
 
-        # 选择必要字段（包含曲线JSON）
+        # 选择必要字段（包含曲线JSON与图片路径）
         queryset = (
             base_queryset
             .values(
@@ -369,6 +369,7 @@ def isolation_data_query(request):
                 'x_active', 'x_passive', 'x_isolation',
                 'y_active', 'y_passive', 'y_isolation',
                 'z_active', 'z_passive', 'z_isolation',
+                'layout_image_path',
             )
             .order_by('measuring_point', '-test__test_date')
         )
@@ -388,6 +389,7 @@ def isolation_data_query(request):
                 'vehicle_name': row['test__vehicle_model__vehicle_model_name'],
                 'measuring_point': row['measuring_point'],
                 'speed_or_rpm': row.get('speed_or_rpm') or [],
+                'layout_image_path': row.get('layout_image_path') or '',
             }
 
             # 仅返回所需方向（数组字段在未迁移前返回空数组占位）

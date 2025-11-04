@@ -97,10 +97,10 @@ class VehicleMountIsolationTest(models.Model):
     test_location = models.CharField(max_length=100, null=True, blank=True, verbose_name='测试地点')
     test_engineer = models.CharField(max_length=50, verbose_name='测试人员')
 
-    # 能源类型（0=燃油，1=纯电/混动）
+    # 能源类型（0=燃油/混动，1=纯电）
     ENERGY_CHOICES = (
-        (0, '燃油'),
-        (1, '纯电/混动'),
+        (0, '燃油/混动'),
+        (1, '纯电'),
     )
     energy_type = models.IntegerField(choices=ENERGY_CHOICES, default=0, verbose_name='能源类型')
 
