@@ -30,9 +30,14 @@ export const getImageUrl = (filePath) => {
     return filePath
   }
 
-  // 如果是相对路径（以/开头），拼接API基础URL
+  // 如果是以/开头的相对路径，直接返回，让前端同源或网关代理处理（如Vite/Nginx的 /media 反代）
   if (filePath.startsWith('/')) {
-    return `${getApiBaseUrl()}${filePath}`
+    return filePath
+  }
+
+  // 若是常见静态相对路径（不以/开头），补上前导/ 以便同源代理
+  if (filePath.startsWith('media/') || filePath.startsWith('static/')) {
+    return `/${filePath}`
   }
 
   // 如果是相对路径但不以/开头，添加/再拼接
