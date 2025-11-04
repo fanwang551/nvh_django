@@ -91,40 +91,22 @@ class DynamicStiffnessData(models.Model):
 
 
 class VehicleMountIsolationTest(models.Model):
-    """整车悬置隔振率测试基本信息表"""
+    """整车悬置隔振率测试基本信息表（扩展支持能源类型与测试工况）"""
     vehicle_model = models.ForeignKey(VehicleModel, on_delete=models.CASCADE, verbose_name='车型')
-    test_date = models.DateField(verbose_name='测试时间')
+    test_date = models.DateField(null=True, blank=True, verbose_name='测试时间')
     test_location = models.CharField(max_length=100, null=True, blank=True, verbose_name='测试地点')
     test_engineer = models.CharField(max_length=50, verbose_name='测试人员')
-    tire_pressure = models.CharField(max_length=50, null=True, blank=True, verbose_name='实测胎压')
 
-    # 驾驶员座椅导轨振动 AC OFF (m/s²)
-    seat_vib_x_ac_off = models.FloatField(null=True, blank=True, verbose_name='座椅导轨X方向振动 AC OFF')
-    seat_vib_y_ac_off = models.FloatField(null=True, blank=True, verbose_name='座椅导轨Y方向振动 AC OFF')
-    seat_vib_z_ac_off = models.FloatField(null=True, blank=True, verbose_name='座椅导轨Z方向振动 AC OFF')
+    # 能源类型（0=燃油，1=纯电/混动）
+    ENERGY_CHOICES = (
+        (0, '燃油'),
+        (1, '纯电/混动'),
+    )
+    energy_type = models.IntegerField(choices=ENERGY_CHOICES, default=0, verbose_name='能源类型')
 
-    # 驾驶员座椅导轨振动 AC ON (m/s²)
-    seat_vib_x_ac_on = models.FloatField(null=True, blank=True, verbose_name='座椅导轨X方向振动 AC ON')
-    seat_vib_y_ac_on = models.FloatField(null=True, blank=True, verbose_name='座椅导轨Y方向振动 AC ON')
-    seat_vib_z_ac_on = models.FloatField(null=True, blank=True, verbose_name='座椅导轨Z方向振动 AC ON')
+    # 测试工况
+    test_condition = models.CharField(max_length=200, null=True, blank=True, verbose_name='测试工况')
 
-    # 方向盘振动 AC OFF (m/s²)
-    steering_vib_x_ac_off = models.FloatField(null=True, blank=True, verbose_name='方向盘X方向振动 AC OFF')
-    steering_vib_y_ac_off = models.FloatField(null=True, blank=True, verbose_name='方向盘Y方向振动 AC OFF')
-    steering_vib_z_ac_off = models.FloatField(null=True, blank=True, verbose_name='方向盘Z方向振动 AC OFF')
-
-    # 方向盘振动 AC ON (m/s²)
-    steering_vib_x_ac_on = models.FloatField(null=True, blank=True, verbose_name='方向盘X方向振动 AC ON')
-    steering_vib_y_ac_on = models.FloatField(null=True, blank=True, verbose_name='方向盘Y方向振动 AC ON')
-    steering_vib_z_ac_on = models.FloatField(null=True, blank=True, verbose_name='方向盘Z方向振动 AC ON')
-
-    # 内噪 AC OFF (dB)
-    cabin_noise_front_ac_off = models.FloatField(null=True, blank=True, verbose_name='前排内噪 AC OFF')
-    cabin_noise_rear_ac_off = models.FloatField(null=True, blank=True, verbose_name='后排内噪 AC OFF')
-
-    # 内噪 AC ON (dB)
-    cabin_noise_front_ac_on = models.FloatField(null=True, blank=True, verbose_name='前排内噪 AC ON')
-    cabin_noise_rear_ac_on = models.FloatField(null=True, blank=True, verbose_name='后排内噪 AC ON')
 
     class Meta:
         db_table = 'vehicle_mount_isolation_tests'
@@ -135,39 +117,49 @@ class VehicleMountIsolationTest(models.Model):
     def __str__(self):
         return f"{self.vehicle_model.vehicle_model_name} - {self.test_date}"
 
-
+"""
+  ```json
+  {
+    "speed_or_rpm": [0, 10, 20, 30, 40],
+    "x_active": [0.127, 0.212, 0.924, 1.234, 1.567],
+    "x_passive": [0.006, 0.030, 0.042, 0.056, 0.078],
+    "x_isolation": [27.24, 17.03, 26.86, 28.91, 27.98]
+  }
+  ```
+"""
 class MountIsolationData(models.Model):
-    """悬置隔振率试验数据表"""
-    test = models.ForeignKey(VehicleMountIsolationTest, on_delete=models.CASCADE, verbose_name='测试基本信息')
+    """悬置隔振率试验数据表（扩展支持完整曲线数据链）"""
+    test = models.ForeignKey(VehicleMountIsolationTest, on_delete=models.CASCADE, verbose_name='测试基本信息', related_name='isolation_data')
     measuring_point = models.CharField(max_length=100, verbose_name='测点名称')
 
-    # X方向数据
-    x_ac_off_isolation = models.FloatField(null=True, blank=True, verbose_name='X方向AC OFF隔振率(dB)')
-    x_ac_off_vibration = models.FloatField(null=True, blank=True, verbose_name='X方向AC OFF 2阶被动端振动(m/s²)')
-    x_ac_on_isolation = models.FloatField(null=True, blank=True, verbose_name='X方向AC ON隔振率(dB)')
-    x_ac_on_vibration = models.FloatField(null=True, blank=True, verbose_name='X方向AC ON 2阶被动端振动(m/s²)')
+    # 横坐标（速度或转速）
+    speed_or_rpm = models.JSONField(null=True, blank=True, verbose_name='速度或者转速')
 
-    # Y方向数据
-    y_ac_off_isolation = models.FloatField(null=True, blank=True, verbose_name='Y方向AC OFF隔振率(dB)')
-    y_ac_off_vibration = models.FloatField(null=True, blank=True, verbose_name='Y方向AC OFF 2阶被动端振动(m/s²)')
-    y_ac_on_isolation = models.FloatField(null=True, blank=True, verbose_name='Y方向AC ON隔振率(dB)')
-    y_ac_on_vibration = models.FloatField(null=True, blank=True, verbose_name='Y方向AC ON 2阶被动端振动(m/s²)')
+    # X方向完整数据链
+    x_active = models.JSONField(null=True, blank=True, verbose_name='X方向主动端振动(m/s²)')
+    x_passive = models.JSONField(null=True, blank=True, verbose_name='X方向被动端振动(m/s²)')
+    x_isolation = models.JSONField(null=True, blank=True, verbose_name='X方向隔振率(dB)')
 
-    # Z方向数据
-    z_ac_off_isolation = models.FloatField(null=True, blank=True, verbose_name='Z方向AC OFF隔振率(dB)')
-    z_ac_off_vibration = models.FloatField(null=True, blank=True, verbose_name='Z方向AC OFF 2阶被动端振动(m/s²)')
-    z_ac_on_isolation = models.FloatField(null=True, blank=True, verbose_name='Z方向AC ON隔振率(dB)')
-    z_ac_on_vibration = models.FloatField(null=True, blank=True, verbose_name='Z方向AC ON 2阶被动端振动(m/s²)')
+    # Y方向完整数据链
+    y_active = models.JSONField(null=True, blank=True, verbose_name='Y方向主动端振动(m/s²)')
+    y_passive = models.JSONField(null=True, blank=True, verbose_name='Y方向被动端振动(m/s²)')
+    y_isolation = models.JSONField(null=True, blank=True, verbose_name='Y方向隔振率(dB)')
+
+    # Z方向完整数据链
+    z_active = models.JSONField(null=True, blank=True, verbose_name='Z方向主动端振动(m/s²)')
+    z_passive = models.JSONField(null=True, blank=True, verbose_name='Z方向被动端振动(m/s²)')
+    z_isolation = models.JSONField(null=True, blank=True, verbose_name='Z方向隔振率(dB)')
 
     # 图片路径
     layout_image_path = models.CharField(max_length=255, null=True, blank=True, verbose_name='测试布置图路径')
-    curve_image_path = models.CharField(max_length=255, null=True, blank=True, verbose_name='测试数据曲线图路径')
+
 
     class Meta:
         db_table = 'mount_isolation_data'
         verbose_name = '悬置隔振率试验数据'
         verbose_name_plural = '悬置隔振率试验数据'
         ordering = ['measuring_point']
+        # unique_together/indexes 若需变更，请创建迁移
 
     def __str__(self):
         return f"{self.test.vehicle_model.vehicle_model_name} - {self.measuring_point}"

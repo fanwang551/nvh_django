@@ -54,40 +54,28 @@ class DynamicStiffnessDataAdmin(admin.ModelAdmin):
 
 @admin.register(VehicleMountIsolationTest)
 class VehicleMountIsolationTestAdmin(admin.ModelAdmin):
-    list_display = ['vehicle_model', 'test_date', 'test_engineer',  'tire_pressure']
-    list_filter = ['test_date',  'test_engineer']
-    search_fields = ['vehicle_model__vehicle_model_name', 'test_engineer']
+    list_display = ['vehicle_model', 'test_date', 'test_engineer',  'energy_type_display', 'test_condition']
+    list_filter = ['test_date', 'test_engineer', 'energy_type']
+    search_fields = ['vehicle_model__vehicle_model_name', 'test_engineer', 'test_condition']
     ordering = ['-test_date']
     date_hierarchy = 'test_date'
 
     fieldsets = (
         ('基本信息', {
-            'fields': ('vehicle_model', 'test_date', 'test_location', 'test_engineer', 'tire_pressure')
+            'fields': (
+                'vehicle_model', 'test_date', 'test_location', 'test_engineer',  'energy_type', 'test_condition'
+            )
         }),
-        ('驾驶员座椅导轨振动 AC OFF (m/s²)', {
-            'fields': ('seat_vib_x_ac_off', 'seat_vib_y_ac_off', 'seat_vib_z_ac_off')
-        }),
-        ('驾驶员座椅导轨振动 AC ON (m/s²)', {
-            'fields': ('seat_vib_x_ac_on', 'seat_vib_y_ac_on', 'seat_vib_z_ac_on')
-        }),
-        ('方向盘振动 AC OFF (m/s²)', {
-            'fields': ('steering_vib_x_ac_off', 'steering_vib_y_ac_off', 'steering_vib_z_ac_off')
-        }),
-        ('方向盘振动 AC ON (m/s²)', {
-            'fields': ('steering_vib_x_ac_on', 'steering_vib_y_ac_on', 'steering_vib_z_ac_on')
-        }),
-        ('内噪 AC OFF (dB)', {
-            'fields': ('cabin_noise_front_ac_off', 'cabin_noise_rear_ac_off')
-        }),
-        ('内噪 AC ON (dB)', {
-            'fields': ('cabin_noise_front_ac_on', 'cabin_noise_rear_ac_on')
-        })
     )
+
+    def energy_type_display(self, obj):
+        return obj.get_energy_type_display()
+    energy_type_display.short_description = '能源类型'
 
 
 @admin.register(MountIsolationData)
 class MountIsolationDataAdmin(admin.ModelAdmin):
-    list_display = ['test', 'measuring_point', 'x_ac_off_isolation', 'y_ac_off_isolation', 'z_ac_off_isolation']
+    list_display = ['test', 'measuring_point']
     list_filter = ['measuring_point']
     search_fields = ['test__vehicle_model__vehicle_model_name', 'measuring_point']
     ordering = ['test', 'measuring_point']
@@ -96,25 +84,19 @@ class MountIsolationDataAdmin(admin.ModelAdmin):
         ('基本信息', {
             'fields': ('test', 'measuring_point')
         }),
+        ('横坐标', {
+            'fields': ('speed_or_rpm',)
+        }),
         ('X方向数据', {
-            'fields': (
-                ('x_ac_off_isolation', 'x_ac_off_vibration'),
-                ('x_ac_on_isolation', 'x_ac_on_vibration')
-            )
+            'fields': (('x_active', 'x_passive', 'x_isolation'),)
         }),
         ('Y方向数据', {
-            'fields': (
-                ('y_ac_off_isolation', 'y_ac_off_vibration'),
-                ('y_ac_on_isolation', 'y_ac_on_vibration')
-            )
+            'fields': (('y_active', 'y_passive', 'y_isolation'),)
         }),
         ('Z方向数据', {
-            'fields': (
-                ('z_ac_off_isolation', 'z_ac_off_vibration'),
-                ('z_ac_on_isolation', 'z_ac_on_vibration')
-            )
+            'fields': (('z_active', 'z_passive', 'z_isolation'),)
         }),
         ('图片信息', {
-            'fields': ('layout_image_path', 'curve_image_path')
+            'fields': ('layout_image_path',)
         })
     )

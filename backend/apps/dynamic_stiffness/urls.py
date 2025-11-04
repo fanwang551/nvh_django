@@ -12,7 +12,11 @@ urlpatterns = [
 
     # 悬置隔振率查询接口
     path('measuring-points/', views.get_measuring_points, name='get_measuring_points'),
-    path('mount-isolation-data/', views.mount_isolation_query, name='mount_isolation_query'),
+
+    # 悬置隔振率接口
+    path('vehicle-models/', views.get_isolation_vehicle_models, name='get_isolation_vehicle_models'),
+    path('test-info/', views.get_isolation_test_info, name='get_isolation_test_info'),
+    path('isolation-data/query/', views.isolation_data_query, name='isolation_data_query'),
     
     # 悬架隔振率查询接口
     path('suspension-isolation/measuring-points/', views.get_suspension_measuring_points, name='get_suspension_measuring_points'),

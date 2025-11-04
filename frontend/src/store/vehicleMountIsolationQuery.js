@@ -1,182 +1,136 @@
 import { defineStore } from 'pinia'
-import modalApi from '@/api/modal'
 import mountIsolationApi from '@/api/mountIsolation'
+import { ElMessage } from 'element-plus'
 
 export const useVehicleMountIsolationQueryStore = defineStore('vehicleMountIsolationQuery', {
   state: () => ({
-    // 业务数据状态 - 查询表单状态
-    searchForm: {
-      vehicleModelId: null,
-      measuringPoints: []
-    },
+    // 查询条件
+    selectedVehicles: [], // [{id, name, energy_type}]
+    selectedPoints: [], // ["左前悬置", ...]
+    selectedDirections: ['X', 'Y', 'Z'],
 
-    // 业务数据状态 - 选项数据
-    vehicleModelOptions: [],
+    // 选项
+    vehicleOptions: [],
     measuringPointOptions: [],
 
-    // 业务状态 - 加载状态
-    vehicleModelsLoading: false,
-    measuringPointsLoading: false,
-    loading: false, // 查询时的加载状态
+    // 加载状态
+    loadingVehicles: false,
+    loadingPoints: false,
+    loadingQuery: false,
 
-    // 业务数据状态 - 查询结果
-    queryResult: {
-      count: 0,
-      results: []
-    }
+    // 查询结果
+    queryResult: null, // { energy_type, x_axis_label, data: [...] }
+    testInfoCards: [] // [{ vehicle_id, vehicle_name, test_engineer, test_location, test_condition, test_date }]
   }),
 
   getters: {
-    // 业务逻辑：是否可以查询
-    canQuery: (state) => {
-      return state.searchForm.vehicleModelId !== null
-    },
-
-    // 业务逻辑：是否有查询结果
-    hasResults: (state) => {
-      return state.queryResult.results.length > 0
-    },
-
-    // 业务逻辑：获取基本信息（从第一条数据中提取）
-    basicInfo: (state) => {
-      if (state.queryResult.results.length === 0) return null
-      
-      const firstResult = state.queryResult.results[0]
-      return {
-        vehicleModelName: firstResult.vehicle_model_name,
-        testDate: firstResult.test_date,
-        testLocation: firstResult.test_location,
-        testEngineer: firstResult.test_engineer,
-        suspensionType: firstResult.suspension_type,
-        tirePressure: firstResult.tire_pressure,
-        // 座椅导轨振动 AC OFF/ON
-        seatVibXAcOff: firstResult.seat_vib_x_ac_off,
-        seatVibYAcOff: firstResult.seat_vib_y_ac_off,
-        seatVibZAcOff: firstResult.seat_vib_z_ac_off,
-        seatVibXAcOn: firstResult.seat_vib_x_ac_on,
-        seatVibYAcOn: firstResult.seat_vib_y_ac_on,
-        seatVibZAcOn: firstResult.seat_vib_z_ac_on,
-        // 方向盘振动 AC OFF/ON
-        steeringVibXAcOff: firstResult.steering_vib_x_ac_off,
-        steeringVibYAcOff: firstResult.steering_vib_y_ac_off,
-        steeringVibZAcOff: firstResult.steering_vib_z_ac_off,
-        steeringVibXAcOn: firstResult.steering_vib_x_ac_on,
-        steeringVibYAcOn: firstResult.steering_vib_y_ac_on,
-        steeringVibZAcOn: firstResult.steering_vib_z_ac_on,
-        // 内噪声 AC OFF/ON
-        cabinNoiseFrontAcOff: firstResult.cabin_noise_front_ac_off,
-        cabinNoiseRearAcOff: firstResult.cabin_noise_rear_ac_off,
-        cabinNoiseFrontAcOn: firstResult.cabin_noise_front_ac_on,
-        cabinNoiseRearAcOn: firstResult.cabin_noise_rear_ac_on
-      }
+    canQuery(state) {
+      return state.selectedVehicles.length > 0 && state.selectedDirections.length > 0
     }
   },
 
   actions: {
-    // 业务逻辑：加载车型列表
+    // 加载车型（去重，含能源类型）
     async loadVehicleModels() {
-      this.vehicleModelsLoading = true
+      this.loadingVehicles = true
       try {
-        const response = await modalApi.getVehicleModels()
-        if (response.success) {
-          this.vehicleModelOptions = response.data || []
-        } else {
-          throw new Error(response.message || '获取车型列表失败')
-        }
-      } catch (error) {
-        console.error('加载车型列表失败:', error)
-        this.vehicleModelOptions = []
-        throw error
+        const res = await mountIsolationApi.getIsolationVehicleModels()
+        this.vehicleOptions = res?.data || []
+      } catch (e) {
+        console.error('加载车型失败', e)
+        this.vehicleOptions = []
+        throw e
       } finally {
-        this.vehicleModelsLoading = false
+        this.loadingVehicles = false
       }
     },
 
-    // 业务逻辑：加载测点列表
-    async loadMeasuringPoints(vehicleModelId = null) {
-      this.measuringPointsLoading = true
+    // 加载测点（基于多车型）
+    async loadMeasuringPoints() {
+      this.loadingPoints = true
       try {
-        const params = {}
-        if (vehicleModelId) {
-          params.vehicle_model_id = vehicleModelId
-        }
-        
-        const response = await mountIsolationApi.getMeasuringPoints(params)
-        if (response.success) {
-          this.measuringPointOptions = response.data || []
-        } else {
-          throw new Error(response.message || '获取测点列表失败')
-        }
-      } catch (error) {
-        console.error('加载测点列表失败:', error)
+        const ids = this.selectedVehicles.map(v => v.id)
+        const res = await mountIsolationApi.getIsolationMeasuringPoints(ids)
+        this.measuringPointOptions = res?.data || []
+      } catch (e) {
+        console.error('加载测点失败', e)
         this.measuringPointOptions = []
-        throw error
+        throw e
       } finally {
-        this.measuringPointsLoading = false
+        this.loadingPoints = false
       }
     },
 
-    // 业务逻辑：查询数据
+    // 校验能源类型是否一致
+    validateEnergyType() {
+      if (this.selectedVehicles.length <= 1) return true
+      const types = new Set(this.selectedVehicles.map(v => v.energy_type))
+      if (types.size > 1) {
+        ElMessage.error('只能选择相同能源类型的车型（燃油车或纯电/混动车）')
+        return false
+      }
+      return true
+    },
+
+    // 查询曲线数据 + 测试卡片
     async queryData() {
       if (!this.canQuery) {
-        throw new Error('请先选择车型')
+        ElMessage.warning('请先选择车型与方向')
+        return
+      }
+      if (!this.validateEnergyType()) {
+        return
       }
 
-      this.loading = true
+      this.loadingQuery = true
       try {
-        const params = {
-          vehicle_model_id: this.searchForm.vehicleModelId
+        const payload = {
+          vehicle_ids: this.selectedVehicles.map(v => v.id),
+          measuring_points: this.selectedPoints,
+          directions: this.selectedDirections
         }
+        const [curveRes, infoRes] = await Promise.all([
+          mountIsolationApi.queryIsolationData(payload),
+          mountIsolationApi.getIsolationTestInfo(payload.vehicle_ids)
+        ])
 
-        // 处理测点参数
-        if (this.searchForm.measuringPoints.length > 0) {
-          params.measuring_points = this.searchForm.measuringPoints.join(',')
-        }
-
-        const response = await mountIsolationApi.queryMountIsolationData(params)
-        if (response.success) {
-          this.queryResult = response.data || { count: 0, results: [] }
-        } else {
-          throw new Error(response.message || '查询失败')
-        }
-      } catch (error) {
-        console.error('查询数据失败:', error)
-        this.queryResult = { count: 0, results: [] }
-        throw error
+        this.queryResult = curveRes?.data || null
+        this.testInfoCards = infoRes?.data || []
+      } catch (e) {
+        console.error('查询失败', e)
+        this.queryResult = null
+        this.testInfoCards = []
+        throw e
       } finally {
-        this.loading = false
+        this.loadingQuery = false
       }
     },
 
-    // UI状态管理：设置车型ID
-    setVehicleModelId(vehicleModelId) {
-      this.searchForm.vehicleModelId = vehicleModelId
-      // 车型变化时清空测点选择
-      this.searchForm.measuringPoints = []
-      // 清空查询结果
-      this.queryResult = { count: 0, results: [] }
+    // 状态变更
+    setSelectedVehicles(list) {
+      this.selectedVehicles = list || []
+    },
+    setSelectedPoints(list) {
+      this.selectedPoints = list || []
+    },
+    setSelectedDirections(list) {
+      this.selectedDirections = list || []
     },
 
-    // UI状态管理：设置测点列表
-    setMeasuringPoints(measuringPoints) {
-      this.searchForm.measuringPoints = measuringPoints
+    reset() {
+      this.selectedVehicles = []
+      this.selectedPoints = []
+      this.selectedDirections = ['X', 'Y', 'Z']
+      this.measuringPointOptions = []
+      this.queryResult = null
+      this.testInfoCards = []
     },
 
-    // UI状态管理：重置搜索表单
-    resetSearchForm() {
-      this.searchForm = {
-        vehicleModelId: null,
-        measuringPoints: []
-      }
-      this.queryResult = { count: 0, results: [] }
-    },
-
-    // 初始化：组件挂载时调用
     async initialize() {
       try {
         await this.loadVehicleModels()
-      } catch (error) {
-        console.error('初始化失败:', error)
+      } catch (e) {
+        console.error('初始化失败', e)
       }
     }
   }

@@ -67,99 +67,7 @@ class DynamicStiffnessQuerySerializer(serializers.Serializer):
         return value
 
 
-class VehicleMountIsolationTestSerializer(serializers.ModelSerializer):
-    """整车悬置隔振率测试序列化器"""
-    vehicle_model_name = serializers.CharField(source='vehicle_model.vehicle_model_name', read_only=True)
-    # 模型字段已移除，改从车型信息读取悬挂形式
-    suspension_type = serializers.CharField(source='vehicle_model.suspension_type', read_only=True, allow_null=True)
-
-    class Meta:
-        model = VehicleMountIsolationTest
-        fields = [
-            'id', 'vehicle_model', 'vehicle_model_name', 'test_date', 'test_location',
-            'test_engineer', 'suspension_type', 'tire_pressure',
-            # 座椅导轨振动 AC OFF/ON
-            'seat_vib_x_ac_off', 'seat_vib_y_ac_off', 'seat_vib_z_ac_off',
-            'seat_vib_x_ac_on', 'seat_vib_y_ac_on', 'seat_vib_z_ac_on',
-            # 方向盘振动 AC OFF/ON
-            'steering_vib_x_ac_off', 'steering_vib_y_ac_off', 'steering_vib_z_ac_off',
-            'steering_vib_x_ac_on', 'steering_vib_y_ac_on', 'steering_vib_z_ac_on',
-            # 内噪声 AC OFF/ON
-            'cabin_noise_front_ac_off', 'cabin_noise_rear_ac_off',
-            'cabin_noise_front_ac_on', 'cabin_noise_rear_ac_on'
-        ]
-        read_only_fields = ['id']
-
-
-class MountIsolationDataSerializer(serializers.ModelSerializer):
-    """悬置隔振率试验数据序列化器"""
-    vehicle_model_name = serializers.CharField(source='test.vehicle_model.vehicle_model_name', read_only=True)
-    test_date = serializers.DateField(source='test.test_date', read_only=True)
-    test_location = serializers.CharField(source='test.test_location', read_only=True)
-    test_engineer = serializers.CharField(source='test.test_engineer', read_only=True)
-    # 模型字段已移除，改从车型信息读取悬挂形式
-    suspension_type = serializers.CharField(source='test.vehicle_model.suspension_type', read_only=True, allow_null=True)
-    tire_pressure = serializers.CharField(source='test.tire_pressure', read_only=True)
-
-    # 基本信息字段 - 座椅导轨振动 AC OFF/ON
-    seat_vib_x_ac_off = serializers.FloatField(source='test.seat_vib_x_ac_off', read_only=True)
-    seat_vib_y_ac_off = serializers.FloatField(source='test.seat_vib_y_ac_off', read_only=True)
-    seat_vib_z_ac_off = serializers.FloatField(source='test.seat_vib_z_ac_off', read_only=True)
-    seat_vib_x_ac_on = serializers.FloatField(source='test.seat_vib_x_ac_on', read_only=True)
-    seat_vib_y_ac_on = serializers.FloatField(source='test.seat_vib_y_ac_on', read_only=True)
-    seat_vib_z_ac_on = serializers.FloatField(source='test.seat_vib_z_ac_on', read_only=True)
-
-    # 基本信息字段 - 方向盘振动 AC OFF/ON
-    steering_vib_x_ac_off = serializers.FloatField(source='test.steering_vib_x_ac_off', read_only=True)
-    steering_vib_y_ac_off = serializers.FloatField(source='test.steering_vib_y_ac_off', read_only=True)
-    steering_vib_z_ac_off = serializers.FloatField(source='test.steering_vib_z_ac_off', read_only=True)
-    steering_vib_x_ac_on = serializers.FloatField(source='test.steering_vib_x_ac_on', read_only=True)
-    steering_vib_y_ac_on = serializers.FloatField(source='test.steering_vib_y_ac_on', read_only=True)
-    steering_vib_z_ac_on = serializers.FloatField(source='test.steering_vib_z_ac_on', read_only=True)
-
-    # 基本信息字段 - 内噪声 AC OFF/ON
-    cabin_noise_front_ac_off = serializers.FloatField(source='test.cabin_noise_front_ac_off', read_only=True)
-    cabin_noise_rear_ac_off = serializers.FloatField(source='test.cabin_noise_rear_ac_off', read_only=True)
-    cabin_noise_front_ac_on = serializers.FloatField(source='test.cabin_noise_front_ac_on', read_only=True)
-    cabin_noise_rear_ac_on = serializers.FloatField(source='test.cabin_noise_rear_ac_on', read_only=True)
-
-    class Meta:
-        model = MountIsolationData
-        fields = [
-            'id', 'test', 'vehicle_model_name', 'test_date', 'test_location',
-            'test_engineer', 'suspension_type', 'tire_pressure',
-            # 座椅导轨振动 AC OFF/ON
-            'seat_vib_x_ac_off', 'seat_vib_y_ac_off', 'seat_vib_z_ac_off',
-            'seat_vib_x_ac_on', 'seat_vib_y_ac_on', 'seat_vib_z_ac_on',
-            # 方向盘振动 AC OFF/ON
-            'steering_vib_x_ac_off', 'steering_vib_y_ac_off', 'steering_vib_z_ac_off',
-            'steering_vib_x_ac_on', 'steering_vib_y_ac_on', 'steering_vib_z_ac_on',
-            # 内噪声 AC OFF/ON
-            'cabin_noise_front_ac_off', 'cabin_noise_rear_ac_off',
-            'cabin_noise_front_ac_on', 'cabin_noise_rear_ac_on',
-            'measuring_point',
-            # X方向数据
-            'x_ac_off_isolation', 'x_ac_off_vibration', 'x_ac_on_isolation', 'x_ac_on_vibration',
-            # Y方向数据
-            'y_ac_off_isolation', 'y_ac_off_vibration', 'y_ac_on_isolation', 'y_ac_on_vibration',
-            # Z方向数据
-            'z_ac_off_isolation', 'z_ac_off_vibration', 'z_ac_on_isolation', 'z_ac_on_vibration',
-            # 图片路径
-            'layout_image_path', 'curve_image_path'
-        ]
-        read_only_fields = ['id']
-
-
-class MountIsolationQuerySerializer(serializers.Serializer):
-    """悬置隔振率查询参数序列化器"""
-    vehicle_model_id = serializers.IntegerField(required=True, help_text='车型ID')
-    measuring_points = serializers.CharField(required=False, allow_blank=True, help_text='测点列表（逗号分隔，可选）')
-
-    def validate_vehicle_model_id(self, value):
-        """验证车型ID是否存在"""
-        if not VehicleModel.objects.filter(id=value).exists():
-            raise serializers.ValidationError("指定的车型不存在")
-        return value
+## 旧版悬置隔振率序列化器（含 AC ON/OFF 单值）已移除
 
 
 class VehicleSuspensionIsolationTestSerializer(serializers.ModelSerializer):
@@ -216,3 +124,22 @@ class SuspensionIsolationQuerySerializer(serializers.Serializer):
         if not VehicleModel.objects.filter(id=value).exists():
             raise serializers.ValidationError("指定的车型不存在")
         return value
+
+
+# ------------------- 悬置隔振率功能（重构版）附加序列化器 -------------------
+
+class VehicleModelOptionSerializer(serializers.Serializer):
+    """车型选项（去重后，用于多选框）"""
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+    energy_type = serializers.IntegerField()  # 0=燃油 1=纯电/混动
+
+
+class TestInfoSerializer(serializers.Serializer):
+    """测试信息卡片数据"""
+    vehicle_id = serializers.IntegerField()
+    vehicle_name = serializers.CharField()
+    test_engineer = serializers.CharField(allow_blank=True, required=False)
+    test_location = serializers.CharField(allow_blank=True, required=False)
+    test_condition = serializers.CharField(allow_blank=True, required=False)
+    test_date = serializers.DateTimeField(allow_null=True, required=False)
