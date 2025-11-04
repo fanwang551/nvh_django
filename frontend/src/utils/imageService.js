@@ -10,7 +10,8 @@ import { ElMessage } from 'element-plus'
  * 从环境变量中读取，支持开发和生产环境切换
  */
 const getApiBaseUrl = () => {
-  return import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
+  // 优先使用环境变量；否则回退到当前页面来源，便于同网段访问和vite代理
+  return import.meta.env.VITE_API_BASE_URL || (typeof window !== 'undefined' ? window.location.origin : '')
 }
 
 /**

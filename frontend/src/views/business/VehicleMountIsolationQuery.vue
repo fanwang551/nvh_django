@@ -614,15 +614,9 @@ const handleCloseImageDialog = () => {
   currentRowData.value = null
 }
 
-// 获取图片URL
-const getImageUrl = (imagePath) => {
-  if (!imagePath) return ''
-  // 如果是相对路径，添加基础URL
-  if (imagePath.startsWith('/')) {
-    return `${import.meta.env.VITE_API_BASE_URL}${imagePath}`
-  }
-  return imagePath
-}
+// 获取图片URL（复用统一工具，避免硬编码主机名）
+import { getImageUrl as buildImageUrl } from '@/utils/imageService'
+const getImageUrl = (imagePath) => buildImageUrl(imagePath)
 
 // 图片加载错误处理
 const handleImageError = (event) => {
