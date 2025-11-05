@@ -67,7 +67,8 @@ export const substancesApi = {
   /**
    * 获取物质分项溯源数据
    * @param {Object} params - 查询参数
-   * @param {number} params.vehicle_model_id - 车型ID
+   * @param {number} [params.vehicle_test_id] - 整车全谱测试ID（推荐，唯一定位样品）
+   * @param {number} [params.vehicle_model_id] - 车型ID（兼容旧方式）
    * @param {Array<string>} params.cas_nos - CAS号数组
    * @returns {Promise} 溯源数据
    */

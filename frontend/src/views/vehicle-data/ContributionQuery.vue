@@ -116,6 +116,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import vocApi from '@/api/voc'
+import { substancesApi } from '@/api/substances'
 
 import * as echarts from 'echarts'
 
@@ -158,23 +159,44 @@ const formatNumber = (val) => {
 const loadVehicleModels = async () => {
   vmLoading.value = true
   try {
+    // 1) 获取车型基础选项（含 vehicle_model_id）
     const resp = await vocApi.getVehicleModelOptions()
-    const data = resp.data || []
-    
-    // 按 vehicle_model_id 去重，只保留唯一车型
+    const options = resp.data || []
+
+    // 2) 一次性拉取整车样品的全谱测试，用于从 sample_info 取 委托单号/样品编号
+    const testsResp = await substancesApi.getTestList({ part_name: '整车', page_size: 10000 })
+    const tests = (testsResp?.data?.results || [])
+      .filter(r => r?.sample_info?.vehicle_model?.id)
+
+    // 按车型取“最新一条整车测试”的 sample_info
+    const latestSampleByVm = new Map()
+    for (const t of tests) {
+      const vmId = t.sample_info.vehicle_model.id
+      const existed = latestSampleByVm.get(vmId)
+      const curDate = new Date(t.test_date || 0).getTime()
+      const oldDate = existed ? new Date(existed.test_date || 0).getTime() : -1
+      if (!existed || curDate > oldDate) {
+        latestSampleByVm.set(vmId, t)
+      }
+    }
+
+    // 3) 生成下拉选项：车型名-委托单号-样品编号（从 sample_info 读取）
     const uniqueVehicles = new Map()
-    data.forEach(item => {
-      if (!uniqueVehicles.has(item.vehicle_model_id)) {
-        // 提取车型名称（去掉 "-状态-阶段" 部分）
-        const vehicleName = item.label.split('-')[0]
-        uniqueVehicles.set(item.vehicle_model_id, {
-          value: item.vehicle_model_id,
-          label: vehicleName
+    options.forEach(item => {
+      const vmId = item.vehicle_model_id || item.value
+      if (!uniqueVehicles.has(vmId)) {
+        const latest = latestSampleByVm.get(vmId)
+        const vmName = latest?.sample_info?.vehicle_model?.vehicle_model_name
+          || (item.label ? String(item.label).split('-')[0] : '未知车型')
+        const orderNo = latest?.sample_info?.test_order_no || '-'
+        const sampleNo = latest?.sample_info?.sample_no || '-'
+        uniqueVehicles.set(vmId, {
+          value: vmId,
+          label: `${vmName}-${orderNo}-${sampleNo}`
         })
       }
     })
-    
-    // 转换为数组
+
     vehicleModelOptions.value = Array.from(uniqueVehicles.values())
   } catch (e) {
     console.error(e)

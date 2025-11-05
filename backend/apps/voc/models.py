@@ -1,11 +1,7 @@
 from django.db import models
 from apps.modal.models import VehicleModel
 
-# 物质类型：用于区分行标规定 vs 自定义
-SUBSTANCE_TYPE_CHOICES = [
-    ('standard', '行标规定'),
-    ('custom', '自定义'),
-]
+
 
 
 class SampleInfo(models.Model):
@@ -76,6 +72,11 @@ VocResult = VocOdorResult
 
 class Substance(models.Model):
     """物质库表"""
+    # 物质类型：用于区分行标规定 vs 自定义
+    SUBSTANCE_TYPE_CHOICES = [
+        ('standard', '行标规定'),
+        ('custom', '自定义'),
+    ]
     substance_name_cn = models.CharField(max_length=100, verbose_name='物质中文名')
     substance_name_en = models.CharField(max_length=100, null=True, blank=True, verbose_name='物质英文名')
     cas_no = models.CharField(max_length=50, unique=True, verbose_name='CAS号')

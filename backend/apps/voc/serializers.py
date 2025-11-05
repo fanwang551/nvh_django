@@ -266,7 +266,10 @@ class ContributionTop25QuerySerializer(serializers.Serializer):
 
 class SubstanceItemTraceabilityQuerySerializer(serializers.Serializer):
     """物质分项溯源查询序列化器"""
-    vehicle_model_id = serializers.IntegerField(required=True)
+    # 新增：直接指定整车全谱测试ID，可唯一定位样品
+    vehicle_test_id = serializers.IntegerField(required=False, allow_null=True)
+    # 兼容旧参数：按车型查询（已不推荐）
+    vehicle_model_id = serializers.IntegerField(required=False, allow_null=True)
     status = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     development_stage = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     # 由于 SubstancesTestDetail 外键改为通过 Substance.cas_no 关联，这里改为接收 CAS 号列表
@@ -277,11 +280,12 @@ class SubstanceItemTraceabilityQuerySerializer(serializers.Serializer):
     )
 
     def validate(self, attrs):
+        vehicle_test_id = attrs.get('vehicle_test_id')
         vehicle_model_id = attrs.get('vehicle_model_id')
         cas_nos = attrs.get('cas_nos')
         
-        if not vehicle_model_id:
-            raise serializers.ValidationError('必须提供vehicle_model_id')
+        if not vehicle_test_id and not vehicle_model_id:
+            raise serializers.ValidationError('必须提供vehicle_test_id或vehicle_model_id其一')
         if not cas_nos:
             raise serializers.ValidationError('必须选择至少一种物质')
         

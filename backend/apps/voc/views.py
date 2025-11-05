@@ -650,30 +650,34 @@ def substance_item_traceability(request):
         query_serializer = SubstanceItemTraceabilityQuerySerializer(data=request.GET)
         query_serializer.is_valid(raise_exception=True)
         
+        vehicle_test_id = query_serializer.validated_data.get('vehicle_test_id')
         vehicle_model_id = query_serializer.validated_data.get('vehicle_model_id')
         status = query_serializer.validated_data.get('status')
         development_stage = query_serializer.validated_data.get('development_stage')
         cas_nos = query_serializer.validated_data.get('cas_nos')
         
-        # 1. 获取该车型整车样品的全谱检测数据（使用车型+状态+开发阶段精确匹配）
-        vehicle_tests_query = SubstancesTest.objects.select_related('sample', 'sample__vehicle_model').filter(
-            sample__vehicle_model_id=vehicle_model_id,
-            sample__part_name='整车'
-        )
-        
-        # 添加 status 和 development_stage 过滤条件
-        if status:
-            vehicle_tests_query = vehicle_tests_query.filter(sample__status=status)
-        if development_stage:
-            vehicle_tests_query = vehicle_tests_query.filter(sample__development_stage=development_stage)
-        
-        vehicle_tests = vehicle_tests_query
-        
-        if not vehicle_tests.exists():
-            return Response.error(message="未找到匹配的整车全谱检测数据")
-        
-        # 取最新的整车检测数据（在满足条件的记录中选最新）
-        vehicle_test = vehicle_tests.order_by('-test_date', '-id').first()
+        # 1. 确定整车测试记录
+        if vehicle_test_id:
+            try:
+                vehicle_test = SubstancesTest.objects.select_related('sample', 'sample__vehicle_model').get(id=vehicle_test_id)
+            except SubstancesTest.DoesNotExist:
+                return Response.error(message="指定的整车全谱测试不存在")
+            # 回填车型ID
+            vehicle_model_id = vehicle_test.sample.vehicle_model_id if vehicle_test.sample else vehicle_model_id
+        else:
+            # 兼容旧方式：按车型(以及可选的状态/阶段)查找最新整车测试
+            vehicle_tests_query = SubstancesTest.objects.select_related('sample', 'sample__vehicle_model').filter(
+                sample__vehicle_model_id=vehicle_model_id,
+                sample__part_name='整车'
+            )
+            if status:
+                vehicle_tests_query = vehicle_tests_query.filter(sample__status=status)
+            if development_stage:
+                vehicle_tests_query = vehicle_tests_query.filter(sample__development_stage=development_stage)
+            vehicle_tests = vehicle_tests_query
+            if not vehicle_tests.exists():
+                return Response.error(message="未找到匹配的整车全谱检测数据")
+            vehicle_test = vehicle_tests.order_by('-test_date', '-id').first()
         
         # 2. 获取整车检测中选择物质的详细数据
         vehicle_details = SubstancesTestDetail.objects.select_related('substance').filter(
@@ -794,6 +798,7 @@ def substance_item_traceability(request):
         
         return Response.success(data={
             'vehicle_model_id': vehicle_model_id,
+            'vehicle_test_id': vehicle_test.id if vehicle_test else None,
             'substances': serializer.data
         }, message="获取物质分项溯源数据成功")
         
