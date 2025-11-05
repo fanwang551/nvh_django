@@ -25,7 +25,7 @@
 
         <el-form-item label="物质选择">
           <el-select
-            v-model="store.searchCriteria.substance_ids"
+            v-model="store.searchCriteria.cas_nos"
             placeholder="请选择物质（可多选）"
             multiple
             collapse-tags
@@ -392,7 +392,7 @@ const handleVehicleModelChange = (selectedKey) => {
 
 // 清空物质选择
 const clearSubstances = () => {
-  store.searchCriteria.substance_ids = []
+  store.searchCriteria.cas_nos = []
 }
 
 // 查询

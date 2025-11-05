@@ -8,7 +8,7 @@ export const useSubstanceTraceabilityStore = defineStore('substanceTraceability'
       vehicle_model_id: null,
       status: null,
       development_stage: null,
-      substance_ids: [],
+      cas_nos: [],
       selected_key: null  // 用于存储选中的唯一标识
     },
 
@@ -41,12 +41,12 @@ export const useSubstanceTraceabilityStore = defineStore('substanceTraceability'
 
     // 已选物质数量
     selectedSubstanceCount: (state) => {
-      return state.searchCriteria.substance_ids.length
+      return state.searchCriteria.cas_nos.length
     },
 
     // 是否可以查询
     canQuery: (state) => {
-      return state.searchCriteria.selected_key && state.searchCriteria.substance_ids.length > 0
+      return state.searchCriteria.selected_key && state.searchCriteria.cas_nos.length > 0
     }
   },
 
@@ -185,7 +185,7 @@ export const useSubstanceTraceabilityStore = defineStore('substanceTraceability'
 
         const params = {
           vehicle_model_id: this.searchCriteria.vehicle_model_id,
-          substance_ids: this.searchCriteria.substance_ids
+          cas_nos: this.searchCriteria.cas_nos
         }
         
         // 添加状态和开发阶段参数
@@ -272,7 +272,7 @@ export const useSubstanceTraceabilityStore = defineStore('substanceTraceability'
         vehicle_model_id: null,
         status: null,
         development_stage: null,
-        substance_ids: [],
+        cas_nos: [],
         selected_key: null
       }
       this.substance_options = []
@@ -282,7 +282,7 @@ export const useSubstanceTraceabilityStore = defineStore('substanceTraceability'
     // 车型变化处理
     handleVehicleModelChange(selectedKey) {
       // 清空之前的选择
-      this.searchCriteria.substance_ids = []
+      this.searchCriteria.cas_nos = []
       this.traceability_data = []
       
       if (selectedKey) {

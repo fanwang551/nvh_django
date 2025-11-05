@@ -1,6 +1,12 @@
 from django.db import models
 from apps.modal.models import VehicleModel
 
+# 物质类型：用于区分行标规定 vs 自定义
+SUBSTANCE_TYPE_CHOICES = [
+    ('standard', '行标规定'),
+    ('custom', '自定义'),
+]
+
 
 class SampleInfo(models.Model):
     """样品信息表"""
@@ -73,6 +79,7 @@ class Substance(models.Model):
     substance_name_cn = models.CharField(max_length=100, verbose_name='物质中文名')
     substance_name_en = models.CharField(max_length=100, null=True, blank=True, verbose_name='物质英文名')
     cas_no = models.CharField(max_length=50, unique=True, verbose_name='CAS号')
+    substance_type = models.CharField(max_length=20, choices=SUBSTANCE_TYPE_CHOICES, default='custom', verbose_name='物质类型')
     odor_threshold = models.DecimalField(max_digits=12, decimal_places=3, null=True, blank=True, verbose_name='嗅阈值(μg/m³)')
     organic_threshold = models.DecimalField(max_digits=12, decimal_places=3, null=True, blank=True, verbose_name='有机物阈值')
     limit_value = models.DecimalField(max_digits=12, decimal_places=3, null=True, blank=True, verbose_name='限值')
@@ -120,7 +127,14 @@ class SubstancesTest(models.Model):
 class SubstancesTestDetail(models.Model):
     """全谱检测明细表"""
     substances_test = models.ForeignKey(SubstancesTest, on_delete=models.CASCADE, related_name='details', verbose_name='全谱检测主表')
-    substance = models.ForeignKey(Substance, on_delete=models.CASCADE, verbose_name='物质')
+    # 外键关联改为通过 Substance.cas_no 进行关联，并使用列名 cas_no
+    substance = models.ForeignKey(
+        Substance,
+        to_field='cas_no',
+        db_column='cas_no',
+        on_delete=models.CASCADE,
+        verbose_name='物质'
+    )
     retention_time = models.DecimalField(max_digits=8, decimal_places=4, null=True, blank=True, verbose_name='保留时间')
     match_degree = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name='匹配度(0-100)')
     concentration = models.DecimalField(max_digits=12, decimal_places=3, null=True, blank=True, verbose_name='浓度(μg/m³)')

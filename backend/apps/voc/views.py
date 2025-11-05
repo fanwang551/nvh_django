@@ -653,7 +653,7 @@ def substance_item_traceability(request):
         vehicle_model_id = query_serializer.validated_data.get('vehicle_model_id')
         status = query_serializer.validated_data.get('status')
         development_stage = query_serializer.validated_data.get('development_stage')
-        substance_ids = query_serializer.validated_data.get('substance_ids')
+        cas_nos = query_serializer.validated_data.get('cas_nos')
         
         # 1. 获取该车型整车样品的全谱检测数据（使用车型+状态+开发阶段精确匹配）
         vehicle_tests_query = SubstancesTest.objects.select_related('sample', 'sample__vehicle_model').filter(
@@ -678,7 +678,7 @@ def substance_item_traceability(request):
         # 2. 获取整车检测中选择物质的详细数据
         vehicle_details = SubstancesTestDetail.objects.select_related('substance').filter(
             substances_test=vehicle_test,
-            substance_id__in=substance_ids
+            substance__cas_no__in=cas_nos
         )
         
         if not vehicle_details.exists():
@@ -694,7 +694,7 @@ def substance_item_traceability(request):
             'substances_test__sample', 'substance'
         ).filter(
             substances_test__in=part_tests,
-            substance_id__in=substance_ids
+            substance__cas_no__in=cas_nos
         )
         
         # 5. 构建结果数据
@@ -716,7 +716,8 @@ def substance_item_traceability(request):
             }
             
             # 筛选该物质在零部件中的检测数据
-            substance_part_details = [d for d in part_details if d.substance_id == substance.id]
+            # 由于 SubstancesTestDetail.substance 现通过 cas_no 关联，d.substance_id 为 cas_no 字符串
+            substance_part_details = [d for d in part_details if d.substance_id == substance.cas_no]
             
             # 按零件名称分组，计算平均值
             from collections import defaultdict

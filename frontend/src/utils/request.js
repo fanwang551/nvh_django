@@ -16,7 +16,7 @@ const http = axios.create({
       Object.keys(params).forEach(key => {
         const value = params[key]
         if (Array.isArray(value)) {
-          // 数组参数：substance_ids=11&substance_ids=15 (不带[])
+          // 数组参数：cas_nos=50-00-0&cas_nos=64-17-5 (不带[])
           value.forEach(item => searchParams.append(key, item))
         } else if (value !== null && value !== undefined) {
           searchParams.append(key, value)

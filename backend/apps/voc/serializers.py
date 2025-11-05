@@ -269,19 +269,20 @@ class SubstanceItemTraceabilityQuerySerializer(serializers.Serializer):
     vehicle_model_id = serializers.IntegerField(required=True)
     status = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     development_stage = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    substance_ids = serializers.ListField(
-        child=serializers.IntegerField(),
+    # 由于 SubstancesTestDetail 外键改为通过 Substance.cas_no 关联，这里改为接收 CAS 号列表
+    cas_nos = serializers.ListField(
+        child=serializers.CharField(),
         required=True,
         allow_empty=False
     )
 
     def validate(self, attrs):
         vehicle_model_id = attrs.get('vehicle_model_id')
-        substance_ids = attrs.get('substance_ids')
+        cas_nos = attrs.get('cas_nos')
         
         if not vehicle_model_id:
             raise serializers.ValidationError('必须提供vehicle_model_id')
-        if not substance_ids:
+        if not cas_nos:
             raise serializers.ValidationError('必须选择至少一种物质')
         
         return attrs

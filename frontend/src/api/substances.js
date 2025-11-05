@@ -68,7 +68,7 @@ export const substancesApi = {
    * 获取物质分项溯源数据
    * @param {Object} params - 查询参数
    * @param {number} params.vehicle_model_id - 车型ID
-   * @param {Array<number>} params.substance_ids - 物质ID数组
+   * @param {Array<string>} params.cas_nos - CAS号数组
    * @returns {Promise} 溯源数据
    */
   getSubstanceTraceability(params = {}) {
