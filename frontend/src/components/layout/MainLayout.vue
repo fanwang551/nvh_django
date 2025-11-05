@@ -181,8 +181,8 @@ const addVehicleDataTab = (routePath) => {
 
     '/vehicle-data/iaq': { name: 'iaq-center', title: '车内空气质量中心' },
     '/vehicle-data/data': { name: 'data-center', title: '数据中心' },
-    '/vehicle-data/data/SubstancesData': { name: 'SubstancesData', title: '全谱数据' },
-    '/vehicle-data/data/voc': { name: 'voc-data', title: 'VOC及气味数据' }
+    '/vehicle-data/data/SubstancesData': { name: 'SubstancesData', title: '全谱数据库' },
+    '/vehicle-data/data/voc': { name: 'voc-data', title: 'VOC及气味数据库' }
   }
 
   const config = vehicleDataTabConfig[routePath]
@@ -198,8 +198,8 @@ const addVehicleDataTab = (routePath) => {
 // 添加溯源中心子页面标签页
 const addTraceabilityTab = (routePath) => {
   const traceabilityTabConfig = {
-    '/traceability/contribution': { name: 'contribution-query', title: '贡献度查询' },
-    '/traceability/substance-item': { name: 'substance-item-traceability', title: '物质分项溯源' }
+    '/traceability/contribution': { name: 'contribution-query', title: '整车溯源' },
+    '/traceability/substance-item': { name: 'substance-item-traceability', title: '污染物分项溯源' }
   }
 
   const config = traceabilityTabConfig[routePath]

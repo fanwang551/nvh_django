@@ -44,8 +44,8 @@
         <el-menu-item index="/vehicle-data/iaq">车内空气质量中心</el-menu-item>
         <el-sub-menu index="vehicle-data-data">
           <template #title>数据中心</template>
-          <el-menu-item index="/vehicle-data/data/voc">VOC及气味数据</el-menu-item>
-          <el-menu-item index="/vehicle-data/data/SubstancesData">全谱数据</el-menu-item>
+          <el-menu-item index="/vehicle-data/data/voc">VOC及气味数据库</el-menu-item>
+          <el-menu-item index="/vehicle-data/data/SubstancesData">全谱数据库</el-menu-item>
         </el-sub-menu>
         <!-- 溯源中心（二级子菜单） -->
         <el-sub-menu index="traceability">
@@ -53,8 +53,8 @@
             <el-icon><Search /></el-icon>
             <span>溯源中心</span>
           </template>
-          <el-menu-item index="/traceability/contribution">贡献度查询</el-menu-item>
-          <el-menu-item index="/traceability/substance-item">物质分项溯源</el-menu-item>
+          <el-menu-item index="/traceability/contribution">整车溯源</el-menu-item>
+          <el-menu-item index="/traceability/substance-item">污染物分项溯源</el-menu-item>
         </el-sub-menu>
       </el-sub-menu>
 
