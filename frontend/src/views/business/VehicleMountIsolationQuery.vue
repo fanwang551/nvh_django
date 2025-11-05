@@ -9,9 +9,9 @@
       </template>
 
       <el-form label-width="90px" class="search-form">
-        <!-- 第一行：车型、测点、按钮 同行显示 -->
+        <!-- 单行：车型、测点、方向、按钮 同行显示 -->
         <el-row :gutter="12">
-          <el-col :span="8">
+          <el-col :span="7">
             <el-form-item label="车型" required>
               <el-select
                 v-model="selectedVehicles"
@@ -33,7 +33,7 @@
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="8">
+          <el-col :span="7">
             <el-form-item label="测点">
               <el-select
                 v-model="store.selectedPoints"
@@ -54,24 +54,21 @@
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="8">
+          <el-col :span="6">
+            <el-form-item label="方向">
+              <el-checkbox-group v-model="store.selectedDirections" class="direction-group">
+                <el-checkbox label="X" />
+                <el-checkbox label="Y" />
+                <el-checkbox label="Z" />
+              </el-checkbox-group>
+            </el-form-item>
+          </el-col>
+          <el-col :span="4" class="actions-col">
             <el-form-item label=" ">
               <div class="form-actions">
                 <el-button type="primary" :loading="store.loadingQuery" :disabled="!store.canQuery" @click="handleSearch">查询</el-button>
                 <el-button @click="handleReset">重置</el-button>
               </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <!-- 第二行：方向选择 -->
-        <el-row :gutter="12">
-          <el-col :span="24">
-            <el-form-item label="方向">
-              <el-checkbox-group v-model="store.selectedDirections">
-                <el-checkbox label="X" />
-                <el-checkbox label="Y" />
-                <el-checkbox label="Z" />
-              </el-checkbox-group>
             </el-form-item>
           </el-col>
         </el-row>
@@ -202,13 +199,13 @@ let isolationChart = null
 
 const xAxisData = computed(() => store.queryResult?.data?.[0]?.speed_or_rpm || [])
 
-// 格式化横坐标名称：将括号部分换行，解决显示不全问题
+// 格式化横坐标名称：将括号部分换行，并用富文本让第二行微右移
 const xAxisName = computed(() => {
   const raw = store.queryResult?.x_axis_label || ''
   if (!raw) return ''
   // 处理类似 "速度 (km/h)" 或 "速度(km/h)" 的情况
   const m = raw.match(/^(.*?)[\s]*\(([^)]*)\)$/)
-  if (m) return `${m[1]}\n(${m[2]})`
+  if (m) return `{main|${m[1]}}\n{unit|(${m[2]})}`
   return raw
 })
 
@@ -264,9 +261,21 @@ const vibrationOption = computed(() => ({
   title: { text: '悬置振动加速度对比', left: 'center' },
   tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
   legend: { type: 'scroll', bottom: 0 },
-  grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+  grid: { left: '3%', right: '8%', bottom: '15%', containLabel: true },
   toolbox: { feature: { dataZoom: { yAxisIndex: 'none' }, saveAsImage: {}, dataView: { readOnly: true } } },
-  xAxis: { type: 'category', name: xAxisName.value, nameGap: 28, nameLocation: 'end', data: xAxisData.value },
+  xAxis: {
+    type: 'category',
+    name: xAxisName.value,
+    nameGap: 28,
+    nameLocation: 'end',
+    nameTextStyle: {
+      align: 'center',
+      rich: {
+        unit: { padding: [0, 0, 0, 14] }
+      }
+    },
+    data: xAxisData.value
+  },
   yAxis: { type: 'value', name: '振动加速度 (m/s²)' },
   series: vibrationSeries.value
 }))
@@ -275,9 +284,21 @@ const isolationOption = computed(() => ({
   title: { text: '悬置隔振率性能分析', left: 'center' },
   tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
   legend: { type: 'scroll', bottom: 0 },
-  grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+  grid: { left: '3%', right: '8%', bottom: '15%', containLabel: true },
   toolbox: { feature: { dataZoom: { yAxisIndex: 'none' }, saveAsImage: {}, dataView: { readOnly: true } } },
-  xAxis: { type: 'category', name: xAxisName.value, nameGap: 28, nameLocation: 'end', data: xAxisData.value },
+  xAxis: {
+    type: 'category',
+    name: xAxisName.value,
+    nameGap: 28,
+    nameLocation: 'end',
+    nameTextStyle: {
+      align: 'center',
+      rich: {
+        unit: { padding: [0, 0, 0, 14] }
+      }
+    },
+    data: xAxisData.value
+  },
   yAxis: { type: 'value', name: '隔振率 (dB)' },
   series: isolationSeries.value
 }))
@@ -348,7 +369,8 @@ const closeImageDialog = () => {
 .card-title { font-size: 16px; font-weight: 600; }
 .card-subtitle { font-size: 12px; color: #909399; }
 .search-form { padding-top: 8px; }
-.form-actions { display: flex; gap: 12px; justify-content: flex-start; }
+.form-actions { display: flex; gap: 12px; justify-content: flex-end; width: 100%; }
+.direction-group { white-space: nowrap; }
 .info-card-list { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; }
 .test-info-card { min-width: 320px; border: 1px solid #ebeef5; border-radius: 8px; padding: 12px; background: #fff; }
 .vehicle-name { font-weight: 600; margin-bottom: 8px; }
