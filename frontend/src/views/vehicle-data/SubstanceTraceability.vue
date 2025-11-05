@@ -349,10 +349,10 @@
           <el-descriptions-item label="嗅阈值(μg/m³)">
             {{ currentSubstance.odor_threshold || '-' }}
           </el-descriptions-item>
-          <el-descriptions-item label="有机物阈值">
+          <el-descriptions-item label="有机物阈值(μg/m³)">
             {{ currentSubstance.organic_threshold || '-' }}
           </el-descriptions-item>
-          <el-descriptions-item label="限值">
+          <el-descriptions-item label="限值(μg/m³)">
             {{ currentSubstance.limit_value || '-' }}
           </el-descriptions-item>
           <el-descriptions-item label="气味特性">
