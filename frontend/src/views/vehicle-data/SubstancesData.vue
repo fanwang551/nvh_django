@@ -33,12 +33,12 @@
               </el-form-item>
             </el-col>
 
-            <!-- 零件名称选择（多选） -->
+            <!-- 整车/零部件名称选择（多选） -->
             <el-col :span="6">
-              <el-form-item label="零件名称">
+              <el-form-item label="整车/零部件">
                 <el-select
                   v-model="store.searchCriteria.part_names"
-                  placeholder="请选择零件名称（可多选）"
+                  placeholder="请选择整车/零部件"
                   multiple
                   collapse-tags
                   collapse-tags-tooltip
@@ -49,7 +49,7 @@
                   @change="handleFilterChange"
                 >
                   <el-option
-                    v-for="option in store.part_names"
+                    v-for="option in prioritizedPartNames"
                     :key="option.value"
                     :label="option.label"
                     :value="option.value"
@@ -63,7 +63,7 @@
               <el-form-item label="检测状态">
                 <el-select
                   v-model="store.searchCriteria.statuses"
-                  placeholder="请选择检测状态（可多选）"
+                  placeholder="请选择检测状态"
                   multiple
                   collapse-tags
                   collapse-tags-tooltip
@@ -88,7 +88,7 @@
               <el-form-item label="开发阶段">
                 <el-select
                   v-model="store.searchCriteria.development_stages"
-                  placeholder="请选择开发阶段（可多选）"
+                  placeholder="请选择开发阶段"
                   multiple
                   collapse-tags
                   collapse-tags-tooltip
@@ -232,7 +232,7 @@
           >
             <!-- 必选列 -->
             <el-table-column prop="sample_info.vehicle_model.vehicle_model_name" label="项目名称" width="120" align="center" />
-            <el-table-column prop="sample_info.part_name" label="零部件" width="120" align="center" />
+            <el-table-column prop="sample_info.part_name" label="整车/零部件名称" width="160" align="center" />
             
             <!-- 可选列 -->
             <el-table-column
@@ -515,7 +515,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useSubstancesQueryStore } from '@/store/substancesQuery'
 import { substancesApi } from '@/api/substances'
 import { ElMessage } from 'element-plus'
@@ -544,6 +544,16 @@ const locale = ref({
 
 // Store
 const store = useSubstancesQueryStore()
+
+// 将“整车”选项置顶显示
+const prioritizedPartNames = computed(() => {
+  const options = store.part_names || []
+  const idx = options.findIndex(opt => opt?.label === '整车' || opt?.value === '整车')
+  if (idx > -1) {
+    return [options[idx], ...options.slice(0, idx), ...options.slice(idx + 1)]
+  }
+  return options
+})
 
 // 表格可见列管理 - 默认选择检测时间、检测状态、开发阶段
 const visibleColumns = ref(['test_date', 'status', 'development_stage'])
