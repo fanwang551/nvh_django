@@ -14,7 +14,8 @@ export const vocApi = {
    * @returns {Promise} VOC数据列表
    */
   getVocDataList(params = {}) {
-    return request.get('/voc/data/', params)
+    // 切换至新 vehicle_body 模块
+    return request.get('/vehicle-body/data/', params)
   },
 
   /**
@@ -30,7 +31,8 @@ export const vocApi = {
    * @returns {Promise} 车型选项列表
    */
   getVehicleModelOptions() {
-    return request.get('/voc/options/vehicle-models/')
+    // 返回项目名称作为 options（与新schema匹配）
+    return request.get('/vehicle-body/options/vehicle-models/')
   },
 
   /**
@@ -76,7 +78,7 @@ export const vocApi = {
    * @returns {Promise} 图表数据
    */
   getRowChartData(params = {}) {
-    return request.get('/voc/row-chart-data/', params)
+    return request.get('/vehicle-body/row-chart-data/', params)
   },
 
   /**
@@ -86,7 +88,7 @@ export const vocApi = {
    * @returns {Promise} 图表数据
    */
   getOdorRowChartData(params = {}) {
-    return request.get('/voc/odor-row-chart-data/', params)
+    return request.get('/vehicle-body/odor-row-chart-data/', params)
   },
 
   /**
@@ -95,7 +97,7 @@ export const vocApi = {
    * @returns {Promise} 图表数据
    */
   getFilteredVocChartData(params = {}) {
-    return request.post('/voc/filtered-voc-chart-data/', params)
+    return request.post('/vehicle-body/filtered-voc-chart-data/', params)
   },
 
   /**
@@ -104,7 +106,7 @@ export const vocApi = {
    * @returns {Promise} 图表数据
    */
   getFilteredOdorChartData(params = {}) {
-    return request.post('/voc/filtered-odor-chart-data/', params)
+    return request.post('/vehicle-body/filtered-odor-chart-data/', params)
   },
   /**
    * 获取GOi/GVi贡献度TOP25

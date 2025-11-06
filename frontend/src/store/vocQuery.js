@@ -5,7 +5,7 @@ export const useVocQueryStore = defineStore('vocQuery', {
   state: () => ({
     // 查询条件
     searchCriteria: {
-      vehicle_model_ids: [],  // 改为多选
+      project_names: [],  // 改为多选（项目名称）
       part_names: [],
       statuses: [],
       development_stages: [],
@@ -105,23 +105,19 @@ export const useVocQueryStore = defineStore('vocQuery', {
   },
 
   actions: {
-    // 获取车型选项
+    // 获取项目名称选项
     async fetchVehicleModelOptions() {
       try {
         this.vehicle_models_loading = true
         const response = await vocApi.getVehicleModelOptions()
         const data = response.data || []
         
-        // 按 vehicle_model_id 去重，只保留唯一车型
+        // 按项目名称去重
         const uniqueVehicles = new Map()
         data.forEach(item => {
           if (!uniqueVehicles.has(item.value)) {
-            // 提取车型名称（去掉 "-状态-阶段" 部分）
-            const vehicleName = item.label.split('-')[0]
-            uniqueVehicles.set(item.value, {
-              value: item.value,
-              label: vehicleName
-            })
+            const projectName = (item.label || item.value || '').split('-')[0]
+            uniqueVehicles.set(item.value, { value: item.value, label: projectName })
           }
         })
         
@@ -246,9 +242,9 @@ export const useVocQueryStore = defineStore('vocQuery', {
     filterVocData() {
       let filtered = [...this.all_voc_data]
 
-      if (this.searchCriteria.vehicle_model_ids.length > 0) {
+      if (this.searchCriteria.project_names.length > 0) {
         filtered = filtered.filter(item => 
-          this.searchCriteria.vehicle_model_ids.includes(item.sample_info?.vehicle_model?.id)
+          this.searchCriteria.project_names.includes(item.sample_info?.project_name)
         )
       }
 
@@ -356,7 +352,7 @@ export const useVocQueryStore = defineStore('vocQuery', {
     // 重置查询条件
     resetSearchCriteria() {
       this.searchCriteria = {
-        vehicle_model_ids: [],  // 改为多选
+        project_names: [],  // 改为多选（项目名称）
         part_names: [],
         statuses: [],
         development_stages: [],

@@ -15,7 +15,7 @@
           <el-col :span="6">
             <el-form-item label="项目名称">
               <el-select
-                v-model="store.searchCriteria.vehicle_model_ids"
+                v-model="store.searchCriteria.project_names"
                 placeholder="请选择项目名称"
                 multiple
                 collapse-tags
@@ -247,7 +247,7 @@
           :header-cell-style="{ backgroundColor: '#409EFF', color: '#ffffff', fontWeight: '600', fontSize: '14px' }"
         >
           <!-- 必选列 -->
-          <el-table-column prop="sample_info.vehicle_model.vehicle_model_name" label="项目名称" width="120" align="center" />
+          <el-table-column prop="sample_info.project_name" label="项目名称" width="120" align="center" />
           <el-table-column prop="sample_info.part_name" label="整车/零部件名称" width="160" align="center" />
           
           <!-- 可选列 -->
@@ -520,7 +520,7 @@
           :header-cell-style="{ backgroundColor: '#67C23A', color: '#ffffff', fontWeight: '600', fontSize: '14px' }"
         >
           <!-- 必选列 -->
-          <el-table-column prop="sample_info.vehicle_model.vehicle_model_name" label="项目名称" width="120" align="center" />
+          <el-table-column prop="sample_info.project_name" label="项目名称" width="120" align="center" />
           
           <!-- 可选列 -->
           <el-table-column
