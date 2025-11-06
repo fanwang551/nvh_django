@@ -5,7 +5,7 @@ export const useVocQueryStore = defineStore('vocQuery', {
   state: () => ({
     // 查询条件
     searchCriteria: {
-      vehicle_model_id: null,
+      vehicle_model_ids: [],  // 改为多选
       part_names: [],
       statuses: [],
       development_stages: [],
@@ -246,9 +246,9 @@ export const useVocQueryStore = defineStore('vocQuery', {
     filterVocData() {
       let filtered = [...this.all_voc_data]
 
-      if (this.searchCriteria.vehicle_model_id) {
+      if (this.searchCriteria.vehicle_model_ids.length > 0) {
         filtered = filtered.filter(item => 
-          item.sample_info?.vehicle_model?.id === this.searchCriteria.vehicle_model_id
+          this.searchCriteria.vehicle_model_ids.includes(item.sample_info?.vehicle_model?.id)
         )
       }
 
@@ -356,7 +356,7 @@ export const useVocQueryStore = defineStore('vocQuery', {
     // 重置查询条件
     resetSearchCriteria() {
       this.searchCriteria = {
-        vehicle_model_id: null,
+        vehicle_model_ids: [],  // 改为多选
         part_names: [],
         statuses: [],
         development_stages: [],

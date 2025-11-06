@@ -11,12 +11,15 @@
 
       <el-form :model="store.searchCriteria" label-width="100px" class="search-form">
         <el-row :gutter="20">
-          <!-- 项目名称选择 -->
+          <!-- 项目名称选择（多选） -->
           <el-col :span="6">
             <el-form-item label="项目名称">
               <el-select
-                v-model="store.searchCriteria.vehicle_model_id"
+                v-model="store.searchCriteria.vehicle_model_ids"
                 placeholder="请选择项目名称"
+                multiple
+                collapse-tags
+                collapse-tags-tooltip
                 clearable
                 filterable
                 :loading="store.vehicle_models_loading"
@@ -170,6 +173,9 @@
           <div class="card-header">
             <span>VOC检测结果</span>
             <div class="column-selector">
+              <el-button size="small" type="success" @click="showFilteredChart" style="margin-right: 10px;">
+                图表
+              </el-button>
               <el-dropdown trigger="click" :hide-on-click="false">
                 <el-button size="small" type="primary">
                   列选择<el-icon class="el-icon--right"><arrow-down /></el-icon>
@@ -416,7 +422,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column label="操作" width="150" align="center">
+          <el-table-column label="操作" width="100" align="center">
             <template #default="scope">
               <el-button
                 type="primary"
@@ -424,14 +430,6 @@
                 @click="showSampleImage(scope.row.sample_info?.sample_image_url)"
               >
                 样品图
-              </el-button>
-              <el-button
-                type="warning"
-                size="small"
-                @click="showChart(scope.row.id)"
-                style="margin-left: 5px;"
-              >
-                图表
               </el-button>
             </template>
           </el-table-column>
@@ -458,6 +456,9 @@
           <div class="card-header">
             <span>气味检测结果</span>
             <div class="column-selector">
+              <el-button size="small" type="success" @click="showFilteredOdorChart" style="margin-right: 10px;">
+                图表
+              </el-button>
               <el-dropdown trigger="click" :hide-on-click="false">
                 <el-button size="small" type="primary">
                   列选择<el-icon class="el-icon--right"><arrow-down /></el-icon>
@@ -618,7 +619,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column label="操作" width="150" align="center">
+          <el-table-column label="操作" width="100" align="center">
             <template #default="scope">
               <el-button
                 type="success"
@@ -626,14 +627,6 @@
                 @click="showSampleImage(scope.row.sample_info?.sample_image_url)"
               >
                 样品图
-              </el-button>
-              <el-button
-                type="warning"
-                size="small"
-                @click="showOdorChart(scope.row.id)"
-                style="margin-left: 5px;"
-              >
-                图表
               </el-button>
             </template>
           </el-table-column>
@@ -663,14 +656,6 @@
         </template>
         <div v-loading="chartLoading" style="min-height: 400px;">
           <div v-if="chartData" style="padding: 10px;">
-            <div style="margin-bottom: 10px; color: #606266;">
-              <span style="font-weight: 600;">项目：</span>{{ chartData.project_name }}
-              <span style="margin-left: 20px; font-weight: 600;">零部件：</span>{{ chartData.part_name }}
-              <span style="margin-left: 20px; font-weight: 600;">场景：</span>
-              <el-tag :type="chartData.scenario === 'whole_vehicle' ? 'success' : 'info'" size="small">
-                {{ chartData.scenario === 'whole_vehicle' ? '整车场景' : '零部件场景' }}
-              </el-tag>
-            </div>
             <div ref="chartContainer" style="width: 100%; height: 500px;"></div>
           </div>
         </div>
@@ -686,14 +671,6 @@
         </template>
         <div v-loading="odorChartLoading" style="min-height: 400px;">
           <div v-if="odorChartData" style="padding: 10px;">
-            <div style="margin-bottom: 10px; color: #606266;">
-              <span style="font-weight: 600;">项目：</span>{{ odorChartData.project_name }}
-              <span style="margin-left: 20px; font-weight: 600;">零部件：</span>{{ odorChartData.part_name }}
-              <span style="margin-left: 20px; font-weight: 600;">场景：</span>
-              <el-tag :type="odorChartData.scenario === 'whole_vehicle' ? 'success' : 'info'" size="small">
-                {{ odorChartData.scenario === 'whole_vehicle' ? '整车场景' : '零部件场景' }}
-              </el-tag>
-            </div>
             <div ref="odorChartContainer" style="width: 100%; height: 500px;"></div>
           </div>
         </div>
@@ -831,7 +808,7 @@ const showSampleImage = (imageUrl) => {
   }
 }
 
-// 显示VOC图表
+// 显示VOC图表（单行，保留旧逻辑）
 const showChart = async (resultId) => {
   try {
     chartLoading.value = true
@@ -851,13 +828,97 @@ const showChart = async (resultId) => {
   }
 }
 
-// 显示气味图表
+// 显示基于筛选条件的VOC图表
+const showFilteredChart = async () => {
+  try {
+    // 检查是否有筛选结果
+    if (store.filtered_voc_data.length === 0) {
+      ElMessage.warning('当前筛选结果为空，无法生成图表')
+      return
+    }
+
+    // 限制10条数据
+    const dataToChart = store.filtered_voc_data.slice(0, 10)
+
+    // 零部件分类校验：检查是否全部为"整车"或全部不为"整车"
+    const partNames = [...new Set(dataToChart.map(item => item.sample_info?.part_name))]
+    const hasWholeVehicle = partNames.includes('整车')
+    const hasOtherParts = partNames.some(name => name !== '整车')
+
+    if (hasWholeVehicle && hasOtherParts) {
+      ElMessage.error('筛选结果中零部件分类不统一（整车和零件混合），无法生成图表')
+      return
+    }
+
+    chartLoading.value = true
+    chartVisible.value = true
+    
+    const response = await vocApi.getFilteredVocChartData({
+      filters: store.searchCriteria,
+      limit: 10
+    })
+    chartData.value = response.data
+    
+    await nextTick()
+    renderChart()
+  } catch (error) {
+    console.error('获取图表数据失败:', error)
+    ElMessage.error('获取图表数据失败')
+    chartVisible.value = false
+  } finally {
+    chartLoading.value = false
+  }
+}
+
+// 显示气味图表（单行，保留旧逻辑）
 const showOdorChart = async (resultId) => {
   try {
     odorChartLoading.value = true
     odorChartVisible.value = true
     
     const response = await vocApi.getOdorRowChartData({ result_id: resultId })
+    odorChartData.value = response.data
+    
+    await nextTick()
+    renderOdorChart()
+  } catch (error) {
+    console.error('获取气味图表数据失败:', error)
+    ElMessage.error('获取气味图表数据失败')
+    odorChartVisible.value = false
+  } finally {
+    odorChartLoading.value = false
+  }
+}
+
+// 显示基于筛选条件的气味图表
+const showFilteredOdorChart = async () => {
+  try {
+    // 检查是否有筛选结果
+    if (store.filtered_odor_data.length === 0) {
+      ElMessage.warning('当前筛选结果为空或无气味数据，无法生成图表')
+      return
+    }
+
+    // 限制10条数据
+    const dataToChart = store.filtered_odor_data.slice(0, 10)
+
+    // 零部件分类校验：检查是否全部为"整车"或全部不为"整车"
+    const partNames = [...new Set(dataToChart.map(item => item.sample_info?.part_name))]
+    const hasWholeVehicle = partNames.includes('整车')
+    const hasOtherParts = partNames.some(name => name !== '整车')
+
+    if (hasWholeVehicle && hasOtherParts) {
+      ElMessage.error('筛选结果中零部件分类不统一（整车和零件混合），无法生成图表')
+      return
+    }
+
+    odorChartLoading.value = true
+    odorChartVisible.value = true
+    
+    const response = await vocApi.getFilteredOdorChartData({
+      filters: store.searchCriteria,
+      limit: 10
+    })
     odorChartData.value = response.data
     
     await nextTick()
@@ -881,6 +942,42 @@ const renderChart = () => {
   
   chartInstance = echarts.init(chartContainer.value)
   
+  // 智能命名：检查是否需要隐藏相同字段
+  const processedSeries = chartData.value.series.map(s => {
+    const parts = s.raw_data || {}
+    return {
+      ...s,
+      vehicleModel: parts.vehicle_model,
+      sampleNo: parts.sample_no,
+      status: parts.status,
+      stage: parts.stage
+    }
+  })
+
+  // 检测哪些字段完全相同
+  const uniqueVehicles = new Set(processedSeries.map(s => s.vehicleModel))
+  const uniqueSampleNos = new Set(processedSeries.map(s => s.sampleNo))
+  const uniqueStatuses = new Set(processedSeries.map(s => s.status))
+  const uniqueStages = new Set(processedSeries.map(s => s.stage))
+
+  // 根据是否全部相同，动态生成系列名称（格式：车型-样品编号-检测状态-开发阶段）
+  const newSeriesNames = processedSeries.map(s => {
+    const parts = []
+    if (uniqueVehicles.size > 1 && s.vehicleModel) parts.push(s.vehicleModel)
+    if (uniqueSampleNos.size > 1 && s.sampleNo) parts.push(s.sampleNo)
+    if (uniqueStatuses.size > 1 && s.status) parts.push(s.status)
+    if (uniqueStages.size > 1 && s.stage) parts.push(s.stage)
+    return parts.length > 0 ? parts.join('-') : (s.sampleNo || s.name || '未知')
+  })
+
+  // 检查是否全部为整车（用于单位转换）
+  const isAllWholeVehicle = chartData.value.scenario === 'whole_vehicle' || 
+    (chartData.value.series.length > 0 && chartData.value.series.every(s => s.part_name === '整车'))
+  
+  // 单位和单位转换系数
+  const unit = isAllWholeVehicle ? 'mg/m³' : 'μg/m³'
+  const conversionFactor = isAllWholeVehicle ? 1000 : 1
+
   const option = {
     title: {
       text: 'VOC物质浓度对比分析',
@@ -898,17 +995,17 @@ const renderChart = () => {
       formatter: function(params) {
         let result = params[0].axisValue + '<br/>'
         params.forEach(item => {
-          result += item.marker + ' ' + item.seriesName + ': ' + item.value + ' μg/m³<br/>'
+          result += item.marker + ' ' + item.seriesName + ': ' + item.value + ' ' + unit + '<br/>'
         })
         return result
       }
     },
     legend: {
-      data: chartData.value.series.map(s => s.name),
+      data: newSeriesNames,
       top: 40,
       type: 'scroll',
-      selected: chartData.value.series.reduce((acc, s) => {
-        acc[s.name] = true
+      selected: newSeriesNames.reduce((acc, name) => {
+        acc[name] = true
         return acc
       }, {})
     },
@@ -937,16 +1034,16 @@ const renderChart = () => {
     },
     yAxis: {
       type: 'value',
-      name: '浓度 (μg/m³)',
+      name: '浓度 (' + unit + ')',
       nameTextStyle: {
         fontSize: 14,
         fontWeight: 'bold'
       }
     },
-    series: chartData.value.series.map(s => ({
-      name: s.name,
+    series: chartData.value.series.map((s, idx) => ({
+      name: newSeriesNames[idx],
       type: 'bar',
-      data: s.data,
+      data: s.data.map(v => (v / conversionFactor).toFixed(3)),
       label: {
         show: true,
         position: 'top',
@@ -974,6 +1071,34 @@ const renderOdorChart = () => {
   
   odorChartInstance = echarts.init(odorChartContainer.value)
   
+  // 智能命名：检查是否需要隐藏相同字段
+  const processedSeries = odorChartData.value.series.map(s => {
+    const parts = s.raw_data || {}
+    return {
+      ...s,
+      vehicleModel: parts.vehicle_model,
+      sampleNo: parts.sample_no,
+      status: parts.status,
+      stage: parts.stage
+    }
+  })
+
+  // 检测哪些字段完全相同
+  const uniqueVehicles = new Set(processedSeries.map(s => s.vehicleModel))
+  const uniqueSampleNos = new Set(processedSeries.map(s => s.sampleNo))
+  const uniqueStatuses = new Set(processedSeries.map(s => s.status))
+  const uniqueStages = new Set(processedSeries.map(s => s.stage))
+
+  // 根据是否全部相同，动态生成系列名称（格式：车型-样品编号-检测状态-开发阶段）
+  const newSeriesNames = processedSeries.map(s => {
+    const parts = []
+    if (uniqueVehicles.size > 1 && s.vehicleModel) parts.push(s.vehicleModel)
+    if (uniqueSampleNos.size > 1 && s.sampleNo) parts.push(s.sampleNo)
+    if (uniqueStatuses.size > 1 && s.status) parts.push(s.status)
+    if (uniqueStages.size > 1 && s.stage) parts.push(s.stage)
+    return parts.length > 0 ? parts.join('-') : (s.sampleNo || s.name || '未知')
+  })
+  
   const option = {
     title: {
       text: '气味数据对比分析',
@@ -997,11 +1122,11 @@ const renderOdorChart = () => {
       }
     },
     legend: {
-      data: odorChartData.value.series.map(s => s.name),
+      data: newSeriesNames,
       top: 40,
       type: 'scroll',
-      selected: odorChartData.value.series.reduce((acc, s) => {
-        acc[s.name] = true
+      selected: newSeriesNames.reduce((acc, name) => {
+        acc[name] = true
         return acc
       }, {})
     },
@@ -1031,15 +1156,13 @@ const renderOdorChart = () => {
     yAxis: {
       type: 'value',
       name: '气味',
-      min: 0,
-      max: 10,
       nameTextStyle: {
         fontSize: 14,
         fontWeight: 'bold'
       }
     },
-    series: odorChartData.value.series.map(s => ({
-      name: s.name,
+    series: odorChartData.value.series.map((s, idx) => ({
+      name: newSeriesNames[idx],
       type: 'bar',
       data: s.data,
       label: {

@@ -359,6 +359,96 @@ def voc_row_chart_data(request):
         return Response.error(message=f"获取图表数据失败: {str(e)}")
 
 
+@api_view(['POST'])
+@permission_classes([])
+def filtered_voc_chart_data(request):
+    """获取基于筛选条件的VOC图表数据"""
+    try:
+        # 获取筛选条件
+        filters = request.data.get('filters', {})
+        limit = request.data.get('limit', 10)
+        
+        # 构建查询
+        queryset = VocOdorResult.objects.select_related('sample', 'sample__vehicle_model').all()
+        
+        # 应用筛选条件
+        vehicle_model_ids = filters.get('vehicle_model_ids', [])
+        if vehicle_model_ids and len(vehicle_model_ids) > 0:
+            queryset = queryset.filter(sample__vehicle_model_id__in=vehicle_model_ids)
+        
+        part_names = filters.get('part_names', [])
+        if part_names and len(part_names) > 0:
+            queryset = queryset.filter(sample__part_name__in=part_names)
+        
+        statuses = filters.get('statuses', [])
+        if statuses and len(statuses) > 0:
+            queryset = queryset.filter(sample__status__in=statuses)
+        
+        development_stages = filters.get('development_stages', [])
+        if development_stages and len(development_stages) > 0:
+            queryset = queryset.filter(sample__development_stage__in=development_stages)
+        
+        test_order_no = filters.get('test_order_no', '')
+        if test_order_no:
+            queryset = queryset.filter(sample__test_order_no__icontains=test_order_no)
+        
+        sample_no = filters.get('sample_no', '')
+        if sample_no:
+            queryset = queryset.filter(sample__sample_no__icontains=sample_no)
+        
+        test_date_range = filters.get('test_date_range')
+        if test_date_range and len(test_date_range) == 2:
+            queryset = queryset.filter(test_date__range=test_date_range)
+        
+        # 限制数量
+        queryset = queryset[:limit]
+        
+        # X轴：固定物质
+        x_axis = ["苯", "甲苯", "二甲苯", "乙苯", "苯乙烯", "甲醛", "乙醛", "丙酮", "TVOC"]
+        compound_fields = ["benzene", "toluene", "xylene", "ethylbenzene", 
+                          "styrene", "formaldehyde", "acetaldehyde", "acetone", "tvoc"]
+        
+        # 构建系列数据
+        series = []
+        for result in queryset:
+            sample = result.sample
+            
+            # 提取VOC数据
+            voc_values = []
+            for field in compound_fields:
+                value = getattr(result, field)
+                voc_values.append(float(value) if value is not None else 0)
+            
+            # 系列数据（包含原始信息用于前端智能命名）
+            series.append({
+                'name': f"{sample.vehicle_model.vehicle_model_name}-{sample.sample_no}",  # 默认名称
+                'data': voc_values,
+                'type': 'bar',
+                'part_name': sample.part_name,
+                'raw_data': {
+                    'vehicle_model': sample.vehicle_model.vehicle_model_name,
+                    'sample_no': sample.sample_no,
+                    'status': sample.status,
+                    'stage': sample.development_stage
+                }
+            })
+        
+        # 检测场景
+        part_names_in_data = list(set([s['part_name'] for s in series]))
+        is_whole_vehicle = all(name == '整车' for name in part_names_in_data)
+        
+        return Response.success(data={
+            'xAxis': x_axis,
+            'series': series,
+            'scenario': 'whole_vehicle' if is_whole_vehicle else 'part'
+        }, message="获取图表数据成功")
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return Response.error(message=f"获取图表数据失败: {str(e)}")
+
+
 @api_view(['GET'])
 @permission_classes([])
 def odor_row_chart_data(request):
@@ -452,6 +542,106 @@ def odor_row_chart_data(request):
         }, message="获取气味图表数据成功")
         
     except Exception as e:
+        return Response.error(message=f"获取气味图表数据失败: {str(e)}")
+
+
+@api_view(['POST'])
+@permission_classes([])
+def filtered_odor_chart_data(request):
+    """获取基于筛选条件的气味图表数据"""
+    try:
+        # 获取筛选条件
+        filters = request.data.get('filters', {})
+        limit = request.data.get('limit', 10)
+        
+        # 构建查询
+        queryset = VocOdorResult.objects.select_related('sample', 'sample__vehicle_model').all()
+        
+        # 应用筛选条件
+        vehicle_model_ids = filters.get('vehicle_model_ids', [])
+        if vehicle_model_ids and len(vehicle_model_ids) > 0:
+            queryset = queryset.filter(sample__vehicle_model_id__in=vehicle_model_ids)
+        
+        part_names = filters.get('part_names', [])
+        if part_names and len(part_names) > 0:
+            queryset = queryset.filter(sample__part_name__in=part_names)
+        
+        statuses = filters.get('statuses', [])
+        if statuses and len(statuses) > 0:
+            queryset = queryset.filter(sample__status__in=statuses)
+        
+        development_stages = filters.get('development_stages', [])
+        if development_stages and len(development_stages) > 0:
+            queryset = queryset.filter(sample__development_stage__in=development_stages)
+        
+        test_order_no = filters.get('test_order_no', '')
+        if test_order_no:
+            queryset = queryset.filter(sample__test_order_no__icontains=test_order_no)
+        
+        sample_no = filters.get('sample_no', '')
+        if sample_no:
+            queryset = queryset.filter(sample__sample_no__icontains=sample_no)
+        
+        test_date_range = filters.get('test_date_range')
+        if test_date_range and len(test_date_range) == 2:
+            queryset = queryset.filter(test_date__range=test_date_range)
+        
+        # 只保留有气味数据的记录
+        queryset = queryset.filter(
+            Q(static_front__isnull=False) | Q(static_rear__isnull=False) |
+            Q(dynamic_front__isnull=False) | Q(dynamic_rear__isnull=False) |
+            Q(odor_mean__isnull=False)
+        )
+        
+        # 限制数量
+        results = list(queryset[:limit])
+        
+        # 检测场景（判断是否全部为整车）- 从切片后的结果中提取
+        part_names_in_data = list(set([r.sample.part_name for r in results if r.sample]))
+        is_whole_vehicle = all(name == '整车' for name in part_names_in_data if name)
+        
+        # X轴根据场景不同
+        if is_whole_vehicle:
+            x_axis = ["动态-前排", "动态-后排", "静态-前排", "静态-后排", "气味均值"]
+            odor_fields = ["dynamic_front", "dynamic_rear", "static_front", "static_rear", "odor_mean"]
+        else:
+            x_axis = ["气味均值"]
+            odor_fields = ["odor_mean"]
+        
+        # 构建系列数据
+        series = []
+        for result in results:
+            sample = result.sample
+            
+            # 提取气味数据
+            odor_values = []
+            for field in odor_fields:
+                value = getattr(result, field)
+                odor_values.append(float(value) if value is not None else 0)
+            
+            # 系列数据（包含原始信息用于前端智能命名）
+            series.append({
+                'name': f"{sample.vehicle_model.vehicle_model_name}-{sample.sample_no}",  # 默认名称
+                'data': odor_values,
+                'type': 'bar',
+                'part_name': sample.part_name,
+                'raw_data': {
+                    'vehicle_model': sample.vehicle_model.vehicle_model_name,
+                    'sample_no': sample.sample_no,
+                    'status': sample.status,
+                    'stage': sample.development_stage
+                }
+            })
+        
+        return Response.success(data={
+            'xAxis': x_axis,
+            'series': series,
+            'scenario': 'whole_vehicle' if is_whole_vehicle else 'part'
+        }, message="获取气味图表数据成功")
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
         return Response.error(message=f"获取气味图表数据失败: {str(e)}")
 
 

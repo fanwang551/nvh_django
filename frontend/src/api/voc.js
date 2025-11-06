@@ -87,8 +87,25 @@ export const vocApi = {
    */
   getOdorRowChartData(params = {}) {
     return request.get('/voc/odor-row-chart-data/', params)
-  }
-  ,
+  },
+
+  /**
+   * 获取基于筛选条件的VOC图表数据
+   * @param {Object} params - 筛选参数
+   * @returns {Promise} 图表数据
+   */
+  getFilteredVocChartData(params = {}) {
+    return request.post('/voc/filtered-voc-chart-data/', params)
+  },
+
+  /**
+   * 获取基于筛选条件的气味图表数据
+   * @param {Object} params - 筛选参数
+   * @returns {Promise} 图表数据
+   */
+  getFilteredOdorChartData(params = {}) {
+    return request.post('/voc/filtered-odor-chart-data/', params)
+  },
   /**
    * 获取GOi/GVi贡献度TOP25
    * @param {Object} params - 查询参数
