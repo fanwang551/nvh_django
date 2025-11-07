@@ -64,16 +64,35 @@ export const substancesApi = {
     return request.get('/voc/options/development-stages/')
   },
 
+  // ---- 污染物分项溯源（vehicle_body 版本） ----
   /**
-   * 获取物质分项溯源数据
-   * @param {Object} params - 查询参数
-   * @param {number} [params.vehicle_test_id] - 整车全谱测试ID（推荐，唯一定位样品）
-   * @param {number} [params.vehicle_model_id] - 车型ID（兼容旧方式）
-   * @param {Array<string>} params.cas_nos - CAS号数组
-   * @returns {Promise} 溯源数据
+   * 整车样品下拉选项
    */
-  getSubstanceTraceability(params = {}) {
-    return request.get('/voc/substances/item-traceability/', params)
+  getVehicleSampleOptions() {
+    return request.get('/vehicle-body/substance-traceability/vehicle-sample-options/')
+  },
+
+  /**
+   * 获取某整车样品下的物质列表（下拉）
+   * @param {Object} params
+   * @param {string} params.project_name
+   * @param {string} params.test_order_no
+   * @param {string} params.sample_no
+   */
+  getTraceabilitySubstances(params = {}) {
+    return request.get('/vehicle-body/substance-traceability/substances/', params)
+  },
+
+  /**
+   * 获取溯源排名结果（按所选物质）
+   * @param {Object} payload
+   * @param {string} payload.project_name
+   * @param {string} payload.test_order_no
+   * @param {string} payload.sample_no
+   * @param {Array<string>} payload.selected_substances
+   */
+  postSubstanceRanking(payload = {}) {
+    return request.post('/vehicle-body/substance-traceability/ranking/', payload)
   }
 }
 

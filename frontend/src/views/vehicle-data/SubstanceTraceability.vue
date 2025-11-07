@@ -164,7 +164,7 @@
             align="center"
           >
             <template #default="scope">
-              <span class="number-cell">{{ formatNumber(scope.row.retention_time, 2) }}</span>
+              <span class="number-cell">{{ formatNumber(scope.row.retention_time, 3) }}</span>
             </template>
           </el-table-column>
 
@@ -175,7 +175,7 @@
             align="center"
           >
             <template #default="scope">
-              <span class="number-cell">{{ formatNumber(scope.row.match_degree, 1) }}</span>
+              <span class="number-cell">{{ formatNumber(scope.row.match_degree, 3) }}</span>
             </template>
           </el-table-column>
 
@@ -186,7 +186,7 @@
             align="center"
           >
             <template #default="scope">
-              <span class="number-cell">{{ formatNumber(scope.row.concentration_ratio, 1) }}</span>
+              <span class="number-cell">{{ formatNumber(scope.row.concentration_ratio, 3) }}</span>
             </template>
           </el-table-column>
 

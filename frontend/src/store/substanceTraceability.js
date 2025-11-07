@@ -5,8 +5,9 @@ export const useSubstanceTraceabilityStore = defineStore('substanceTraceability'
   state: () => ({
     // 查询条件
     searchCriteria: {
-      vehicle_model_id: null,
-      vehicle_test_id: null, // 唯一整车测试ID
+      project_name: null,
+      test_order_no: null,
+      sample_no: null,
       cas_nos: [],
       selected_key: null  // 用于存储选中的唯一标识
     },
@@ -50,65 +51,38 @@ export const useSubstanceTraceabilityStore = defineStore('substanceTraceability'
   },
 
   actions: {
-    // 获取样品选项（整车）：按 车型-委托单号-样品编号 唯一标识
+    // 获取整车样品选项：按 project_name - test_order_no - sample_no 唯一标识
     async fetchVehicleModels() {
       try {
         this.vehicle_models_loading = true
         this.error = null
 
-        // 仅从整车测试中构造选项
-        const testsResp = await substancesApi.getTestList({ part_name: '整车', page_size: 10000 })
-        const allTests = (testsResp?.data?.results || [])
-          .filter(r => r?.sample_info?.vehicle_model?.id)
-
-        // 用 (vmId, test_order_no, sample_no) 作为唯一组合，保留最新测试
-        const latestByCombo = new Map()
-        for (const t of allTests) {
-          const vmId = t.sample_info.vehicle_model.id
-          const vmName = t.sample_info.vehicle_model.vehicle_model_name || '未知车型'
-          const orderNo = t.sample_info.test_order_no || '-'
-          const sampleNo = t.sample_info.sample_no || '-'
-          const comboKey = `${vmId}||${orderNo}||${sampleNo}`
-          const existed = latestByCombo.get(comboKey)
-          const curDate = new Date(t.test_date || 0).getTime()
-          const oldDate = existed ? new Date(existed.test_date || 0).getTime() : -1
-          if (!existed || curDate > oldDate) {
-            latestByCombo.set(comboKey, {
-              test_id: t.id,
-              vehicle_model_id: vmId,
-              vehicle_model_name: vmName,
-              test_order_no: orderNo,
-              sample_no: sampleNo,
-              label: `${vmName}-${orderNo}-${sampleNo}`
-            })
-          }
-        }
-
-        // 转换为下拉选项
-        let idx = 0
-        this.vehicle_models = Array.from(latestByCombo.values()).map(v => ({
-          key: `key_${idx++}_${v.test_id}`,
-          value: v.test_id,
+        const resp = await substancesApi.getVehicleSampleOptions()
+        const list = resp?.data || []
+        // 直接沿用 vehicle_models 命名，语义为“整车样品选项”
+        this.vehicle_models = list.map((v, idx) => ({
+          key: v.key || `key_${idx}`,
+          value: v.key || `key_${idx}`,
           label: v.label,
-          vehicle_test_id: v.test_id,
-          vehicle_model_id: v.vehicle_model_id,
-          vehicle_model_name: v.vehicle_model_name,
+          project_name: v.project_name,
           test_order_no: v.test_order_no,
           sample_no: v.sample_no
         }))
 
-        console.log('车型选项加载成功:', this.vehicle_models.length, '个选项')
-        console.log('第一个选项示例:', this.vehicle_models[0])
+        console.log('整车样品选项加载成功:', this.vehicle_models.length, '个选项')
+        if (this.vehicle_models.length > 0) {
+          console.log('示例选项:', this.vehicle_models[0])
+        }
       } catch (error) {
         this.error = error.message
-        console.error('获取车型选项失败:', error)
+        console.error('获取整车样品选项失败:', error)
         this.vehicle_models = []
       } finally {
         this.vehicle_models_loading = false
       }
     },
 
-    // 加载物质选项（从所选唯一样品的整车全谱数据获取，按浓度降序）
+    // 加载物质选项（从所选的整车样品获取，按浓度降序）
     async fetchSubstanceOptions(selectedOption) {
       if (!selectedOption) {
         this.substance_options = []
@@ -119,16 +93,15 @@ export const useSubstanceTraceabilityStore = defineStore('substanceTraceability'
         this.substance_options_loading = true
         this.error = null
 
-        const testId = selectedOption.vehicle_test_id || selectedOption.value
-        if (!testId) {
-          console.warn('未获取到车辆整车测试ID')
+        const { project_name, test_order_no, sample_no } = selectedOption
+        if (!project_name || !test_order_no || !sample_no) {
+          console.warn('选项缺少必要字段')
           this.substance_options = []
           return
         }
 
-        const detailResponse = await substancesApi.getTestDetail({ test_id: testId })
-
-        const details = detailResponse.data || []
+        const listResp = await substancesApi.getTraceabilitySubstances({ project_name, test_order_no, sample_no })
+        const details = listResp.data || []
 
         // 按浓度降序排序，构建选项列表
         const sortedDetails = details
@@ -143,7 +116,7 @@ export const useSubstanceTraceabilityStore = defineStore('substanceTraceability'
           })
 
         this.substance_options = sortedDetails.map(item => ({
-          value: item.substance,
+          value: item.cas_no,
           label: `${item.substance_name_cn} (${item.substance_name_en || 'N/A'}, ${item.cas_no})`,
           substance_name_cn: item.substance_name_cn,
           substance_name_en: item.substance_name_en,
@@ -172,15 +145,15 @@ export const useSubstanceTraceabilityStore = defineStore('substanceTraceability'
         this.query_loading = true
         this.error = null
 
-        const params = {
-          vehicle_test_id: this.searchCriteria.vehicle_test_id,
-          vehicle_model_id: this.searchCriteria.vehicle_model_id, // 备用
-          cas_nos: this.searchCriteria.cas_nos
+        const payload = {
+          project_name: this.searchCriteria.project_name,
+          test_order_no: this.searchCriteria.test_order_no,
+          sample_no: this.searchCriteria.sample_no,
+          selected_substances: this.searchCriteria.cas_nos
         }
 
-        const response = await substancesApi.getSubstanceTraceability(params)
-
-        this.traceability_data = response.data.substances || []
+        const response = await substancesApi.postSubstanceRanking(payload)
+        this.traceability_data = (response?.data?.substances) || []
       } catch (error) {
         this.error = error.message
         console.error('获取溯源数据失败:', error)
@@ -251,8 +224,9 @@ export const useSubstanceTraceabilityStore = defineStore('substanceTraceability'
     // 重置查询条件
     resetSearchCriteria() {
       this.searchCriteria = {
-        vehicle_model_id: null,
-        vehicle_test_id: null,
+        project_name: null,
+        test_order_no: null,
+        sample_no: null,
         cas_nos: [],
         selected_key: null
       }
@@ -272,8 +246,9 @@ export const useSubstanceTraceabilityStore = defineStore('substanceTraceability'
         
         if (selectedOption) {
           this.searchCriteria.selected_key = selectedKey
-          this.searchCriteria.vehicle_model_id = selectedOption.vehicle_model_id
-          this.searchCriteria.vehicle_test_id = selectedOption.vehicle_test_id || selectedOption.value
+          this.searchCriteria.project_name = selectedOption.project_name
+          this.searchCriteria.test_order_no = selectedOption.test_order_no
+          this.searchCriteria.sample_no = selectedOption.sample_no
           
           // 加载该选项对应的物质列表
           this.fetchSubstanceOptions(selectedOption)
@@ -281,8 +256,9 @@ export const useSubstanceTraceabilityStore = defineStore('substanceTraceability'
       } else {
         // 清空选择
         this.searchCriteria.selected_key = null
-        this.searchCriteria.vehicle_model_id = null
-        this.searchCriteria.vehicle_test_id = null
+        this.searchCriteria.project_name = null
+        this.searchCriteria.test_order_no = null
+        this.searchCriteria.sample_no = null
         this.substance_options = []
       }
     }

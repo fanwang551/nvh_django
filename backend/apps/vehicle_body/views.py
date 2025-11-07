@@ -1,7 +1,7 @@
-from rest_framework.decorators import api_view, permission_classes
+﻿from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from django.core.paginator import Paginator
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum, Max
 
 from utils.response import Response
 from .models import SampleInfo, SubstancesTestDetail, Substance
@@ -492,3 +492,231 @@ def contribution_top25(request):
     except Exception as e:
         return Response.error(message=f'获取贡献度TOP25失败: {str(e)}')
 
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def vehicle_sample_options(request):
+    """
+    整车样品下拉选项：返回存在全谱明细的整车样品组合
+    结构：[{ key, label, project_name, test_order_no, sample_no }]
+    """
+    try:
+        sample_ids = SubstancesTestDetail.objects.values_list('sample_id', flat=True).distinct()
+        qs = (
+            SampleInfo.objects
+            .filter(id__in=sample_ids, part_name='整车')
+            .exclude(project_name__isnull=True)
+            .exclude(project_name__exact='')
+            .exclude(test_order_no__isnull=True)
+            .exclude(test_order_no__exact='')
+            .exclude(sample_no__isnull=True)
+            .exclude(sample_no__exact='')
+            .order_by('-id')
+        )
+
+        seen = set()
+        options = []
+        for s in qs:
+            combo = (s.project_name, s.test_order_no, s.sample_no)
+            if combo in seen:
+                continue
+            seen.add(combo)
+            label = f"{s.project_name}-{s.test_order_no}-{s.sample_no}"
+            key = f"{s.project_name}||{s.test_order_no}||{s.sample_no}"
+            options.append({
+                'key': key,
+                'label': label,
+                'project_name': s.project_name,
+                'test_order_no': s.test_order_no,
+                'sample_no': s.sample_no,
+            })
+
+        return Response.success(data=options, message='获取整车样品选项成功')
+    except Exception as e:
+        return Response.error(message=f'获取整车样品选项失败: {str(e)}')
+
+
+def _fmt3(v):
+    if v is None:
+        return None
+    try:
+        return f"{float(v):.3f}"
+    except Exception:
+        return None
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def traceability_substances(request):
+    """
+    获取整车样品下的物质列表（下拉数据源）
+    入参：project_name, test_order_no, sample_no
+    返回：[{ cas_no, substance_name_cn, substance_name_en, concentration }]
+    """
+    try:
+        project_name = (request.GET.get('project_name') or '').strip()
+        test_order_no = (request.GET.get('test_order_no') or '').strip()
+        sample_no = (request.GET.get('sample_no') or '').strip()
+        if not (project_name and test_order_no and sample_no):
+            return Response.bad_request(message='缺少必要参数：project_name/test_order_no/sample_no')
+
+        try:
+            sample = SampleInfo.objects.get(
+                project_name=project_name,
+                test_order_no=test_order_no,
+                sample_no=sample_no,
+                part_name='整车'
+            )
+        except SampleInfo.DoesNotExist:
+            return Response.not_found(message='整车样品不存在')
+
+        details = (
+            SubstancesTestDetail.objects
+            .select_related('substance')
+            .filter(sample=sample)
+            .order_by('-concentration', 'id')
+        )
+        data = []
+        for d in details:
+            sub = d.substance
+            data.append({
+                'cas_no': getattr(sub, 'cas_no', None),
+                'substance_name_cn': getattr(sub, 'substance_name_cn', None),
+                'substance_name_en': getattr(sub, 'substance_name_en', None),
+                'concentration': _fmt3(d.concentration),
+            })
+
+        return Response.success(data=data, message='获取物质列表成功')
+    except Exception as e:
+        return Response.error(message=f'获取物质列表失败: {str(e)}')
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def traceability_ranking(request):
+    """
+    所选物质的整车检测详情及 Top5 零件排名（Qij/Wih）
+    入参JSON：{ project_name, test_order_no, sample_no, selected_substances: [cas_no, ...] }
+    返回：[{ cas_no, substance_id, substance_name_cn, substance_name_en, substance_info, retention_time, match_degree, concentration_ratio, concentration, odor_top5, organic_top5 }]
+    说明：所有数值统一三位小数字符串；odor_top5=按Qij排序，organic_top5=按Wih排序
+    """
+    try:
+        body = request.data or {}
+        project_name = (body.get('project_name') or '').strip()
+        test_order_no = (body.get('test_order_no') or '').strip()
+        sample_no = (body.get('sample_no') or '').strip()
+        selected = body.get('selected_substances') or []
+
+        if not (project_name and test_order_no and sample_no):
+            return Response.bad_request(message='缺少必要参数：project_name/test_order_no/sample_no')
+        if not isinstance(selected, (list, tuple)) or not selected:
+            return Response.bad_request(message='缺少所选物质：selected_substances')
+
+        try:
+            vehicle_sample = SampleInfo.objects.get(
+                project_name=project_name,
+                test_order_no=test_order_no,
+                sample_no=sample_no,
+                part_name='整车'
+            )
+        except SampleInfo.DoesNotExist:
+            return Response.not_found(message='整车样品不存在')
+
+        results = []
+
+        for cas_no in selected:
+            # 整车样品中该物质的检测详情
+            in_vehicle_detail = (
+                SubstancesTestDetail.objects.select_related('substance')
+                .filter(sample=vehicle_sample, substance__cas_no=cas_no)
+                .order_by('-id')
+                .first()
+            )
+
+            if not in_vehicle_detail:
+                try:
+                    sub = Substance.objects.get(cas_no=cas_no)
+                except Substance.DoesNotExist:
+                    sub = None
+                results.append({
+                    'cas_no': cas_no,
+                    'substance_id': cas_no,
+                    'substance_name_cn': getattr(sub, 'substance_name_cn', None),
+                    'substance_name_en': getattr(sub, 'substance_name_en', None),
+                    'substance_info': SubstanceSerializer(sub).data if sub else None,
+                    'retention_time': None,
+                    'match_degree': None,
+                    'concentration_ratio': None,
+                    'concentration': None,
+                    'odor_top5': [],
+                    'organic_top5': [],
+                })
+                continue
+
+            sub = in_vehicle_detail.substance
+            base_qs = SubstancesTestDetail.objects.filter(
+                sample__project_name=project_name,
+                substance__cas_no=cas_no
+            ).exclude(sample__part_name='整车')
+
+            # Top5 by Qij
+            qij_agg = (
+                base_qs.values('sample__part_name')
+                .annotate(max_qij=Max('qij'))
+                .exclude(sample__part_name__isnull=True)
+                .exclude(sample__part_name__exact='')
+                .exclude(max_qij__isnull=True)
+                .order_by('-max_qij')[:5]
+            )
+            odor_top5 = []
+            for row in qij_agg:
+                part = row['sample__part_name']
+                max_qij = row['max_qij']
+                record = base_qs.filter(sample__part_name=part, qij=max_qij).order_by('-id').first()
+                if record:
+                    odor_top5.append({
+                        'part_name': part,
+                        'qij': _fmt3(record.qij),
+                        'wih': _fmt3(record.wih),
+                        'concentration': _fmt3(record.concentration),
+                    })
+
+            # Top5 by Wih
+            wih_agg = (
+                base_qs.values('sample__part_name')
+                .annotate(max_wih=Max('wih'))
+                .exclude(sample__part_name__isnull=True)
+                .exclude(sample__part_name__exact='')
+                .exclude(max_wih__isnull=True)
+                .order_by('-max_wih')[:5]
+            )
+            organic_top5 = []
+            for row in wih_agg:
+                part = row['sample__part_name']
+                max_wih = row['max_wih']
+                record = base_qs.filter(sample__part_name=part, wih=max_wih).order_by('-id').first()
+                if record:
+                    organic_top5.append({
+                        'part_name': part,
+                        'qij': _fmt3(record.qij),
+                        'wih': _fmt3(record.wih),
+                        'concentration': _fmt3(record.concentration),
+                    })
+
+            results.append({
+                'cas_no': cas_no,
+                'substance_id': cas_no,
+                'substance_name_cn': getattr(sub, 'substance_name_cn', None),
+                'substance_name_en': getattr(sub, 'substance_name_en', None),
+                'substance_info': SubstanceSerializer(sub).data if sub else None,
+                'retention_time': _fmt3(in_vehicle_detail.retention_time),
+                'match_degree': _fmt3(in_vehicle_detail.match_degree),
+                'concentration_ratio': _fmt3(in_vehicle_detail.concentration_ratio),
+                'concentration': _fmt3(in_vehicle_detail.concentration),
+                'odor_top5': odor_top5,
+                'organic_top5': organic_top5,
+            })
+
+        return Response.success(data={'substances': results}, message='获取溯源排名成功')
+    except Exception as e:
+        return Response.error(message=f'获取溯源排名失败: {str(e)}')

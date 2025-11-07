@@ -14,4 +14,8 @@ urlpatterns = [
     path('substances/test-list/', views.substances_test_list, name='vehicle_body_substances_test_list'),
     path('substances/test-detail/', views.substances_test_detail, name='vehicle_body_substances_test_detail'),
     path('substances/substance-detail/', views.substance_detail, name='vehicle_body_substance_detail'),
+    # 污染物分项溯源接口
+    path('substance-traceability/vehicle-sample-options/', views.vehicle_sample_options, name='vehicle_body_vehicle_sample_options'),
+    path('substance-traceability/substances/', views.traceability_substances, name='vehicle_body_traceability_substances'),
+    path('substance-traceability/ranking/', views.traceability_ranking, name='vehicle_body_traceability_ranking'),
 ]
