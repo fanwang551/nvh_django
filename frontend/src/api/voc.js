@@ -109,14 +109,13 @@ export const vocApi = {
     return request.post('/vehicle-body/filtered-odor-chart-data/', params)
   },
   /**
-   * 获取GOi/GVi贡献度TOP25
+   * 获取GOi/GVi贡献度TOP25（vehicle_body版）
    * @param {Object} params - 查询参数
-   * @param {number} [params.vehicle_model_id] - 车型ID（可选）
-   * @param {string} [params.vehicle_model_name] - 车型名称（可选）
+   * @param {string} params.project_name - 项目名称（必填）
    * @returns {Promise}
    */
   getContributionTop25(params = {}) {
-    return request.get('/voc/contribution-top25/', params)
+    return request.get('/vehicle-body/contribution-top25/', params)
   }
 }
 

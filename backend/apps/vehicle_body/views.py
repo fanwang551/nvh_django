@@ -1,7 +1,7 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q, Sum
 
 from utils.response import Response
 from .models import SampleInfo, SubstancesTestDetail, Substance
@@ -377,4 +377,118 @@ def substance_detail(request):
         return Response.success(data=serializer.data, message='获取物质详情成功')
     except Exception as e:
         return Response.error(message=f'获取物质详情失败: {str(e)}')
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def contribution_top25(request):
+    """
+    车身VOC贡献度TOP25（按项目名称）
+    入参：project_name（必填）
+    规则：
+      - 仅纳入该项目名下样品
+      - 排除 part_name = '整车'
+      - 必须存在 SubstancesTestDetail 关联记录
+    计算：
+      - 样品Oi = Σ qij（忽略None），样品Vi = Σ wih（忽略None）
+      - 按 part_name 聚合同一零部件多阶段样品，取均值 avg_Oi/avg_Vi
+      - GOi/GVi = (avg_Oi/Σavg_Oi)×100 / (avg_Vi/Σavg_Vi)×100
+    返回：
+      - insufficient: 当唯一零件数 < 35 时，返回提示与已有零件清单
+      - 否则返回 goi_top25 / gvi_top25（各自独立排序）
+    """
+    try:
+        project_name = (request.GET.get('project_name') or '').strip()
+        if not project_name:
+            return Response.bad_request(message='缺少必要参数：project_name')
+
+        # 样品基础集：同项目、排除“整车”、零件名有效
+        samples_qs = (
+            SampleInfo.objects
+            .filter(project_name=project_name)
+            .exclude(part_name='整车')
+            .exclude(part_name__isnull=True)
+            .exclude(part_name__exact='')
+        )
+
+        # 仅保留存在明细的样品（通过关联记录过滤）
+        sample_ids_with_details = SubstancesTestDetail.objects.filter(
+            sample__project_name=project_name
+        ).values_list('sample_id', flat=True).distinct()
+        samples_qs = samples_qs.filter(id__in=sample_ids_with_details)
+
+        # 唯一零件数量判断
+        unique_part_names = list(
+            samples_qs.values_list('part_name', flat=True).distinct()
+        )
+        unique_count = len(unique_part_names)
+        if unique_count < 35:
+            unique_part_names.sort()
+            return Response.success(data={
+                'project_name': project_name,
+                'parts_count': unique_count,
+                'insufficient': True,
+                'part_names': unique_part_names
+            }, message=f'零部件数需≥35，当前项目仅有{unique_count}个零部件，数据不足')
+
+        # Step 1：每个样品的 Oi/Vi（一次聚合到样品层）
+        sample_rows = list(
+            samples_qs
+            .annotate(oi=Sum('substance_details__qij'), vi=Sum('substance_details__wih'))
+            .values('part_name', 'oi', 'vi')
+        )
+
+        # Step 2：按 part_name 聚合并取均值（None按0处理）
+        from collections import defaultdict
+        oi_by_part = defaultdict(list)
+        vi_by_part = defaultdict(list)
+        for row in sample_rows:
+            part = row['part_name']
+            oi = row['oi'] if row['oi'] is not None else 0
+            vi = row['vi'] if row['vi'] is not None else 0
+            oi_by_part[part].append(float(oi))
+            vi_by_part[part].append(float(vi))
+
+        def mean(lst):
+            return (sum(lst) / len(lst)) if lst else 0.0
+
+        part_avg_list = []
+        for part in oi_by_part.keys() | vi_by_part.keys():
+            avg_oi = mean(oi_by_part.get(part, []))
+            avg_vi = mean(vi_by_part.get(part, []))
+            part_avg_list.append({'part_name': part, 'avg_oi': avg_oi, 'avg_vi': avg_vi})
+
+        # Step 3：全局归一化计算贡献度
+        zoi = sum(p['avg_oi'] for p in part_avg_list)
+        zvi = sum(p['avg_vi'] for p in part_avg_list)
+
+        goi_items = []
+        gvi_items = []
+        for p in part_avg_list:
+            goi = (p['avg_oi'] / zoi * 100.0) if zoi > 0 else 0.0
+            gvi = (p['avg_vi'] / zvi * 100.0) if zvi > 0 else 0.0
+            goi_items.append({'part_name': p['part_name'], 'goi': goi})
+            gvi_items.append({'part_name': p['part_name'], 'gvi': gvi})
+
+        goi_items.sort(key=lambda x: x['goi'], reverse=True)
+        gvi_items.sort(key=lambda x: x['gvi'], reverse=True)
+
+        goi_top25 = [
+            {'rank': idx + 1, 'part_name': item['part_name'], 'goi': item['goi']}
+            for idx, item in enumerate(goi_items[:25])
+        ]
+        gvi_top25 = [
+            {'rank': idx + 1, 'part_name': item['part_name'], 'gvi': item['gvi']}
+            for idx, item in enumerate(gvi_items[:25])
+        ]
+
+        return Response.success(data={
+            'project_name': project_name,
+            'parts_count': unique_count,
+            'insufficient': False,
+            'goi_top25': goi_top25,
+            'gvi_top25': gvi_top25,
+        }, message='获取贡献度TOP25成功')
+    except Exception as e:
+        return Response.error(message=f'获取贡献度TOP25失败: {str(e)}')
 
