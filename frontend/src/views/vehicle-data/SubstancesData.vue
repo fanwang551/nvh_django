@@ -26,7 +26,7 @@
                   <el-option
                     v-for="option in store.vehicle_models"
                     :key="option.value"
-                    :label="option.label"
+                    :label="option.project_name || option.value"
                     :value="option.value"
                   />
                 </el-select>
@@ -169,57 +169,6 @@
           <template #header>
             <div class="card-header">
               <span>测试信息</span>
-              <div class="column-selector">
-                <el-dropdown trigger="click" :hide-on-click="false">
-                  <el-button size="small" type="primary">
-                    列选择<el-icon class="el-icon--right"><arrow-down /></el-icon>
-                  </el-button>
-                  <template #dropdown>
-                    <el-dropdown-menu>
-                      <el-dropdown-item key="test_date" @click.stop>
-                        <el-checkbox
-                          :modelValue="visibleColumns.includes('test_date')"
-                          @change="(value) => toggleColumn('test_date', value)"
-                        >
-                          检测时间
-                        </el-checkbox>
-                      </el-dropdown-item>
-                      <el-dropdown-item key="status" @click.stop>
-                        <el-checkbox
-                          :modelValue="visibleColumns.includes('status')"
-                          @change="(value) => toggleColumn('status', value)"
-                        >
-                          检测状态
-                        </el-checkbox>
-                      </el-dropdown-item>
-                      <el-dropdown-item key="development_stage" @click.stop>
-                        <el-checkbox
-                          :modelValue="visibleColumns.includes('development_stage')"
-                          @change="(value) => toggleColumn('development_stage', value)"
-                        >
-                          开发阶段
-                        </el-checkbox>
-                      </el-dropdown-item>
-                      <el-dropdown-item key="test_order_no" @click.stop>
-                        <el-checkbox
-                          :modelValue="visibleColumns.includes('test_order_no')"
-                          @change="(value) => toggleColumn('test_order_no', value)"
-                        >
-                          委托单号
-                        </el-checkbox>
-                      </el-dropdown-item>
-                      <el-dropdown-item key="sample_no" @click.stop>
-                        <el-checkbox
-                          :modelValue="visibleColumns.includes('sample_no')"
-                          @change="(value) => toggleColumn('sample_no', value)"
-                        >
-                          样品编号
-                        </el-checkbox>
-                      </el-dropdown-item>
-                    </el-dropdown-menu>
-                  </template>
-                </el-dropdown>
-              </div>
             </div>
           </template>
 
@@ -234,9 +183,8 @@
             <el-table-column prop="sample_info.project_name" label="项目名称" width="120" align="center" />
             <el-table-column prop="sample_info.part_name" label="整车/零部件名称" width="160" align="center" />
             
-            <!-- 可选列 -->
+            <!-- 固定显示列 -->
             <el-table-column
-              v-if="visibleColumns.includes('test_date')"
               prop="test_date"
               label="检测时间"
               width="150"
@@ -247,28 +195,24 @@
               </template>
             </el-table-column>
             <el-table-column
-              v-if="visibleColumns.includes('status')"
               prop="sample_info.status"
               label="检测状态"
               width="100"
               align="center"
             />
             <el-table-column
-              v-if="visibleColumns.includes('development_stage')"
               prop="sample_info.development_stage"
               label="开发阶段"
               width="120"
               align="center"
             />
             <el-table-column
-              v-if="visibleColumns.includes('test_order_no')"
               prop="sample_info.test_order_no"
               label="委托单号"
               width="150"
               align="center"
             />
             <el-table-column
-              v-if="visibleColumns.includes('sample_no')"
               prop="sample_info.sample_no"
               label="样品编号"
               width="150"
@@ -398,7 +342,7 @@
               align="center"
             >
               <template #default="scope">
-                {{ scope.row.concentration_formatted || '-' }}
+                {{ formatConcentration(scope.row.concentration_formatted) }}
               </template>
             </el-table-column>
           </el-table>
@@ -476,7 +420,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useSubstancesQueryStore } from '@/store/substancesQuery'
 import { substancesApi } from '@/api/substances'
 import { ElMessage } from 'element-plus'
-import { ArrowDown, Picture } from '@element-plus/icons-vue'
+import { Picture } from '@element-plus/icons-vue'
 import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
 
 // 配置中文语言
@@ -512,8 +456,7 @@ const prioritizedPartNames = computed(() => {
   return options
 })
 
-// 表格可见列管理 - 默认选择检测时间、检测状态、开发阶段
-const visibleColumns = ref(['test_date', 'status', 'development_stage'])
+// 列全部固定展示，移除列选择逻辑
 
 // 样品图弹窗
 const imageDialogVisible = ref(false)
@@ -526,19 +469,7 @@ const spectrumVisible = ref(false)
 const substanceDialogVisible = ref(false)
 const currentSubstance = ref(null)
 
-// 切换列显示
-const toggleColumn = (column, visible) => {
-  if (visible) {
-    if (!visibleColumns.value.includes(column)) {
-      visibleColumns.value.push(column)
-    }
-  } else {
-    const index = visibleColumns.value.indexOf(column)
-    if (index > -1) {
-      visibleColumns.value.splice(index, 1)
-    }
-  }
-}
+// 切换列逻辑已移除
 
 // 显示样品图
 const showSampleImage = (imageUrl) => {
@@ -593,7 +524,6 @@ const handleFilterChange = () => {
 // 重置筛选
 const handleReset = () => {
   store.resetSearchCriteria()
-  visibleColumns.value = ['test_date', 'status', 'development_stage']
 }
 
 // 分页
@@ -615,6 +545,14 @@ onMounted(async () => {
     ElMessage.error('页面初始化失败')
   }
 })
+
+// 数值格式化：浓度保留三位小数
+const formatConcentration = (val) => {
+  if (val === null || val === undefined || val === '') return '-'
+  const num = typeof val === 'number' ? val : parseFloat(val)
+  if (Number.isNaN(num)) return '-'
+  return num.toFixed(3)
+}
 </script>
 
 <style scoped>

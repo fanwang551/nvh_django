@@ -166,7 +166,7 @@ class SubstancesTestDetailSerializer(serializers.ModelSerializer):
         return f"{obj.concentration_ratio:.3f}" if obj.concentration_ratio is not None else None
 
     def get_concentration_formatted(self, obj):
-        return f"{obj.concentration:.6f}" if obj.concentration is not None else None
+        return f"{obj.concentration:.3f}" if obj.concentration is not None else None
 
 
 class SubstancesTestListItemSerializer(serializers.ModelSerializer):

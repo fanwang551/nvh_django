@@ -38,24 +38,29 @@ def data_list(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def project_name_options(request):
-    """获取项目名称选项（基于 SampleInfo）
-    label: 项目名称-委托单号-样品编号，value: 项目名称
+    """获取项目名称选项（去重，只返回项目名称）
+    返回结构：[{ value: 项目名称, label: 项目名称, project_name: 项目名称 }]
     """
     try:
-        base_qs = SampleInfo.objects.all().order_by('project_name', 'id')
+        names_qs = (
+            SampleInfo.objects
+            .exclude(project_name__isnull=True)
+            .exclude(project_name='')
+            .values_list('project_name', flat=True)
+            .distinct()
+        )
 
-        options = []
-        for s in base_qs:
-            if not s.project_name:
-                continue
-            label = f"{s.project_name}-{s.test_order_no}-{s.sample_no}"
-            options.append({
-                'value': s.project_name,
-                'label': label,
-                'project_name': s.project_name,
-                'test_order_no': s.test_order_no,
-                'sample_no': s.sample_no,
-            })
+        # 排序（按项目名称）
+        unique_names = sorted(set(names_qs))
+
+        options = [
+            {
+                'value': name,
+                'label': name,
+                'project_name': name,
+            }
+            for name in unique_names
+        ]
 
         return Response.success(data=options, message='获取项目名称选项成功')
     except Exception as e:
