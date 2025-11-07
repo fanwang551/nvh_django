@@ -4,8 +4,8 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 
 from utils.response import Response
-from .models import SampleInfo
-from .serializers import VocOdorDataSerializer
+from .models import SampleInfo, SubstancesTestDetail, Substance
+from .serializers import VocOdorDataSerializer, SubstancesTestListItemSerializer, SubstancesTestDetailSerializer, SubstanceSerializer
 
 
 @api_view(['GET'])
@@ -38,30 +38,24 @@ def data_list(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def project_name_options(request):
-    """获取项目名称选项（整车 + 有全量信息时优先），label: 项目-状态-阶段，value: 项目名称"""
+    """获取项目名称选项（基于 SampleInfo）
+    label: 项目名称-委托单号-样品编号，value: 项目名称
+    """
     try:
-        # 基于整车样品构建组合选项
-        base_qs = SampleInfo.objects.filter(part_name='整车') \
-            .values('project_name', 'status', 'development_stage') \
-            .distinct().order_by('project_name', 'status', 'development_stage')
+        base_qs = SampleInfo.objects.all().order_by('project_name', 'id')
 
         options = []
-        for item in base_qs:
-            project = item['project_name']
-            status = item['status'] or '未知状态'
-            stage = item['development_stage'] or '未知阶段'
+        for s in base_qs:
+            if not s.project_name:
+                continue
+            label = f"{s.project_name}-{s.test_order_no}-{s.sample_no}"
             options.append({
-                'value': project,
-                'label': f"{project}-{status}-{stage}",
-                'project_name': project,
-                'status': status,
-                'development_stage': stage
+                'value': s.project_name,
+                'label': label,
+                'project_name': s.project_name,
+                'test_order_no': s.test_order_no,
+                'sample_no': s.sample_no,
             })
-
-        # 若没有整车数据，则退化为所有项目名去重
-        if not options:
-            all_projects = SampleInfo.objects.values_list('project_name', flat=True).distinct()
-            options = [{'value': p, 'label': p} for p in all_projects if p]
 
         return Response.success(data=options, message='获取项目名称选项成功')
     except Exception as e:
@@ -282,4 +276,100 @@ def filtered_odor_chart_data(request):
         }, message='获取图表数据成功')
     except Exception as e:
         return Response.error(message=f'获取图表数据失败: {str(e)}')
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def substances_test_list(request):
+    """获取全谱检测测试信息列表（以 SampleInfo 为测试记录）"""
+    try:
+        page = int(request.GET.get('page', 1) or 1)
+        page_size = int(request.GET.get('page_size', 10) or 10)
+
+        # 仅返回存在明细数据的样品
+        sample_ids = SubstancesTestDetail.objects.values_list('sample_id', flat=True).distinct()
+        queryset = SampleInfo.objects.filter(id__in=sample_ids).order_by('-id')
+
+        # 可选过滤（兼容简单筛选）
+        project_name = request.GET.get('project_name') or None
+        part_name = request.GET.get('part_name') or None
+        status_val = request.GET.get('status') or None
+        development_stage = request.GET.get('development_stage') or None
+        test_order_no = request.GET.get('test_order_no') or None
+        sample_no = request.GET.get('sample_no') or None
+        test_date_start = request.GET.get('test_date_start') or None
+        test_date_end = request.GET.get('test_date_end') or None
+
+        if project_name:
+            queryset = queryset.filter(project_name=project_name)
+        if part_name:
+            queryset = queryset.filter(part_name__icontains=part_name)
+        if status_val:
+            queryset = queryset.filter(status=status_val)
+        if development_stage:
+            queryset = queryset.filter(development_stage=development_stage)
+        if test_order_no:
+            queryset = queryset.filter(test_order_no__icontains=test_order_no)
+        if sample_no:
+            queryset = queryset.filter(sample_no__icontains(sample_no))
+        if test_date_start and test_date_end:
+            queryset = queryset.filter(test_date__range=[test_date_start, test_date_end])
+
+        paginator = Paginator(queryset, page_size)
+        page_obj = paginator.get_page(page)
+
+        serializer = SubstancesTestListItemSerializer(page_obj, many=True)
+        return Response.success(data={
+            'results': serializer.data,
+            'pagination': {
+                'current_page': page,
+                'total_pages': paginator.num_pages,
+                'total_count': paginator.count,
+                'page_size': page_size
+            }
+        }, message='获取全谱检测数据成功')
+    except Exception as e:
+        return Response.error(message=f'获取全谱检测数据失败: {str(e)}')
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def substances_test_detail(request):
+    """获取全谱检测明细数据（test_id 即 SampleInfo.id）"""
+    try:
+        test_id = request.GET.get('test_id')
+        if not test_id:
+            return Response.error(message='缺少test_id参数')
+
+        try:
+            sample = SampleInfo.objects.get(id=test_id)
+        except SampleInfo.DoesNotExist:
+            return Response.error(message='样品不存在')
+
+        details = SubstancesTestDetail.objects.select_related('substance').filter(sample=sample).order_by('id')
+        serializer = SubstancesTestDetailSerializer(details, many=True)
+        return Response.success(data=serializer.data, message='获取全谱物质明细成功')
+    except Exception as e:
+        return Response.error(message=f'获取全谱物质明细失败: {str(e)}')
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def substance_detail(request):
+    """获取物质详细信息（以 cas_no 查询）"""
+    try:
+        # 为兼容前端当前传参名，这里仍接收 substance_id，但其值为 cas_no
+        cas_no = request.GET.get('substance_id') or request.GET.get('cas_no')
+        if not cas_no:
+            return Response.error(message='缺少物质标识（cas_no）')
+
+        try:
+            substance = Substance.objects.get(cas_no=cas_no)
+        except Substance.DoesNotExist:
+            return Response.error(message='物质不存在')
+
+        serializer = SubstanceSerializer(substance)
+        return Response.success(data=serializer.data, message='获取物质详情成功')
+    except Exception as e:
+        return Response.error(message=f'获取物质详情失败: {str(e)}')
 

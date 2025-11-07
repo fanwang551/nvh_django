@@ -17,7 +17,7 @@ export const substancesApi = {
    * @returns {Promise} 测试信息列表
    */
   getTestList(params = {}) {
-    return request.get('/vehicle-body/substances/test-list/', params)
+    return request.get('/voc/substances/test-list/', params)
   },
 
   /**
@@ -27,7 +27,7 @@ export const substancesApi = {
    * @returns {Promise} 明细数据
    */
   getTestDetail(params = {}) {
-    return request.get('/vehicle-body/substances/test-detail/', params)
+    return request.get('/voc/substances/test-detail/', params)
   },
 
   /**
@@ -37,7 +37,7 @@ export const substancesApi = {
    * @returns {Promise} 物质详细信息
    */
   getSubstanceDetail(params = {}) {
-    return request.get('/vehicle-body/substances/substance-detail/', params)
+    return request.get('/voc/substances/substance-detail/', params)
   },
 
   /**
@@ -45,7 +45,7 @@ export const substancesApi = {
    * @returns {Promise} 车型选项列表
    */
   getVehicleModelOptions() {
-    return request.get('/vehicle-body/options/vehicle-models/')
+    return request.get('/voc/options/vehicle-models/')
   },
 
   /**

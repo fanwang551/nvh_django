@@ -5,7 +5,7 @@ export const useSubstancesQueryStore = defineStore('substancesQuery', {
   state: () => ({
     // 查询条件
     searchCriteria: {
-      vehicle_model_id: null,
+      project_name: null,
       part_names: [],
       statuses: [],
       development_stages: [],
@@ -72,22 +72,8 @@ export const useSubstancesQueryStore = defineStore('substancesQuery', {
         this.vehicle_models_loading = true
         const response = await substancesApi.getVehicleModelOptions()
         const data = response.data || []
-        
-        // 按 vehicle_model_id 去重，只保留唯一车型
-        const uniqueVehicles = new Map()
-        data.forEach(item => {
-          if (!uniqueVehicles.has(item.value)) {
-            // 提取车型名称（去掉 "-状态-阶段" 部分）
-            const vehicleName = item.label.split('-')[0]
-            uniqueVehicles.set(item.value, {
-              value: item.value,
-              label: vehicleName
-            })
-          }
-        })
-        
-        // 转换为数组
-        this.vehicle_models = Array.from(uniqueVehicles.values())
+        // 直接使用后端返回（value 为项目名称，label 为 项目-委托单-样品）
+        this.vehicle_models = data
       } catch (error) {
         this.error = error.message
         console.error('获取车型选项失败:', error)
@@ -165,9 +151,9 @@ export const useSubstancesQueryStore = defineStore('substancesQuery', {
     filterTestData() {
       let filtered = [...this.all_test_data]
 
-      if (this.searchCriteria.vehicle_model_id) {
-        filtered = filtered.filter(item => 
-          item.sample_info?.vehicle_model?.id === this.searchCriteria.vehicle_model_id
+      if (this.searchCriteria.project_name) {
+        filtered = filtered.filter(item =>
+          item.sample_info?.project_name === this.searchCriteria.project_name
         )
       }
 
@@ -235,7 +221,7 @@ export const useSubstancesQueryStore = defineStore('substancesQuery', {
     // 重置查询条件
     resetSearchCriteria() {
       this.searchCriteria = {
-        vehicle_model_id: null,
+        project_name: null,
         part_names: [],
         statuses: [],
         development_stages: [],

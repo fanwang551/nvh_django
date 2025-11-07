@@ -15,7 +15,7 @@
             <el-col :span="6">
               <el-form-item label="项目名称">
                 <el-select
-                  v-model="store.searchCriteria.vehicle_model_id"
+                  v-model="store.searchCriteria.project_name"
                   placeholder="请选择项目名称"
                   clearable
                   filterable
@@ -231,7 +231,7 @@
             :header-cell-style="{ backgroundColor: '#409EFF', color: '#ffffff', fontWeight: '600', fontSize: '14px' }"
           >
             <!-- 必选列 -->
-            <el-table-column prop="sample_info.vehicle_model.vehicle_model_name" label="项目名称" width="120" align="center" />
+            <el-table-column prop="sample_info.project_name" label="项目名称" width="120" align="center" />
             <el-table-column prop="sample_info.part_name" label="整车/零部件名称" width="160" align="center" />
             
             <!-- 可选列 -->
@@ -275,50 +275,7 @@
               align="center"
             />
 
-            <!-- 指标列 -->
-            <el-table-column
-              prop="oi_formatted"
-              label="气味污染指数Oi"
-              width="130"
-              align="center"
-            >
-              <template #default="scope">
-                {{ scope.row.oi_formatted || '-' }}
-              </template>
-            </el-table-column>
-
-            <el-table-column
-              prop="goi_formatted"
-              label="气味污染贡献度Goi"
-              width="150"
-              align="center"
-            >
-              <template #default="scope">
-                {{ scope.row.goi_formatted || '-' }}
-              </template>
-            </el-table-column>
-
-            <el-table-column
-              prop="vi_formatted"
-              label="有机物污染指数Vi"
-              width="150"
-              align="center"
-            >
-              <template #default="scope">
-                {{ scope.row.vi_formatted || '-' }}
-              </template>
-            </el-table-column>
-
-            <el-table-column
-              prop="gvi_formatted"
-              label="有机物污染贡献度Gvi"
-              width="170"
-              align="center"
-            >
-              <template #default="scope">
-                {{ scope.row.gvi_formatted || '-' }}
-              </template>
-            </el-table-column>
+            <!-- 指标列（Goi/Vi/Gvi 已删除，根据新表结构不再展示） -->
 
             <el-table-column label="详情" width="200" align="center">
               <template #default="scope">
