@@ -178,7 +178,7 @@ class SubstancesTestListItemSerializer(serializers.ModelSerializer):
         fields = ['id', 'test_date', 'sample_info']
 
     def get_sample_info(self, obj: SampleInfo):
-        # 兼容旧前端：补充 vehicle_model 结构，同时提供 project_name
+        # 仅返回项目名称等简化字段，移除冗余的 vehicle_model 兼容结构
         return {
             'project_name': obj.project_name,
             'part_name': obj.part_name,
@@ -187,9 +187,4 @@ class SubstancesTestListItemSerializer(serializers.ModelSerializer):
             'test_order_no': obj.test_order_no,
             'sample_no': obj.sample_no,
             'sample_image_url': obj.sample_image_url,
-            'vehicle_model': {
-                'id': None,
-                'vehicle_model_name': obj.project_name,
-                'cle_model_code': None,
-            }
         }
