@@ -42,7 +42,6 @@ LOCAL_APPS = [
     'apps.NTF',
     'apps.acoustic_analysis',
     'apps.experience',
-    'apps.voc',
     'apps.vehicle_body',
 ]
 
