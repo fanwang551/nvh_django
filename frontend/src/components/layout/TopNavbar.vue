@@ -18,7 +18,7 @@
             <el-icon class="user-icon">
               <User />
             </el-icon>
-            <span class="username">{{ userStore.fullName || userStore.username || '用户' }}</span>
+            <span class="username">{{ userStore.fullName || userStore.username || '' }}</span>
             <el-icon class="dropdown-icon">
               <ArrowDown />
             </el-icon>

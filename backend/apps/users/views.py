@@ -4,8 +4,9 @@
 import logging
 from django.contrib.auth import get_user_model
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from .authentication import OIDCAuthentication
 from rest_framework.response import Response
 
 logger = logging.getLogger(__name__)
@@ -23,9 +24,10 @@ def health_check(request):
     })
 
 
-@api_view(['GET'])
-@permission_classes([])
-def user_info(request):
+@api_view(['GET'])
+@authentication_classes([OIDCAuthentication])
+@permission_classes([])
+def user_info(request):
     """获取当前用户信息"""
     try:
         user = request.user
@@ -65,9 +67,10 @@ def user_info(request):
         )
 
 
-@api_view(['GET'])
-@permission_classes([])
-def user_profile(request):
+@api_view(['GET'])
+@authentication_classes([OIDCAuthentication])
+@permission_classes([])
+def user_profile(request):
     """获取用户详细资料"""
     try:
         user = request.user
