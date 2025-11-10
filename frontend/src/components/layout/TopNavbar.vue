@@ -18,7 +18,7 @@
             <el-icon class="user-icon">
               <User />
             </el-icon>
-            <span class="username">{{ userStore.fullName || userStore.username || '' }}</span>
+            <span class="username">{{ (userStore.fullName || userStore.username || '').replace(/\s+/g, '') }}</span>
             <el-icon class="dropdown-icon">
               <ArrowDown />
             </el-icon>
@@ -146,6 +146,7 @@ const handleLogout = () => {
 .username {
   font-size: 14px;
   font-weight: 500;
+  letter-spacing: 0;
 }
 
 .dropdown-icon {
