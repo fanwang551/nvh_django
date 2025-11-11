@@ -327,4 +327,25 @@ onMounted(loadList)
 .video-name { color: #606266; font-size: 12px; }
 
 .video-box { display: flex; align-items: center; justify-content: center; }
+
+/* 1920×1080 等大屏适配：拉宽内容区域，优化搜索栏与媒体尺寸 */
+@media (min-width: 1600px) {
+  .experience {
+    max-width: 1600px;
+    padding: 20px;
+  }
+
+  .title { font-size: 22px; }
+
+  .search-bar {
+    grid-template-columns: 1.3fr 260px 120px 120px;
+    gap: 12px;
+    margin: 20px 0;
+  }
+
+  .grid { grid-template-columns: 1fr 1fr 1fr; }
+
+  .thumb { height: 120px; }
+  .video-thumb { height: 120px; }
+}
 </style>

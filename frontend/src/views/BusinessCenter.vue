@@ -92,6 +92,31 @@ const openModule = (module) => {
   gap: 16px;
 }
 
+/* 1920×1080 等大屏适配：每行 5 个卡片，并适当放大尺寸 */
+@media (min-width: 1600px) {
+  .cards-grid {
+    max-width: 1760px; /* 适配 1920 宽屏，含左右内边距与间距 */
+    grid-template-columns: repeat(5, 1fr);
+    gap: 20px;
+  }
+
+  .module-card {
+    min-height: 160px;
+    padding: 24px 16px 22px;
+  }
+
+  .module-media {
+    width: 72px;
+    height: 72px;
+    border-radius: 16px;
+    margin-bottom: 14px;
+  }
+
+  .module-title {
+    font-size: 18px;
+  }
+}
+
 @media (max-width: 1200px) {
   .cards-grid { grid-template-columns: repeat(3, 1fr); }
 }
@@ -161,4 +186,3 @@ const openModule = (module) => {
   width: 100%;
 }
 </style>
-
