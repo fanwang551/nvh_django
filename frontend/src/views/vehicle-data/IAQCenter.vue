@@ -538,11 +538,11 @@ const renderWordCloud = async () => {
         // 如提供了 mask 则使用，版式更紧凑时也能尽量铺满形状
         maskImage: mask || undefined,
         // 调小网格与字号范围，提升可排布的单词数量
-        gridSize: 1,
-        sizeRange: [13, 20],
+        gridSize: 0.1,
+        sizeRange: [6, 15],
         // 全部水平排布更容易放下更多词
-        rotationRange: [0, 0],
-        rotationStep: 0,
+        rotationRange: [-45, 45],
+        rotationStep: 45,
         // 为保证图案完整，不允许越界绘制
         drawOutOfBound: false,
         textStyle: {
@@ -668,6 +668,18 @@ onBeforeUnmount(() => {
   background: linear-gradient(180deg, #f9fbff 0%, #f6f7fb 100%);
   min-height: calc(100vh - 40px);
   position: relative;
+  zoom: 0.8; /* 默认按 80% 缩放展示，匹配用户期望的界面比例 */
+  transform-origin: top center;
+}
+
+@supports not (zoom: 0.8) {
+  .iaq-page {
+    transform: scale(0.8);
+    transform-origin: top center;
+  }
+  :global(body) {
+    overflow-x: hidden;
+  }
 }
 
 .header-panel {
