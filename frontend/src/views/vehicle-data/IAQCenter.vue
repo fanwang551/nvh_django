@@ -1,30 +1,33 @@
 ﻿<template>
   <div class="iaq-page">
-    <section class="header-panel">
-      <div class="title-section">
-        <div class="logo-chip">IAQ</div>
-        <div class="title-text">
-          <h1>整车空气质量（VOC & 气味）监控大屏</h1>
-          <p>Indoor Air Quality Monitoring Wall</p>
+    <!-- Row 1：原头部 + KPI 保持不变（合并为一行容器） -->
+    <section class="row row-top">
+      <div class="header-panel">
+        <div class="title-section">
+          <div class="logo-chip">IAQ</div>
+          <div class="title-text">
+            <h1>整车空气质量（VOC & 气味）监控大屏</h1>
+            <p>Indoor Air Quality Monitoring Wall</p>
+          </div>
+        </div>
+        <div class="time-section">
+          <span class="time-label">当前时间</span>
+          <span class="time-value">{{ currentTime }}</span>
         </div>
       </div>
-      <div class="time-section">
-        <span class="time-label">当前时间</span>
-        <span class="time-value">{{ currentTime }}</span>
-      </div>
-    </section>
 
-    <section class="kpi-grid">
-      <div class="kpi-card" v-for="item in kpiItems" :key="item.key">
-        <div class="kpi-label">{{ item.label }}</div>
-        <div class="kpi-value">
-          <span
-              v-for="(digit, idx) in splitDigits(item.value)"
-              :key="item.key + '-digit-' + idx"
-              class="flip-digit"
-          >{{ digit }}</span>
+      <div class="kpi-grid">
+        <div class="kpi-card" v-for="item in kpiItems" :key="item.key">
+          <div class="kpi-label">{{ item.label }}</div>
+          <div class="kpi-value">
+            <span
+                v-for="(digit, idx) in splitDigits(item.value)"
+                :key="item.key + '-digit-' + idx"
+                class="flip-digit"
+            >{{ digit }}</span>
+          </div>
+          <div class="kpi-desc">{{ item.desc }}</div>
         </div>
-        <div class="kpi-desc">{{ item.desc }}</div>
       </div>
     </section>
 
@@ -101,7 +104,7 @@
     </section>
 
     <!-- Row 4: 各项目试验次数对比 + 词云图（并排） -->
-    <section class="row grid-2">
+    <section class="row grid-2 row-flat">
       <div class="monitor-block">
         <div class="block-header">
           <h3>各项目试验次数对比</h3>
@@ -151,10 +154,6 @@ const dashboardData = ref(null)
 const currentTime = ref('')
 const currentYear = new Date().getFullYear()
 
-const vocVehicleRef = ref(null)
-const vocPartsRef = ref(null)
-const odorVehicleRef = ref(null)
-const odorPartsRef = ref(null)
 const vocBarRef = ref(null)
 const odorBarRef = ref(null)
 const projectBar3dRef = ref(null)
@@ -162,10 +161,6 @@ const monthlyTrendRef = ref(null)
 const wordCloudRef = ref(null)
 
 const chartRefs = {
-  vocVehicle: vocVehicleRef,
-  vocParts: vocPartsRef,
-  odorVehicle: odorVehicleRef,
-  odorParts: odorPartsRef,
   projectBar3d: projectBar3dRef,
   monthlyTrend: monthlyTrendRef,
   vocBar: vocBarRef,
@@ -283,8 +278,6 @@ const kpiItems = computed(() => {
   ]
 })
 
-const vocGauge = computed(() => dashboardData.value?.voc_gauge || { vehicle: {}, parts: {} })
-const odorGauge = computed(() => dashboardData.value?.odor_gauge || { vehicle: {}, parts: {} })
 const latestList = computed(() => dashboardData.value?.latest_records || [])
 const repeatedLatestList = computed(() => latestList.value.concat(latestList.value))
 
@@ -326,92 +319,7 @@ const ensureChartInstance = (key) => {
   return chartInstances[key]
 }
 
-const buildGaugeOption = (title, payload = {}) => {
-  const cumulative = Number(payload?.cumulative_total ?? 0)
-  const annual = Number(payload?.annual_total ?? 0)
-  const axisMax = Math.max(cumulative, annual, 1)
-  const gaugeMax = Math.ceil(axisMax * 1.2)
-  const ratio = gaugeMax ? cumulative / gaugeMax : 0
-  const innerRatio = gaugeMax ? annual / gaugeMax : 0
-
-  return {
-    title: {
-      text: title,
-      left: 'center',
-      top: 10,
-      textStyle: { color: '#cfd7ff', fontSize: 14, fontWeight: 500 }
-    },
-    tooltip: {
-      formatter: ({ seriesIndex, value }) => (seriesIndex === 0 ? `累计完成量：${value}` : `年度完成量：${value}`)
-    },
-    series: [
-      {
-        type: 'gauge',
-        startAngle: 210,
-        endAngle: -30,
-        min: 0,
-        max: gaugeMax,
-        splitNumber: 4,
-        axisLine: {
-          lineStyle: {
-            width: 14,
-            color: [
-              [ratio, '#43f1ff'],
-              [1, 'rgba(67, 241, 255, 0.1)']
-            ]
-          }
-        },
-        pointer: { show: false },
-        detail: {
-          fontSize: 28,
-          color: '#fff',
-          valueAnimation: true,
-          formatter: '{value}',
-          offsetCenter: [0, '40%']
-        },
-        title: {
-          fontSize: 13,
-          color: '#90a4ff',
-          offsetCenter: [0, '70%']
-        },
-        data: [{ value: cumulative, name: '累计' }]
-      },
-      {
-        type: 'gauge',
-        radius: '65%',
-        startAngle: 210,
-        endAngle: -30,
-        min: 0,
-        max: gaugeMax,
-        axisLine: {
-          lineStyle: {
-            width: 10,
-            color: [
-              [innerRatio, '#ff9e4f'],
-              [1, 'rgba(255, 158, 79, 0.15)']
-            ]
-          }
-        },
-        pointer: { show: false },
-        detail: {
-          fontSize: 16,
-          color: '#ffd28a',
-          offsetCenter: [0, '-30%'],
-          valueAnimation: true,
-          formatter: (value) => `年度 ${value}`
-        },
-        title: { show: false },
-        data: [{ value: annual }]
-      }
-    ]
-  }
-}
-
-const renderGaugeChart = (key, title, payload) => {
-  const chart = ensureChartInstance(key)
-  if (!chart) return
-  chart.setOption(buildGaugeOption(title, payload), true)
-}
+// 移除未使用的仪表盘构建与渲染函数
 
 const buildCompletionBarOption = (gauge = {}) => {
   const veh = gauge?.vehicle || {}
@@ -914,27 +822,9 @@ onBeforeUnmount(() => {
   color: #2b3a55;
 }
 
-.gauge-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  flex: 1;
-}
+/* 移除未使用的仪表盘样式（gauge-grid / gauge-item） */
 
-.gauge-item {
-  background: rgba(9, 17, 40, 0.9);
-  border-radius: 12px;
-  padding: 12px;
-  border: 1px solid rgba(55, 135, 255, 0.15);
-  display: flex;
-  flex-direction: column;
-  min-height: 260px;
-}
-
-.gauge-title {
-  margin: 0 0 4px;
-  color: #8a93a6;
-}
+/* 移除未使用的 .gauge-title 样式 */
 
 .chart {
   flex: 1;
@@ -950,13 +840,7 @@ onBeforeUnmount(() => {
   min-height: 420px;
 }
 
-.gauge-meta {
-  display: flex;
-  justify-content: space-between;
-  font-size: 13px;
-  color: #8a93a6;
-  margin-top: 10px;
-}
+/* 移除未使用的 .gauge-meta 样式 */
 
 .bottom-board {
   display: grid;
@@ -1070,8 +954,46 @@ onBeforeUnmount(() => {
 
 /* New layout rows */
 .row { margin-top: 18px; }
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-@media (max-width: 1600px) { .grid-2 { grid-template-columns: 1fr; } }
+.row:first-of-type { margin-top: 0; }
+.row.row-top {
+  display: grid;
+  grid-template-columns: minmax(420px, 460px) 1fr;
+  gap: 18px;
+  align-items: stretch;
+}
+.row.row-top .header-panel {
+  margin-bottom: 0;
+  background: #fff;
+  border-radius: 16px;
+  padding: 18px;
+  border: 1px solid #eef0f5;
+}
+.row.row-top .kpi-grid {
+  margin-bottom: 0;
+  align-self: stretch;
+}
+.row.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+.row.grid-2 .monitor-block {
+  height: 100%;
+}
+.row.row-flat .monitor-block {
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+.row.row-flat .chart.large {
+  min-height: 240px;
+}
+.row.row-flat .chart.wordcloud {
+  min-height: 320px;
+}
+@media (max-width: 1600px) {
+  .row.row-top { grid-template-columns: 1fr; }
+  .row.row-top .header-panel { margin-bottom: 16px; }
+}
 </style>
 
 
