@@ -1,11 +1,25 @@
 ﻿from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from django.core.paginator import Paginator
-from django.db.models import Q, Sum, Max
+from django.db.models import Q, Sum, Max, Count
+from django.db.models.functions import ExtractMonth
+from django.utils import timezone
 
 from utils.response import Response
 from .models import SampleInfo, SubstancesTestDetail, Substance
 from .serializers import VocOdorDataSerializer, SubstancesTestListItemSerializer, SubstancesTestDetailSerializer, SubstanceSerializer
+
+
+def _safe_distinct_count(queryset, field_name):
+    """辅助：对指定字段做去重计数时忽略None/空字符串"""
+    return (
+        queryset
+        .exclude(**{f"{field_name}__isnull": True})
+        .exclude(**{field_name: ''})
+        .values_list(field_name, flat=True)
+        .distinct()
+        .count()
+    )
 
 
 @api_view(['GET'])
@@ -33,6 +47,118 @@ def data_list(request):
         }, message='获取数据成功')
     except Exception as e:
         return Response.error(message=f'获取数据失败: {str(e)}')
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def iaq_dashboard(request):
+    """整车空气质量（IAQ）大屏数据"""
+    try:
+        now = timezone.now()
+        current_year = now.year
+
+        base_qs = SampleInfo.objects.all()
+        project_total = _safe_distinct_count(base_qs, 'project_name')
+        sample_total = base_qs.count()
+        substance_total = Substance.objects.count()
+        annual_test_total = base_qs.filter(test_date__year=current_year).count()
+
+        def _gauge_payload(field_name):
+            data_qs = base_qs.exclude(**{f"{field_name}__isnull": True})
+            vehicle_qs = data_qs.filter(part_name='整车')
+            parts_qs = data_qs.exclude(part_name='整车')
+            return {
+                'vehicle': {
+                    'cumulative_total': vehicle_qs.count(),
+                    'annual_total': vehicle_qs.filter(test_date__year=current_year).count()
+                },
+                'parts': {
+                    'cumulative_total': parts_qs.count(),
+                    'annual_total': parts_qs.filter(test_date__year=current_year).count()
+                }
+            }
+
+        voc_gauge = _gauge_payload('tvoc')
+        odor_gauge = _gauge_payload('odor_mean')
+
+        latest_projects = (
+            base_qs.exclude(project_name__isnull=True)
+            .exclude(project_name__exact='')
+            .values('project_name')
+            .annotate(last_test=Max('test_date'), latest_id=Max('id'))
+            .order_by('-last_test', '-latest_id')[:5]
+        )
+        top_project_names = [row['project_name'] for row in latest_projects]
+
+        def _project_counts(names):
+            if not names:
+                return {}
+            rows = (
+                base_qs.filter(project_name__in=names)
+                .values('project_name')
+                .annotate(
+                    vehicle_tests=Count('id', filter=Q(part_name='整车')),
+                    part_tests=Count('id', filter=~Q(part_name='整车'))
+                )
+            )
+            return {row['project_name']: row for row in rows}
+
+        top_counts = _project_counts(top_project_names)
+        project_comparison = []
+        for name in top_project_names:
+            record = top_counts.get(name, {})
+            project_comparison.append({
+                'project_name': name,
+                'vehicle_tests': record.get('vehicle_tests', 0),
+                'part_tests': record.get('part_tests', 0)
+            })
+
+        remaining_qs = base_qs.exclude(project_name__in=top_project_names) if top_project_names else base_qs
+        if remaining_qs.exists():
+            project_comparison.append({
+                'project_name': '其他',
+                'vehicle_tests': remaining_qs.filter(part_name='整车').count(),
+                'part_tests': remaining_qs.exclude(part_name='整车').count()
+            })
+
+        monthly_rows = (
+            base_qs.filter(test_date__year=current_year)
+            .annotate(month=ExtractMonth('test_date'))
+            .values('month')
+            .annotate(count=Count('id'))
+        )
+        monthly_map = {row['month']: row['count'] for row in monthly_rows if row['month'] is not None}
+        monthly_trend = [{'month': m, 'value': monthly_map.get(m, 0)} for m in range(1, 13)]
+
+        latest_records = []
+        for sample in base_qs.order_by('-test_date', '-id')[:40]:
+            latest_records.append({
+                'id': sample.id,
+                'test_date': sample.test_date.isoformat() if sample.test_date else None,
+                'project_name': sample.project_name,
+                'part_name': sample.part_name,
+                'sample_no': sample.sample_no,
+                'tvoc': float(sample.tvoc) if sample.tvoc is not None else None,
+                'odor_mean': float(sample.odor_mean) if sample.odor_mean is not None else None
+            })
+
+        return Response.success(data={
+            'timestamp': now.isoformat(),
+            'kpis': {
+                'project_total': project_total,
+                'sample_total': sample_total,
+                'substance_total': substance_total,
+                'annual_test_total': annual_test_total,
+                'refresh_interval_seconds': 86400
+            },
+            'voc_gauge': voc_gauge,
+            'odor_gauge': odor_gauge,
+            'project_comparison': project_comparison,
+            'monthly_trend': monthly_trend,
+            'latest_records': latest_records
+        }, message='获取IAQ大屏数据成功')
+    except Exception as e:
+        return Response.error(message=f'获取IAQ大屏数据失败: {str(e)}')
 
 
 @api_view(['GET'])

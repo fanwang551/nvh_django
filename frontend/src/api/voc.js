@@ -116,6 +116,14 @@ export const vocApi = {
    */
   getContributionTop25(params = {}) {
     return request.get('/vehicle-body/contribution-top25/', params)
+  },
+
+  /**
+   * 获取 IAQ 大屏数据
+   * @returns {Promise}
+   */
+  getIaqDashboard() {
+    return request.get('/vehicle-body/iaq-dashboard/')
   }
 }
 
