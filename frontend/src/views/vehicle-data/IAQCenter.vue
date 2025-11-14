@@ -539,7 +539,7 @@ const renderWordCloud = async () => {
         // 如提供了 mask 则使用，版式更紧凑时也能尽量铺满形状
         maskImage: mask || undefined,
         // 调小网格与字号范围，提升可排布的单词数量
-        gridSize: 0.2,
+        gridSize: 0.1,
         sizeRange: [8, 20],
         // 全部水平排布更容易放下更多词
         rotationRange: [0, -45, 45, 90],
