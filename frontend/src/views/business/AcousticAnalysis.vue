@@ -66,9 +66,9 @@
               >
                 <el-option
                   v-for="item in measurePointOptions"
-                  :key="item"
-                  :label="item"
-                  :value="item"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
                 />
               </el-select>
             </el-form-item>
@@ -175,6 +175,7 @@
 
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts/core'
 import { LineChart } from 'echarts/charts'
 import { TooltipComponent, LegendComponent, GridComponent, DataZoomComponent } from 'echarts/components'
@@ -255,6 +256,27 @@ const CHART_META = {
 const DEFAULT_SPECTRUM_META = { title: '频谱曲线', subtitle: '', yAxis: '幅值', empty: '当前测点类型暂无频谱数据' }
 const DEFAULT_OA_META = { title: '总声压级 / 振动时域曲线', subtitle: '', yAxis: '幅值', empty: '当前测点类型暂无曲线数据' }
 const TYPE_ORDER = ['noise', 'vibration', 'speed']
+
+// 测点 -> 测点类型 映射，来源于后端返回的 measurePointOptions
+const measurePointTypeMap = computed(() => {
+  const map = new Map()
+  ;(measurePointOptions.value || []).forEach((item) => {
+    if (item && typeof item === 'object') {
+      const value = item.value ?? item.measure_point ?? item.label
+      const type = item.measureType ?? item.measure_type ?? null
+      if (value != null) {
+        map.set(value, type)
+      }
+    } else if (typeof item === 'string') {
+      // 兼容历史数据：只有字符串时无法区分类型，标记为 null
+      map.set(item, null)
+    }
+  })
+  return map
+})
+
+// 记录当前已选择测点的类型，用于阻止不同类型混选
+const activeMeasurePointType = ref(null)
 
 const spectrumRef = ref(null)
 const oaRef = ref(null)
@@ -357,6 +379,40 @@ const tableEmptyText = computed(() => {
   return TABLE_META[activeTableType.value]?.empty ?? TABLE_META.default.empty
 })
 
+// 限制同一查询中只能选择同一测点类型（噪声 / 振动 / 转速不可混选）
+watch(
+  () => filters.value.measurePoints,
+  (newVal, oldVal) => {
+    const selected = Array.isArray(newVal) ? newVal : []
+
+    // 清空选择时重置当前测点类型
+    if (!selected.length) {
+      activeMeasurePointType.value = null
+      return
+    }
+
+    const typeMap = measurePointTypeMap.value
+    const types = new Set()
+    selected.forEach((mp) => {
+      const t = typeMap.get(mp) || null
+      if (t) {
+        types.add(t)
+      }
+    })
+
+    // 仅存在一个有效测点类型或暂无类型信息时认为合法
+    if (types.size <= 1) {
+      activeMeasurePointType.value = types.size ? Array.from(types)[0] : null
+      return
+    }
+
+    // 出现多个不同的测点类型时，回退到旧的选择并给出提示
+    filters.value.measurePoints = Array.isArray(oldVal) ? [...oldVal] : []
+    ElMessage.error('当前仅支持选择同一测点类型的数据（噪声 / 振动 / 转速不可混选）')
+  },
+  { deep: false }
+)
+
 const initCharts = () => {
   if (spectrumRef.value && !spectrumChart) {
     spectrumChart = echarts.init(spectrumRef.value)
@@ -450,20 +506,23 @@ const handleReset = async () => {
 }
 
 onMounted(async () => {
+  // 只做数据初始化，不在图表容器尺寸未知时提前初始化 ECharts，避免初始横轴被压缩
   await store.initialize()
-  initCharts()
 })
 
 watch([() => currentSpectrumSeries.value, () => spectrumYAxisName.value], async () => {
   await nextTick()
   initCharts()
   renderSpectrum()
+  // 首次有数据时，确保在容器可见后触发一次自适应，避免初始横轴被压缩
+  spectrumChart?.resize()
 }, { deep: true })
 
 watch([() => currentOASeries.value, () => oaYAxisName.value], async () => {
   await nextTick()
   initCharts()
   renderOA()
+  oaChart?.resize()
 }, { deep: true })
 
 const resize = () => {

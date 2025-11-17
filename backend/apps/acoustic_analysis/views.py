@@ -61,12 +61,20 @@ def get_measure_points(request):
         vehicle_model_id__in=vehicle_model_ids,
         condition_point__work_condition__in=work_conditions,
     )
+    # 返回带有测点类型的信息，便于前端限制不同类型测点混选
     values = (
-        qs.values_list('condition_point__measure_point', flat=True)
+        qs.values('condition_point__measure_point', 'condition_point__measure_type')
         .distinct()
-        .order_by('condition_point__measure_point')
+        .order_by('condition_point__measure_type', 'condition_point__measure_point')
     )
-    return Response.success(data=list(values), message='获取测点选项成功')
+    data = [
+        {
+            'measure_point': item['condition_point__measure_point'],
+            'measure_type': item['condition_point__measure_type'],
+        }
+        for item in values
+    ]
+    return Response.success(data=data, message='获取测点选项成功')
 
 
 def _safe_parse_series(raw):
@@ -139,6 +147,8 @@ def query_acoustic_data(request):
     spectrum_series = []
     oa_series = []
     table_items = []
+    # 用于在实际参与查询的组合上判断测点类型是否一致
+    used_measure_types = set()
     for vm_id in vehicle_model_ids:
         for wc in work_conditions:
             for mp in measure_points:
@@ -165,7 +175,18 @@ def query_acoustic_data(request):
                     continue
                 vm_name = getattr(obj.vehicle_model, 'vehicle_model_name', str(vm_id))
                 series_name = f"{vm_name}-{wc}-{mp}"
-                measure_type = getattr(obj.condition_point, 'measure_type', ConditionMeasurePoint.MeasureType.NOISE)
+                # 以真实参与本次查询的记录为准，判断测点类型
+                measure_type = getattr(
+                    obj.condition_point,
+                    'measure_type',
+                    ConditionMeasurePoint.MeasureType.NOISE,
+                )
+                # 如果出现了与之前不同的测点类型，则视为混合查询，直接报错
+                if used_measure_types and measure_type not in used_measure_types:
+                    return Response.bad_request(
+                        message='当前仅支持查询同一测点类型的数据，请调整测点选择',
+                    )
+                used_measure_types.add(measure_type)
                 meta = MEASURE_TYPE_META.get(measure_type, MEASURE_TYPE_META[ConditionMeasurePoint.MeasureType.NOISE])
                 spectrum = _safe_parse_series(obj.spectrum_json) or {}
                 freq_raw = spectrum.get('frequency') if isinstance(spectrum, dict) else None

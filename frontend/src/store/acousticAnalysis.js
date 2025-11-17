@@ -68,7 +68,28 @@ export const useAcousticAnalysisStore = defineStore('acousticAnalysis', {
         work_conditions: this.filters.workConditions.join(',')
       }
       const res = await acousticApi.getMeasurePoints(params)
-      this.measurePointOptions = Array.isArray(res.data) ? res.data : []
+      if (Array.isArray(res.data)) {
+        this.measurePointOptions = res.data.map((item) => {
+          // 兼容历史后端仅返回字符串数组的情况
+          if (typeof item === 'string') {
+            return {
+              label: item,
+              value: item,
+              measureType: null
+            }
+          }
+          const label = item.label ?? item.measure_point ?? item.value ?? ''
+          const value = item.value ?? item.measure_point ?? label
+          const measureType = item.measureType ?? item.measure_type ?? null
+          return {
+            label,
+            value,
+            measureType
+          }
+        })
+      } else {
+        this.measurePointOptions = []
+      }
     },
 
     async query() {
