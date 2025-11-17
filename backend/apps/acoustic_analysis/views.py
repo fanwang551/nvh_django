@@ -5,13 +5,29 @@ from rest_framework import status
 from django.db.models import Q
 
 from utils.response import Response
-from apps.acoustic_analysis.models import AcousticTestData
+from apps.acoustic_analysis.models import AcousticTestData, ConditionMeasurePoint
 from apps.acoustic_analysis.serializers import (
     WorkConditionListSerializer,
     MeasurePointListSerializer,
     AcousticQuerySerializer,
     AcousticTableItemSerializer,
 )
+
+
+MEASURE_TYPE_META = {
+    ConditionMeasurePoint.MeasureType.NOISE: {
+        'spectrum_unit': 'dB',
+        'oa_unit': 'dB',
+    },
+    ConditionMeasurePoint.MeasureType.VIBRATION: {
+        'spectrum_unit': 'm/s²',
+        'oa_unit': 'm/s²',
+    },
+    ConditionMeasurePoint.MeasureType.SPEED: {
+        'spectrum_unit': None,
+        'oa_unit': None,
+    },
+}
 
 
 @api_view(['GET'])
@@ -69,6 +85,43 @@ def _safe_parse_series(raw):
     return data
 
 
+def _normalize_numeric_list(raw):
+    if not isinstance(raw, list):
+        return []
+    normalized = []
+    for item in raw:
+        if isinstance(item, (int, float)):
+            # 排除 NaN
+            if isinstance(item, float) and (item != item):
+                continue
+            normalized.append(float(item))
+            continue
+        if isinstance(item, str):
+            text = item.strip()
+            if not text or text.lower() == 'nan':
+                continue
+            try:
+                normalized.append(float(text))
+            except Exception:
+                continue
+    return normalized
+
+
+def _pick_value_list(series_dict, preferred_keys):
+    if not isinstance(series_dict, dict):
+        return None
+    for key in preferred_keys:
+        value = series_dict.get(key)
+        if isinstance(value, list) and len(value):
+            return value
+    for key, value in series_dict.items():
+        if key in ('frequency', 'time'):
+            continue
+        if isinstance(value, list) and len(value):
+            return value
+    return None
+
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def query_acoustic_data(request):
@@ -112,51 +165,50 @@ def query_acoustic_data(request):
                     continue
                 vm_name = getattr(obj.vehicle_model, 'vehicle_model_name', str(vm_id))
                 series_name = f"{vm_name}-{wc}-{mp}"
+                measure_type = getattr(obj.condition_point, 'measure_type', ConditionMeasurePoint.MeasureType.NOISE)
+                meta = MEASURE_TYPE_META.get(measure_type, MEASURE_TYPE_META[ConditionMeasurePoint.MeasureType.NOISE])
                 spectrum = _safe_parse_series(obj.spectrum_json) or {}
-                freq = spectrum.get('frequency') if isinstance(spectrum, dict) else None
-                db_vals = None
-                if isinstance(spectrum, dict):
-                    db_vals = spectrum.get('dB')
-                    if db_vals is None:
-                        db_vals = spectrum.get('dB(A)')
-                if db_vals is None and isinstance(spectrum, dict):
-                    for _k in list(spectrum.keys()):
-                        if isinstance(_k, str) and _k.strip() in ('dB', 'dB(A)'):
-                            db_vals = spectrum[_k]
-                            break
-                if isinstance(freq, list) and isinstance(db_vals, list) and len(freq) and len(db_vals):
+                freq_raw = spectrum.get('frequency') if isinstance(spectrum, dict) else None
+                freq = _normalize_numeric_list(freq_raw)
+                spectrum_values_raw = _pick_value_list(spectrum, ['dB', 'dB(A)', 'value', 'values', 'amplitude', 'amplitudes'])
+                spectrum_values = _normalize_numeric_list(spectrum_values_raw)
+                if (
+                    measure_type != ConditionMeasurePoint.MeasureType.SPEED
+                    and freq
+                    and spectrum_values
+                ):
+                    length = min(len(freq), len(spectrum_values))
                     spectrum_series.append({
                         'name': series_name,
-                        'frequency': [float(x) for x in freq if isinstance(x, (int, float, str)) and str(x).strip() not in ('', 'nan')],
-                        'dB': [float(x) for x in db_vals if isinstance(x, (int, float, str)) and str(x).strip() not in ('', 'nan')],
+                        'measure_type': measure_type,
+                        'unit': meta['spectrum_unit'],
+                        'frequency': freq[:length],
+                        'values': spectrum_values[:length],
                     })
                 oa = _safe_parse_series(obj.oa_json) or {}
-                times = oa.get('time') if isinstance(oa, dict) else None
-                # 兼容不同字段命名：优先 OA，其次 dB(A)
-                oa_values = oa.get('OA') if isinstance(oa, dict) else None
-                if oa_values is None and isinstance(oa, dict):
-                    # 常见写法兼容，如 dB(A) / dBA
-                    oa_values = oa.get('dB(A)') if 'dB(A)' in oa else oa.get('dBA')
-                if oa_values is None and isinstance(oa, dict):
-                    # 宽松匹配，避免因为空格或大小写导致取不到
-                    for _k in list(oa.keys()):
-                        if isinstance(_k, str) and _k.strip() in ('OA', 'dB(A)', 'dBA'):
-                            oa_values = oa[_k]
-                            break
+                times_raw = oa.get('time') if isinstance(oa, dict) else None
+                times = _normalize_numeric_list(times_raw)
+                oa_values_raw = _pick_value_list(oa, ['OA', 'dB(A)', 'dBA', 'value', 'values'])
+                oa_values = _normalize_numeric_list(oa_values_raw)
                 stats = None
-                if isinstance(oa_values, list) and len(oa_values):
+                if oa_values:
                     try:
-                        nums = [float(x) for x in oa_values if isinstance(x, (int, float, str)) and str(x).strip() not in ('', 'nan')]
-                        if nums:
-                            max_val = max(nums); min_val = min(nums); avg_val = sum(nums) / len(nums)
-                            stats = {'max': max_val, 'min': min_val, 'avg': avg_val}
+                        max_val = max(oa_values); min_val = min(oa_values); avg_val = sum(oa_values) / len(oa_values)
+                        stats = {'max': max_val, 'min': min_val, 'avg': avg_val}
                     except Exception:
                         stats = None
-                if isinstance(times, list) and isinstance(oa_values, list) and len(times) and len(oa_values):
+                if (
+                    measure_type != ConditionMeasurePoint.MeasureType.SPEED
+                    and times
+                    and oa_values
+                ):
+                    length = min(len(times), len(oa_values))
                     oa_series.append({
                         'name': series_name,
-                        'time': [float(x) for x in times if isinstance(x, (int, float, str)) and str(x).strip() not in ('', 'nan')],
-                        'OA': [float(x) for x in oa_values if isinstance(x, (int, float, str)) and str(x).strip() not in ('', 'nan')],
+                        'measure_type': measure_type,
+                        'unit': meta['oa_unit'],
+                        'time': times[:length],
+                        'values': oa_values[:length],
                         'stats': stats,
                     })
                 table_items.append(obj)

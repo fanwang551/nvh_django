@@ -77,6 +77,7 @@ class AcousticTableItemSerializer(serializers.ModelSerializer):
     vehicle_model_name = serializers.CharField(source='vehicle_model.vehicle_model_name', read_only=True)
     work_condition = serializers.CharField(source='condition_point.work_condition', read_only=True)
     measure_point = serializers.CharField(source='condition_point.measure_point', read_only=True)
+    measure_type = serializers.CharField(source='condition_point.measure_type', read_only=True)
 
     class Meta:
         model = AcousticTestData
@@ -85,6 +86,7 @@ class AcousticTableItemSerializer(serializers.ModelSerializer):
             'vehicle_model_name',
             'work_condition',
             'measure_point',
+            'measure_type',
             'speech_clarity',
             'rms_value',
             'test_date',

@@ -4,8 +4,20 @@ from django.db import models
 class ConditionMeasurePoint(models.Model):
     """工况测点维度表：仅存储工况与测点"""
 
+    class MeasureType(models.TextChoices):
+        NOISE = 'noise', '噪声'
+        VIBRATION = 'vibration', '振动'
+        SPEED = 'speed', '转速'
+
     work_condition = models.CharField(max_length=100, verbose_name='工况', db_index=True)
     measure_point = models.CharField(max_length=100, verbose_name='测点', db_index=True)
+    measure_type = models.CharField(
+        max_length=20,
+        choices=MeasureType.choices,
+        default=MeasureType.NOISE,
+        verbose_name='测点类型',
+        db_index=True,
+    )
 
     class Meta:
         db_table = 'condition_measure_point'
@@ -13,6 +25,7 @@ class ConditionMeasurePoint(models.Model):
         verbose_name_plural = '工况测点'
         indexes = [
             models.Index(fields=['work_condition', 'measure_point'], name='idx_cm_wc_mp'),
+            models.Index(fields=['measure_type'], name='idx_cm_measure_type'),
         ]
         ordering = ['work_condition', 'measure_point']
 

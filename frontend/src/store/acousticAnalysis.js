@@ -5,8 +5,17 @@ import { acousticApi } from '@/api/acoustic'
 function toNumberArray(arr) {
   return Array.isArray(arr)
     ? arr
-        .map((x) => Number(x))
-        .filter((v) => Number.isFinite(v))
+        .map((x) => {
+          if (typeof x === 'number' && Number.isFinite(x)) return x
+          if (typeof x === 'string') {
+            const text = x.trim()
+            if (!text) return null
+            const n = Number(text)
+            return Number.isFinite(n) ? n : null
+          }
+          return null
+        })
+        .filter((v) => v !== null)
     : []
 }
 
@@ -86,31 +95,46 @@ export const useAcousticAnalysisStore = defineStore('acousticAnalysis', {
         // 频谱系列
         const specSeries = Array.isArray(data.spectrum_series) ? data.spectrum_series : []
         this.spectrumSeries = specSeries.map((s) => {
-          const f = toNumberArray(s.frequency)
-          const v = toNumberArray(s.dB)
-          const len = Math.min(f.length, v.length)
+          const frequencies = toNumberArray(s.frequency)
+          const values = toNumberArray(s.values ?? s.dB ?? [])
+          const len = Math.min(frequencies.length, values.length)
           const pairs = []
           for (let i = 0; i < len; i += 1) {
-            pairs.push([f[i], v[i]])
+            pairs.push([frequencies[i], values[i]])
           }
-          return { name: s.name || '未命名', data: pairs }
+          return {
+            name: s.name || '未命名',
+            data: pairs,
+            measureType: s.measure_type || 'noise',
+            unit: s.unit || (s.measure_type === 'vibration' ? 'm/s²' : 'dB')
+          }
         })
 
         // OA 系列
         const oaSeries = Array.isArray(data.oa_series) ? data.oa_series : []
         this.oaSeries = oaSeries.map((s) => {
           const t = toNumberArray(s.time)
-          const v = toNumberArray(s.OA)
-          const len = Math.min(t.length, v.length)
+          const values = toNumberArray(s.values ?? s.OA ?? [])
+          const len = Math.min(t.length, values.length)
           const pairs = []
           for (let i = 0; i < len; i += 1) {
-            pairs.push([t[i], v[i]])
+            pairs.push([t[i], values[i]])
           }
-          return { name: s.name || '未命名', data: pairs, stats: s.stats || null }
+          return {
+            name: s.name || '未命名',
+            data: pairs,
+            stats: s.stats || null,
+            measureType: s.measure_type || 'noise',
+            unit: s.unit || (s.measure_type === 'vibration' ? 'm/s²' : 'dB')
+          }
         })
 
         // 表格
-        this.tableRows = Array.isArray(data.table) ? data.table : []
+        const tableData = Array.isArray(data.table) ? data.table : []
+        this.tableRows = tableData.map((row) => ({
+          ...row,
+          measureType: row.measure_type || 'noise'
+        }))
       } finally {
         this.isLoading = false
       }
@@ -130,4 +154,3 @@ export const useAcousticAnalysisStore = defineStore('acousticAnalysis', {
     }
   }
 })
-
