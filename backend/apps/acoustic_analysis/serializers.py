@@ -91,3 +91,32 @@ class AcousticTableItemSerializer(serializers.ModelSerializer):
             'rms_value',
             'test_date',
         )
+
+
+class SteadyStateQuerySerializer(serializers.Serializer):
+    vehicle_model_ids = serializers.ListField(
+        child=serializers.IntegerField(min_value=1),
+        allow_empty=False,
+    )
+    work_conditions = serializers.ListField(
+        child=serializers.CharField(max_length=100),
+        allow_empty=False,
+    )
+    measure_points = serializers.ListField(
+        child=serializers.CharField(max_length=100),
+        allow_empty=False,
+    )
+
+    def validate(self, attrs):
+        vm_ids = attrs.get('vehicle_model_ids') or []
+        work_conditions = attrs.get('work_conditions') or []
+        measure_points = attrs.get('measure_points') or []
+
+        count = VehicleModel.objects.filter(id__in=vm_ids).count()
+        if count != len(vm_ids):
+            raise serializers.ValidationError('部分车型ID不存在')
+
+        combinations = len(vm_ids) * len(work_conditions) * len(measure_points)
+        if combinations > 200:
+            raise serializers.ValidationError('每次查询的组合数量最多200条，请减少选择范围')
+        return attrs

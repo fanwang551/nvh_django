@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework import status
@@ -11,6 +13,7 @@ from apps.acoustic_analysis.serializers import (
     MeasurePointListSerializer,
     AcousticQuerySerializer,
     AcousticTableItemSerializer,
+    SteadyStateQuerySerializer,
 )
 
 
@@ -28,6 +31,49 @@ MEASURE_TYPE_META = {
         'oa_unit': None,
     },
 }
+
+STEADY_STATE_CHART_DEFINITIONS = [
+    {
+        'chart_key': 'noise_rms',
+        'measure_type': ConditionMeasurePoint.MeasureType.NOISE,
+        'metric': 'rms',
+        'field': 'rms_value',
+        'title': '噪声有效值对比',
+        'unit': 'dB(A)',
+    },
+    {
+        'chart_key': 'noise_speech',
+        'measure_type': ConditionMeasurePoint.MeasureType.NOISE,
+        'metric': 'speech_clarity',
+        'field': 'speech_clarity',
+        'title': '语音清晰度对比',
+        'unit': '%',
+    },
+    {
+        'chart_key': 'vibration_rms',
+        'measure_type': ConditionMeasurePoint.MeasureType.VIBRATION,
+        'metric': 'rms',
+        'field': 'rms_value',
+        'title': '振动有效值对比',
+        'unit': 'm/s²',
+    },
+    {
+        'chart_key': 'speed_rpm',
+        'measure_type': ConditionMeasurePoint.MeasureType.SPEED,
+        'metric': 'rpm',
+        'field': 'rms_value',
+        'title': '转速对比',
+        'unit': 'rpm',
+    },
+]
+
+STEADY_STATE_CHART_LOOKUP = {
+    (item['measure_type'], item['metric']): item for item in STEADY_STATE_CHART_DEFINITIONS
+}
+
+STEADY_STATE_CHARTS_BY_TYPE = {}
+for _chart in STEADY_STATE_CHART_DEFINITIONS:
+    STEADY_STATE_CHARTS_BY_TYPE.setdefault(_chart['measure_type'], []).append(_chart)
 
 
 @api_view(['GET'])
@@ -238,3 +284,106 @@ def query_acoustic_data(request):
 
     # 说明：此前这里有一段尝试“批量拉取再内存去重”的代码，
     # 在数据量大时会触发数据库端大排序与临时表，风险更高，已移除。
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def query_steady_state_data(request):
+    serializer = SteadyStateQuerySerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response.bad_request(message='查询参数错误', data=serializer.errors)
+
+    vehicle_model_ids = serializer.validated_data['vehicle_model_ids']
+    work_conditions = list(dict.fromkeys(serializer.validated_data['work_conditions']))
+    measure_points = list(dict.fromkeys(serializer.validated_data['measure_points']))
+
+    if not work_conditions or not measure_points:
+        return Response.success(data={'charts': []}, message='查询成功')
+
+    qs = (
+        AcousticTestData.objects
+        .select_related('vehicle_model', 'condition_point')
+        .filter(
+            vehicle_model_id__in=vehicle_model_ids,
+            condition_point__work_condition__in=work_conditions,
+            condition_point__measure_point__in=measure_points,
+        )
+        .order_by(
+            'vehicle_model_id',
+            'condition_point__measure_point',
+            'condition_point__work_condition',
+            '-test_date',
+            '-id',
+        )
+    )
+
+    latest_records = {}
+    for obj in qs:
+        cp = obj.condition_point
+        if not cp:
+            continue
+        combo_key = (obj.vehicle_model_id, cp.work_condition, cp.measure_point)
+        if combo_key in latest_records:
+            continue
+        latest_records[combo_key] = obj
+
+    series_buckets = defaultdict(dict)
+    for obj in latest_records.values():
+        cp = obj.condition_point
+        if not cp:
+            continue
+        measure_type = getattr(cp, 'measure_type', ConditionMeasurePoint.MeasureType.NOISE)
+        chart_candidates = STEADY_STATE_CHARTS_BY_TYPE.get(measure_type)
+        if not chart_candidates:
+            continue
+        for meta in chart_candidates:
+            value = getattr(obj, meta['field'], None)
+            if value in (None, ''):
+                continue
+            try:
+                numeric_value = float(value)
+            except (TypeError, ValueError):
+                continue
+            bucket_key = (measure_type, meta['metric'])
+            series_key = (obj.vehicle_model_id, cp.measure_point)
+            entry = series_buckets[bucket_key].setdefault(series_key, {
+                'name': f"{getattr(obj.vehicle_model, 'vehicle_model_name', str(obj.vehicle_model_id))}-{cp.measure_point}",
+                'vehicle_model_name': getattr(obj.vehicle_model, 'vehicle_model_name', str(obj.vehicle_model_id)),
+                'measure_point': cp.measure_point,
+                'measure_type': measure_type,
+                'metric': meta['metric'],
+                'values': {},
+            })
+            entry['values'][cp.work_condition] = numeric_value
+
+    charts = []
+    for meta in STEADY_STATE_CHART_DEFINITIONS:
+        bucket = series_buckets.get((meta['measure_type'], meta['metric']))
+        if not bucket:
+            continue
+        sorted_series = sorted(
+            bucket.values(),
+            key=lambda item: (item['vehicle_model_name'], item['measure_point']),
+        )
+        chart = {
+            'chart_key': meta['chart_key'],
+            'title': meta['title'],
+            'unit': meta['unit'],
+            'measure_type': meta['measure_type'],
+            'metric': meta['metric'],
+            'work_conditions': work_conditions,
+            'series': [],
+        }
+        for series in sorted_series:
+            values = [series['values'].get(wc) for wc in work_conditions]
+            chart['series'].append({
+                'name': series['name'],
+                'vehicle_model_name': series['vehicle_model_name'],
+                'measure_point': series['measure_point'],
+                'measure_type': series['measure_type'],
+                'metric': series['metric'],
+                'values': values,
+            })
+        charts.append(chart)
+
+    return Response.success(data={'charts': charts}, message='查询成功')
