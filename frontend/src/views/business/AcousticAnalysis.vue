@@ -105,8 +105,10 @@
           </el-radio-group>
         </div>
       </template>
-      <div v-if="currentSpectrumSeries.length" ref="spectrumRef" class="echarts-container"></div>
-      <el-empty v-else :description="spectrumEmptyText" />
+      <div class="chart-body">
+        <div ref="spectrumRef" class="echarts-container" v-show="currentSpectrumSeries.length"></div>
+        <el-empty v-show="!currentSpectrumSeries.length" :description="spectrumEmptyText" />
+      </div>
     </el-card>
 
     <el-card class="chart-card" shadow="never">
@@ -131,8 +133,10 @@
           </el-radio-group>
         </div>
       </template>
-      <div v-if="currentOASeries.length" ref="oaRef" class="echarts-container"></div>
-      <el-empty v-else :description="oaEmptyText" />
+      <div class="chart-body">
+        <div ref="oaRef" class="echarts-container" v-show="currentOASeries.length"></div>
+        <el-empty v-show="!currentOASeries.length" :description="oaEmptyText" />
+      </div>
     </el-card>
 
     <el-card class="result-card" shadow="never">
@@ -243,8 +247,8 @@ const CHART_META = {
     oa: { title: '总声压级 (OA) 曲线', subtitle: '纵轴：声压级 (dB)', yAxis: '声压级 (dB)', empty: '暂无噪声OA数据' }
   },
   vibration: {
-    spectrum: { title: '振动频谱图', subtitle: '纵轴：振动加速度 (m/s²)', yAxis: '振动加速度 (m/s²)', empty: '暂无振动频谱数据' },
-    oa: { title: '振动时域曲线', subtitle: '纵轴：振动加速度 (m/s²)', yAxis: '振动加速度 (m/s²)', empty: '暂无振动时域数据' }
+    spectrum: { title: '振动频谱图', subtitle: '纵轴：振动加速度 (m/s²)', yAxis: '加速度 (m/s²)', empty: '暂无振动频谱数据' },
+    oa: { title: '振动时域曲线', subtitle: '纵轴：振动加速度 (m/s²)', yAxis: '加速度 (m/s²)', empty: '暂无振动时域数据' }
   }
 }
 
@@ -324,6 +328,7 @@ const spectrumTitle = computed(() => spectrumMeta.value.title)
 const spectrumSubtitle = computed(() => spectrumMeta.value.subtitle)
 const spectrumEmptyText = computed(() => spectrumMeta.value.empty)
 const spectrumYAxisName = computed(() => spectrumMeta.value.yAxis)
+const spectrumXAxisMax = computed(() => (activeSpectrumType.value === 'vibration' ? 800 : 12800))
 
 const oaMeta = computed(() => CHART_META[activeOAType.value]?.oa ?? DEFAULT_OA_META)
 const oaTitle = computed(() => oaMeta.value.title)
@@ -374,8 +379,8 @@ const renderSpectrum = () => {
     legend: { type: 'scroll', top: 0 },
     // 给顶部留出更多空间以容纳图例，同时增大底部留白避免与缩放条重叠
     grid: { left: 40, right: 20, top: 70, bottom: 90 },
-    // 限制频率横坐标最大到 12800 Hz，并将轴标题上移一些避免与缩放条重叠
-    xAxis: { type: 'value', name: '频率 (Hz)', nameLocation: 'middle', nameGap: 18, max: 12800 },
+    // 限制频率横坐标最大值，并将轴标题上移一些避免与缩放条重叠
+    xAxis: { type: 'value', name: '频率 (Hz)', nameLocation: 'middle', nameGap: 18, max: spectrumXAxisMax.value },
     yAxis: { type: 'value', name: spectrumYAxisName.value },
     dataZoom: [{ type: 'inside' }, { type: 'slider' }],
     series: currentSpectrumSeries.value.map((s) => ({
@@ -485,5 +490,6 @@ onBeforeUnmount(() => {
 .card-subtitle { font-size: 12px; color: #909399; }
 .search-form { padding-top: 8px; }
 .form-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 0; }
+.chart-body { width: 100%; }
 .echarts-container { width: 100%; height: 420px; }
 </style>
