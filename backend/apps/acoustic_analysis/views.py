@@ -303,6 +303,8 @@ def query_steady_state_data(request):
     qs = (
         AcousticTestData.objects
         .select_related('vehicle_model', 'condition_point')
+        # 避免在排序时将大体积 JSON 字段（频谱/总声压级）搬入临时表，降低内存占用
+        .defer('spectrum_json', 'oa_json')
         .filter(
             vehicle_model_id__in=vehicle_model_ids,
             condition_point__work_condition__in=work_conditions,
@@ -310,8 +312,8 @@ def query_steady_state_data(request):
         )
         .order_by(
             'vehicle_model_id',
-            'condition_point__measure_point',
-            'condition_point__work_condition',
+            # 与索引 idx_vm_cp_date_id 对齐，避免跨表字段排序导致的大排序与临时表
+            'condition_point_id',
             '-test_date',
             '-id',
         )

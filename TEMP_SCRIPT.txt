@@ -1,0 +1,467 @@
+﻿<script setup>
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import * as echarts from 'echarts'
+import 'echarts-gl'
+
+import vocApi from '@/api/voc'
+
+const router = useRouter()
+
+const loading = ref(false)
+const dashboardData = ref(null)
+const currentTime = ref('')
+const currentYear = new Date().getFullYear()
+
+const vocVehicleRef = ref(null)
+const vocPartsRef = ref(null)
+const odorVehicleRef = ref(null)
+const odorPartsRef = ref(null)
+const vocBarRef = ref(null)
+const odorBarRef = ref(null)
+const projectBar3dRef = ref(null)
+const monthlyTrendRef = ref(null)
+
+const chartRefs = {
+  vocVehicle: vocVehicleRef,
+  vocParts: vocPartsRef,
+  odorVehicle: odorVehicleRef,
+  odorParts: odorPartsRef,
+  projectBar3d: projectBar3dRef,
+  monthlyTrend: monthlyTrendRef,
+  vocBar: vocBarRef,
+  odorBar: odorBarRef
+}
+
+const chartInstances = {}
+const chartHandlers = {}
+
+const scrollOffset = ref(0)
+const scrollPaused = ref(false)
+const rowHeight = 48
+const scrollStep = 1
+const scrollInterval = 40
+
+let timeTimer = null
+let refreshTimeout = null
+let scrollTimer = null
+
+const kpiItems = computed(() => {
+  const kpis = dashboardData.value?.kpis || {}
+  return [
+    { key: 'project_total', label: '项目总数', value: kpis.project_total ?? 0, desc: 'SampleInfo项目去重' },
+    { key: 'sample_total', label: '样品总数', value: kpis.sample_total ?? 0, desc: 'SampleInfo记录数' },
+    { key: 'substance_total', label: '物质库总量', value: kpis.substance_total ?? 0, desc: 'Substance记录数' },
+    { key: 'annual_test_total', label: '年度测试总次数', value: kpis.annual_test_total ?? 0, desc: `${currentYear} 年` }
+  ]
+})
+
+const vocGauge = computed(() => dashboardData.value?.voc_gauge || { vehicle: {}, parts: {} })
+const odorGauge = computed(() => dashboardData.value?.odor_gauge || { vehicle: {}, parts: {} })
+const latestList = computed(() => dashboardData.value?.latest_records || [])
+const repeatedLatestList = computed(() => latestList.value.concat(latestList.value))
+
+const splitDigits = (value) => {
+  return formatNumber(value).split('')
+}
+
+const formatNumber = (value) => {
+  const safeValue = Number(value ?? 0)
+  return safeValue.toLocaleString('zh-CN')
+}
+
+const formatDecimal = (value, fraction = 3) => {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return '-'
+  return Number(value).toFixed(fraction)
+}
+
+const formatDateDisplay = (value) => {
+  if (!value) return '-'
+  const date = new Date(value)
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
+const updateClock = () => {
+  const now = new Date()
+  const pad = (n) => String(n).padStart(2, '0')
+  currentTime.value = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(
+    now.getHours()
+  )}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`
+}
+
+const ensureChartInstance = (key) => {
+  const dom = chartRefs[key]?.value
+  if (!dom) return null
+  if (!chartInstances[key]) {
+    chartInstances[key] = echarts.init(dom)
+  }
+  return chartInstances[key]
+}
+
+const buildGaugeOption = (title, payload = {}) => {
+  const cumulative = Number(payload?.cumulative_total ?? 0)
+  const annual = Number(payload?.annual_total ?? 0)
+  const axisMax = Math.max(cumulative, annual, 1)
+  const gaugeMax = Math.ceil(axisMax * 1.2)
+  const ratio = gaugeMax ? cumulative / gaugeMax : 0
+  const innerRatio = gaugeMax ? annual / gaugeMax : 0
+
+  return {
+    title: {
+      text: title,
+      left: 'center',
+      top: 10,
+      textStyle: { color: '#cfd7ff', fontSize: 14, fontWeight: 500 }
+    },
+    tooltip: {
+      formatter: ({ seriesIndex, value }) => (seriesIndex === 0 ? `累计完成量：${value}` : `年度完成量：${value}`)
+    },
+    series: [
+      {
+        type: 'gauge',
+        startAngle: 210,
+        endAngle: -30,
+        min: 0,
+        max: gaugeMax,
+        splitNumber: 4,
+        axisLine: {
+          lineStyle: {
+            width: 14,
+            color: [
+              [ratio, '#43f1ff'],
+              [1, 'rgba(67, 241, 255, 0.1)']
+            ]
+          }
+        },
+        pointer: { show: false },
+        detail: {
+          fontSize: 28,
+          color: '#fff',
+          valueAnimation: true,
+          formatter: '{value}',
+          offsetCenter: [0, '40%']
+        },
+        title: {
+          fontSize: 13,
+          color: '#90a4ff',
+          offsetCenter: [0, '70%']
+        },
+        data: [{ value: cumulative, name: '累计' }]
+      },
+      {
+        type: 'gauge',
+        radius: '65%',
+        startAngle: 210,
+        endAngle: -30,
+        min: 0,
+        max: gaugeMax,
+        axisLine: {
+          lineStyle: {
+            width: 10,
+            color: [
+              [innerRatio, '#ff9e4f'],
+              [1, 'rgba(255, 158, 79, 0.15)']
+            ]
+          }
+        },
+        pointer: { show: false },
+        detail: {
+          fontSize: 16,
+          color: '#ffd28a',
+          offsetCenter: [0, '-30%'],
+          valueAnimation: true,
+          formatter: (value) => `年度 ${value}`
+        },
+        title: { show: false },
+        data: [{ value: annual }]
+      }
+    ]
+  }
+}
+
+const renderGaugeChart = (key, title, payload) => {
+  const chart = ensureChartInstance(key)
+  if (!chart) return
+  chart.setOption(buildGaugeOption(title, payload), true)
+}
+
+const buildCompletionBarOption = (gauge = {}) => {
+  const veh = gauge?.vehicle || {}
+  const part = gauge?.parts || {}
+  const categories = ['整车', '零部件']
+  const annual = [Number(veh.annual_total || 0), Number(part.annual_total || 0)]
+  const cumulative = [Number(veh.cumulative_total || 0), Number(part.cumulative_total || 0)]
+  return {
+    tooltip: { trigger: 'axis' },
+    legend: { top: 8, data: ['年度', '累计'], textStyle: { color: '#6a7485' } },
+    grid: { left: 40, right: 20, top: 40, bottom: 30 },
+    xAxis: {
+      type: 'category',
+      data: categories,
+      axisTick: { show: false },
+      axisLine: { lineStyle: { color: '#dfe3ea' } },
+      axisLabel: { color: '#6a7485' }
+    },
+    yAxis: {
+      type: 'value',
+      name: '试验次数',
+      nameTextStyle: { color: '#6a7485' },
+      axisLine: { lineStyle: { color: '#dfe3ea' } },
+      splitLine: { lineStyle: { color: 'rgba(0,0,0,0.06)' } },
+      axisLabel: { color: '#6a7485' }
+    },
+    series: [
+      {
+        name: '年度',
+        type: 'bar',
+        data: annual,
+        barWidth: 28,
+        itemStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: '#3b76f6' },
+            { offset: 1, color: '#5b8ff9' }
+          ])
+        }
+      },
+      {
+        name: '累计',
+        type: 'bar',
+        data: cumulative,
+        barWidth: 28,
+        itemStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: '#f59e0b' },
+            { offset: 1, color: '#fbbf24' }
+          ])
+        }
+      }
+    ]
+  }
+}
+
+const renderCompletionBar = (key, gauge) => {
+  const chart = ensureChartInstance(key)
+  if (!chart) return
+  chart.setOption(buildCompletionBarOption(gauge), true)
+}
+
+const renderProjectBar3d = (list = []) => {
+  const chart = ensureChartInstance('projectBar3d')
+  if (!chart) return
+
+  const projects = list.map((item) => item.project_name)
+  const categories = ['整车', '零部件']
+  const dataSource = []
+  list.forEach((item, projectIndex) => {
+    dataSource.push({
+      value: [projectIndex, 0, item.vehicle_tests || 0],
+      projectName: item.project_name,
+      category: '整车'
+    })
+    dataSource.push({
+      value: [projectIndex, 1, item.part_tests || 0],
+      projectName: item.project_name,
+      category: '零部件'
+    })
+  })
+
+  chart.setOption(
+    {
+      tooltip: {
+        formatter: (params) =>
+          `${params.data.projectName} - ${params.data.category}<br/>测试次数：${params.value[2]}`
+      },
+      xAxis3D: {
+        type: 'category',
+        data: projects,
+        axisLabel: { color: '#8a93a6' }
+      },
+      yAxis3D: {
+        type: 'category',
+        data: categories,
+        axisLabel: { color: '#8a93a6' }
+      },
+      zAxis3D: {
+        type: 'value',
+        axisLabel: { color: '#8a93a6' }
+      },
+      grid3D: {
+        boxWidth: 160,
+        boxDepth: 60,
+        light: { main: { intensity: 1.2, shadow: true }, ambient: { intensity: 0.5 } }
+      },
+      series: [
+        {
+          type: 'bar3D',
+          data: dataSource,
+          shading: 'lambert',
+          label: {
+            show: true,
+            formatter: ({ value }) => value[2],
+            textStyle: { fontSize: 12, color: '#fff' }
+          },
+          itemStyle: {
+            opacity: 0.95,
+            color: ({ data }) => (data.category === '整车' ? '#4fd2dd' : '#ff8d6e')
+          }
+        }
+      ]
+    },
+    true
+  )
+
+  if (!chartHandlers.projectBar3d) {
+    chart.on('click', (params) => {
+      const projectName = params?.data?.projectName
+      if (projectName) {
+        gotoVocPage(projectName === '其他' ? {} : { project_name: projectName })
+      }
+    })
+    chartHandlers.projectBar3d = true
+  }
+}
+
+const renderMonthlyTrend = (list = []) => {
+  const chart = ensureChartInstance('monthlyTrend')
+  if (!chart) return
+  const labels = list.map((item) => `${item.month}月`)
+  const values = list.map((item) => item.value || 0)
+
+  chart.setOption(
+    {
+      tooltip: { trigger: 'axis' },
+      grid: { left: 40, right: 20, top: 40, bottom: 30 },
+      xAxis: {
+        type: 'category',
+        data: labels,
+        boundaryGap: false,
+        axisLine: { lineStyle: { color: '#dfe3ea' } },
+        axisLabel: { color: '#8a93a6' }
+      },
+      yAxis: {
+        type: 'value',
+        axisLine: { lineStyle: { color: '#dfe3ea' } },
+        splitLine: { lineStyle: { color: 'rgba(0,0,0,0.06)' } },
+        axisLabel: { color: '#8a93a6' }
+      },
+      series: [
+        {
+          type: 'line',
+          data: values,
+          smooth: true,
+          symbolSize: 6,
+          lineStyle: { color: '#4fd2dd', width: 3 },
+          areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: 'rgba(79, 210, 221, 0.5)' },
+              { offset: 1, color: 'rgba(79, 210, 221, 0)' }
+            ])
+          }
+        }
+      ]
+    },
+    true
+  )
+}
+
+const renderAllCharts = () => {
+  const data = dashboardData.value || {}
+  renderCompletionBar('vocBar', data.voc_gauge)
+  renderCompletionBar('odorBar', data.odor_gauge)
+    renderProjectBar3d(data.project_comparison || [])
+  renderMonthlyTrend(data.monthly_trend || [])
+}
+
+const gotoVocPage = (query = {}) => {
+  router.push({ name: 'VocOdorData', query })
+}
+
+const pauseScroll = () => {
+  scrollPaused.value = true
+}
+
+const resumeScroll = () => {
+  scrollPaused.value = false
+}
+
+const toggleScroll = () => {
+  scrollPaused.value = !scrollPaused.value
+}
+
+const resetScroll = () => {
+  scrollOffset.value = 0
+  if (scrollTimer) {
+    clearInterval(scrollTimer)
+    scrollTimer = null
+  }
+  if (!latestList.value.length) return
+  scrollTimer = setInterval(() => {
+    if (scrollPaused.value) return
+    scrollOffset.value += scrollStep
+    const limit = rowHeight * latestList.value.length
+    if (scrollOffset.value >= limit) {
+      scrollOffset.value = 0
+    }
+  }, scrollInterval)
+}
+
+const fetchDashboard = async () => {
+  try {
+    loading.value = true
+    const res = await vocApi.getIaqDashboard()
+    dashboardData.value = res?.data || {}
+    scheduleRefresh()
+  } catch (error) {
+    console.error('获取IAQ数据失败', error)
+    ElMessage.error('获取IAQ大屏数据失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+const scheduleRefresh = () => {
+  const seconds = dashboardData.value?.kpis?.refresh_interval_seconds || 86400
+  if (refreshTimeout) {
+    clearTimeout(refreshTimeout)
+  }
+  refreshTimeout = setTimeout(fetchDashboard, seconds * 1000)
+}
+
+const handleResize = () => {
+  Object.values(chartInstances).forEach((instance) => instance?.resize())
+}
+
+watch(
+  () => dashboardData.value,
+  async (val) => {
+    if (!val) return
+    await nextTick()
+    renderAllCharts()
+  },
+  { deep: true }
+)
+
+watch(
+  () => latestList.value.length,
+  () => {
+    resetScroll()
+  }
+)
+
+onMounted(() => {
+  updateClock()
+  timeTimer = setInterval(updateClock, 1000)
+  fetchDashboard()
+  window.addEventListener('resize', handleResize)
+})
+
+onBeforeUnmount(() => {
+  if (timeTimer) clearInterval(timeTimer)
+  if (refreshTimeout) clearTimeout(refreshTimeout)
+  if (scrollTimer) clearInterval(scrollTimer)
+  window.removeEventListener('resize', handleResize)
+  Object.values(chartInstances).forEach((instance) => instance?.dispose())
+})
+</script>
