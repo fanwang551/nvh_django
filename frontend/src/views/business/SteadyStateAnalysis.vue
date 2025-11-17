@@ -159,6 +159,28 @@ const hasCharts = computed(() => charts.value.length > 0)
 const containerMap = new Map()
 const chartInstances = new Map()
 
+const scheduleRender = (chartKey) => {
+  nextTick(() => {
+    const el = containerMap.get(chartKey)
+    if (!el) return
+
+    // 等待容器拿到实际尺寸后再初始化，避免 clientWidth/clientHeight 为 0
+    if (!el.clientWidth || !el.clientHeight) {
+      requestAnimationFrame(() => scheduleRender(chartKey))
+      return
+    }
+
+    let instance = chartInstances.get(chartKey)
+    if (!instance) {
+      instance = echarts.init(el)
+      chartInstances.set(chartKey, instance)
+    }
+
+    renderChart(chartKey)
+    instance.resize()
+  })
+}
+
 const registerChartRef = (el, key) => {
   if (!key) return
   if (!el) {
@@ -171,10 +193,7 @@ const registerChartRef = (el, key) => {
     return
   }
   containerMap.set(key, el)
-  if (!chartInstances.get(key)) {
-    chartInstances.set(key, echarts.init(el))
-  }
-  renderChart(key)
+  scheduleRender(key)
 }
 
 const cleanupOrphanCharts = () => {
@@ -225,7 +244,7 @@ watch(
   async () => {
     cleanupOrphanCharts()
     await nextTick()
-    charts.value.forEach((chart) => renderChart(chart.chartKey))
+    charts.value.forEach((chart) => scheduleRender(chart.chartKey))
   },
   { deep: true }
 )
