@@ -20,6 +20,7 @@ import WheelPerformanceQuery from '@/views/business/WheelPerformanceQuery.vue'
 import ExperienceQuery from '@/views/business/ExperienceQuery.vue'
 import AcousticAnalysis from '@/views/business/AcousticAnalysis.vue'
 import SteadyStateAnalysis from '@/views/business/SteadyStateAnalysis.vue'
+import DynamicStateAnalysis from '@/views/business/DynamicStateAnalysis.vue'
 import NTFQuery from '@/views/business/NTFQuery.vue'
 import SoundAbsorptionQuery from '@/views/business/SoundAbsorptionQuery.vue'
 import SoundInsulationCoefficientQuery from '@/views/business/SoundInsulationCoefficientQuery.vue'
@@ -91,6 +92,12 @@ const routes = [
     name: 'AcousticAnalysis',
     component: AcousticAnalysis,
     meta: { requiresAuth: true, title: '声学测试数据分析' }
+  },
+  {
+    path: '/business/dynamic-state-analysis',
+    name: 'DynamicStateAnalysis',
+    component: DynamicStateAnalysis,
+    meta: { requiresAuth: true, title: '动态数据分析' }
   },
   {
     path: '/business/steady-state-analysis',

@@ -70,6 +70,7 @@ const modules = ref([
 
   // 其他功能（紫色系）
   { name: 'steady-state-analysis', title: '稳态数据分析', icon: TrendCharts, category: 'other' },
+  { name: 'dynamic-state-analysis', title: '动态数据分析', icon: TrendCharts, category: 'other' },
   { name: 'acoustic-analysis', title: '原始数据分析', icon: TrendCharts, category: 'other' },
   { name: 'wheel-performance-query', title: '车轮性能', icon: Odometer, category: 'other' },
   { name: 'experience-query', title: '经验库', icon: DataAnalysis, category: 'other' }

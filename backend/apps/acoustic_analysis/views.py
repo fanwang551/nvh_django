@@ -5,16 +5,22 @@ from rest_framework.permissions import AllowAny
 from rest_framework import status
 
 from django.db.models import Q
+from django.core.files.storage import default_storage
 
 from utils.response import Response
-from apps.acoustic_analysis.models import AcousticTestData, ConditionMeasurePoint
+from apps.acoustic_analysis.models import AcousticTestData, ConditionMeasurePoint, DynamicNoiseData
 from apps.acoustic_analysis.serializers import (
     WorkConditionListSerializer,
     MeasurePointListSerializer,
     AcousticQuerySerializer,
     AcousticTableItemSerializer,
     SteadyStateQuerySerializer,
+    DynamicWorkConditionSerializer,
+    DynamicMeasurePointSerializer,
+    DynamicNoiseQuerySerializer,
+    DynamicNoiseTableSerializer,
 )
+from apps.modal.models import VehicleModel
 
 
 MEASURE_TYPE_META = {
@@ -174,6 +180,35 @@ def _pick_value_list(series_dict, preferred_keys):
         if isinstance(value, list) and len(value):
             return value
     return None
+
+
+def _build_media_url(path, request):
+    if not path:
+        return ''
+    try:
+        url = default_storage.url(path)
+    except Exception:
+        url = path
+    try:
+        return request.build_absolute_uri(url)
+    except Exception:
+        return url
+
+
+def _build_curve_pairs(curve_dict, x_keys, y_keys):
+    """从曲线字典中提取 x/y 列表并组装为 [x, y] 对"""
+    if isinstance(curve_dict, str):
+        try:
+            import json
+            curve_dict = json.loads(curve_dict)
+        except Exception:
+            return []
+    if not isinstance(curve_dict, dict):
+        return []
+    x_list = _normalize_numeric_list(_pick_value_list(curve_dict, x_keys))
+    y_list = _normalize_numeric_list(_pick_value_list(curve_dict, y_keys))
+    length = min(len(x_list), len(y_list))
+    return [[x_list[i], y_list[i]] for i in range(length)]
 
 
 @api_view(['POST'])
@@ -389,3 +424,219 @@ def query_steady_state_data(request):
         charts.append(chart)
 
     return Response.success(data={'charts': charts}, message='查询成功')
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_dynamic_work_conditions(request):
+    serializer = DynamicWorkConditionSerializer(data=request.GET)
+    if not serializer.is_valid():
+        return Response.bad_request(message='参数错误', data=serializer.errors)
+    vehicle_model_ids = serializer.validated_data['vehicle_model_ids']
+    values = (
+        DynamicNoiseData.objects
+        .filter(vehicle_model_id__in=vehicle_model_ids)
+        .values_list('condition_measure_point__work_condition', flat=True)
+        .distinct()
+        .order_by('condition_measure_point__work_condition')
+    )
+    return Response.success(data=list(values), message='获取工况选项成功')
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_dynamic_measure_points(request):
+    serializer = DynamicMeasurePointSerializer(data=request.GET)
+    if not serializer.is_valid():
+        return Response.bad_request(message='参数错误', data=serializer.errors)
+    vehicle_model_ids = serializer.validated_data['vehicle_model_ids']
+    work_conditions = serializer.validated_data['work_conditions']
+    values = (
+        DynamicNoiseData.objects
+        .filter(
+            vehicle_model_id__in=vehicle_model_ids,
+            condition_measure_point__work_condition__in=work_conditions,
+        )
+        .values(
+            'condition_measure_point__measure_point',
+            'condition_measure_point__measure_type',
+        )
+        .distinct()
+        .order_by('condition_measure_point__measure_type', 'condition_measure_point__measure_point')
+    )
+    data = [
+        {
+            'measure_point': item['condition_measure_point__measure_point'],
+            'measure_type': item['condition_measure_point__measure_type'],
+        }
+        for item in values
+    ]
+    return Response.success(data=data, message='获取测点选项成功')
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def query_dynamic_noise(request):
+    serializer = DynamicNoiseQuerySerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response.bad_request(message='查询参数错误', data=serializer.errors)
+
+    vehicle_model_ids = serializer.validated_data['vehicle_model_ids']
+    work_conditions = serializer.validated_data['work_conditions']
+    measure_points = serializer.validated_data['measure_points']
+    page = serializer.validated_data['page']
+    page_size = serializer.validated_data['page_size']
+
+    qs = (
+        DynamicNoiseData.objects
+        .select_related('condition_measure_point')
+        .filter(
+            vehicle_model_id__in=vehicle_model_ids,
+            condition_measure_point__work_condition__in=work_conditions,
+            condition_measure_point__measure_point__in=measure_points,
+        )
+        .order_by('vehicle_model_id', 'condition_measure_point__work_condition', 'condition_measure_point__measure_point')
+    )
+
+    total = qs.count()
+    start = (page - 1) * page_size
+    rows = list(qs[start:start + page_size])
+
+    sound_pressure_series = []
+    speech_clarity_series = []
+    axis_types = set()
+    legend_names = set()
+
+    vehicle_names = dict(VehicleModel.objects.filter(id__in=vehicle_model_ids).values_list('id', 'vehicle_model_name'))
+
+    for obj in rows:
+        cmp_obj = obj.condition_measure_point
+        wc = getattr(cmp_obj, 'work_condition', '')
+        mp = getattr(cmp_obj, 'measure_point', '')
+        vm_name = vehicle_names.get(obj.vehicle_model_id, str(obj.vehicle_model_id))
+        series_name = f"{vm_name}-{wc}-{mp}"
+        legend_names.add(series_name)
+
+        if obj.x_axis_type:
+            axis_types.add(obj.x_axis_type)
+
+        sp_pairs = _build_curve_pairs(
+            obj.sound_pressure_curve,
+            ['speed', 'rpm', 'speed/rpm'],
+            ['dB(A)', 'value', 'values'],
+        )
+        if sp_pairs:
+            sound_pressure_series.append({
+                'name': series_name,
+                'x_axis_type': obj.x_axis_type,
+                'data': sp_pairs,
+            })
+
+        sc_pairs = _build_curve_pairs(
+            obj.speech_clarity_curve,
+            ['speed', 'rpm', 'speed/rpm'],
+            ['%AI', 'value', 'values'],
+        )
+        if sc_pairs:
+            speech_clarity_series.append({
+                'name': series_name,
+                'x_axis_type': obj.x_axis_type,
+                'data': sc_pairs,
+            })
+
+    table_data = DynamicNoiseTableSerializer(rows, many=True, context={'request': request}).data
+    for item, obj in zip(table_data, rows):
+        item['vehicle_model_name'] = vehicle_names.get(obj.vehicle_model_id, str(obj.vehicle_model_id))
+        item['noise_analysis_url'] = _build_media_url(obj.noise_analysis_image, request)
+        item['audio_url'] = _build_media_url(obj.audio_file, request)
+        item['spectrum_url'] = _build_media_url(obj.spectrum_file, request)
+
+    return Response.success(
+        data={
+            'sound_pressure': sound_pressure_series,
+            'speech_clarity': speech_clarity_series,
+            'axis_types': sorted(axis_types),
+            'legend': list(legend_names),
+            'table': {
+                'count': total,
+                'page': page,
+                'page_size': page_size,
+                'results': table_data,
+            },
+        },
+        message='查询成功',
+    )
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_dynamic_spectrum_data(request, pk: int):
+    try:
+        obj = DynamicNoiseData.objects.select_related('condition_measure_point').get(pk=pk)
+    except DynamicNoiseData.DoesNotExist:
+        return Response.not_found(message='数据不存在')
+    if not obj.spectrum_file:
+        return Response.bad_request(message='当前记录未上传频谱数据')
+    if not default_storage.exists(obj.spectrum_file):
+        return Response.bad_request(message='频谱文件不存在')
+    x_axis = []
+    y_axis = []
+    heatmap_values = []
+    try:
+        import numpy as np
+    except ImportError:
+        return Response.error(message='服务器缺少 numpy 依赖', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    try:
+        with default_storage.open(obj.spectrum_file, 'rb') as fp:
+            npz = np.load(fp)
+            files = list(npz.files)
+            def pick_np_array(candidates):
+                for key in candidates:
+                    if key in npz:
+                        return npz[key]
+                return None
+            x_arr = pick_np_array(['speed', 'rpm', 'x', 'speeds', 'x_axis'])
+            y_arr = pick_np_array(['frequency', 'freq', 'y', 'frequencies', 'y_axis'])
+            z_arr = pick_np_array(['values', 'data', 'matrix', 'z', 'amplitude'])
+            if z_arr is None and files:
+                z_arr = npz[files[0]]
+            if x_arr is None and z_arr is not None and z_arr.ndim >= 2:
+                x_arr = np.arange(z_arr.shape[-1])
+            if y_arr is None and z_arr is not None and z_arr.ndim >= 2:
+                y_arr = np.arange(z_arr.shape[-2])
+            x_axis = np.asarray(x_arr).tolist() if x_arr is not None else []
+            y_axis = np.asarray(y_arr).tolist() if y_arr is not None else []
+            matrix = np.asarray(z_arr)
+            if matrix.ndim == 1 and x_axis and y_axis and len(y_axis) > 0:
+                cols = len(x_axis)
+                rows = len(y_axis)
+                matrix = matrix.reshape(rows, cols)
+            elif matrix.ndim > 2:
+                matrix = matrix.squeeze()
+            heatmap_values = []
+            for yi, y_val in enumerate(y_axis):
+                for xi, x_val in enumerate(x_axis):
+                    try:
+                        val = float(matrix[yi][xi])
+                    except Exception:
+                        val = None
+                    if val is None:
+                        continue
+                    heatmap_values.append([x_val, y_val, val])
+    except Exception as exc:
+        return Response.error(
+            message=f'频谱数据解析失败: {exc}',
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+    return Response.success(
+        data={
+            'x_axis': x_axis,
+            'y_axis': y_axis,
+            'values': heatmap_values,
+            'x_axis_type': obj.x_axis_type,
+            'title': f"{obj.condition_measure_point.work_condition}-{obj.condition_measure_point.measure_point}",
+        },
+        message='获取成功',
+    )
