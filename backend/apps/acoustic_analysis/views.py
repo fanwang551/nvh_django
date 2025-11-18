@@ -1,9 +1,11 @@
 from collections import defaultdict
+import os
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework import status
 
+from django.conf import settings
 from django.db.models import Q
 from django.core.files.storage import default_storage
 
@@ -577,8 +579,26 @@ def get_dynamic_spectrum_data(request, pk: int):
         return Response.not_found(message='数据不存在')
     if not obj.spectrum_file:
         return Response.bad_request(message='当前记录未上传频谱数据')
-    if not default_storage.exists(obj.spectrum_file):
+
+    # 将数据库中存储的路径（可能包含 /media/ 前缀或起始斜杠）规范化为
+    # 相对于 MEDIA_ROOT 的路径，再拼接成磁盘绝对路径
+    raw_path = str(obj.spectrum_file)
+    rel_path = raw_path.replace('\\', '/').strip()
+    # 去掉开头的斜杠，避免在 Windows 上被当作磁盘根路径处理
+    rel_path = rel_path.lstrip('/')
+    media_prefix = (settings.MEDIA_URL or '').lstrip('/')  # 例如 'media/'
+    if media_prefix and rel_path.startswith(media_prefix):
+        rel_path = rel_path[len(media_prefix):]
+        rel_path = rel_path.lstrip('/')
+
+    media_root = os.path.abspath(settings.MEDIA_ROOT)
+    file_path = os.path.abspath(os.path.join(media_root, rel_path))
+    # 防止路径越界
+    if not file_path.startswith(media_root):
+        return Response.bad_request(message='频谱文件路径非法')
+    if not os.path.exists(file_path):
         return Response.bad_request(message='频谱文件不存在')
+
     x_axis = []
     y_axis = []
     heatmap_values = []
@@ -588,7 +608,7 @@ def get_dynamic_spectrum_data(request, pk: int):
         return Response.error(message='服务器缺少 numpy 依赖', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     try:
-        with default_storage.open(obj.spectrum_file, 'rb') as fp:
+        with open(file_path, 'rb') as fp:
             npz = np.load(fp)
             files = list(npz.files)
             def pick_np_array(candidates):
