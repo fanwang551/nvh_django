@@ -1,4 +1,4 @@
-import request from '@/utils/request'
+import request, { http } from '@/utils/request'
 
 export const dynamicNoiseApi = {
   getWorkConditions(params = {}) {
@@ -10,8 +10,12 @@ export const dynamicNoiseApi = {
   query(data = {}) {
     return request.post('/acoustic-analysis/dynamic/query/', data)
   },
-  getSpectrum(id) {
-    return request.get(`/acoustic-analysis/dynamic/${id}/spectrum/`)
+  getSpectrum(id, config = {}) {
+    // 直接下载/预览 PPTX 文件，返回 Blob 数据
+    return http.get(`/acoustic-analysis/dynamic/${id}/spectrum/`, {
+      responseType: 'blob',
+      ...config
+    })
   }
 }
 

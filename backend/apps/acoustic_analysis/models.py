@@ -118,7 +118,7 @@ class DynamicNoiseData(models.Model):
 
     noise_analysis_image = models.CharField(max_length=500, verbose_name='噪声分析图路径', blank=True)
     audio_file = models.CharField(max_length=500, verbose_name='音频文件路径(.wav)', blank=True)
-    spectrum_file = models.CharField(max_length=500, verbose_name='三维频谱文件路径(.npz)', blank=True)
+    spectrum_file = models.CharField(max_length=500, verbose_name='三维频谱文件路径(.pptx)', blank=True)
 
     class Meta:
         verbose_name = '动态噪声数据'

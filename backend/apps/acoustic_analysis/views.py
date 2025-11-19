@@ -1,5 +1,6 @@
 from collections import defaultdict
 import os
+from urllib.parse import quote
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
@@ -8,6 +9,7 @@ from rest_framework import status
 from django.conf import settings
 from django.db.models import Q
 from django.core.files.storage import default_storage
+from django.http import FileResponse
 
 from utils.response import Response
 from apps.acoustic_analysis.models import AcousticTestData, ConditionMeasurePoint, DynamicNoiseData
@@ -599,97 +601,23 @@ def get_dynamic_spectrum_data(request, pk: int):
     if not os.path.exists(file_path):
         return Response.bad_request(message='频谱文件不存在')
 
-    x_axis = []
-    y_axis = []
-    heatmap_values = []
-    try:
-        import numpy as np
-    except ImportError:
-        return Response.error(
-            message='服务器缺少 numpy 依赖',
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
+    # 直接返回 PPTX 文件用于浏览器预览或下载
+    filename = os.path.basename(file_path) or 'spectrum.pptx'
+    name_root, ext = os.path.splitext(filename)
+    if not ext:
+        filename = f'{filename}.pptx'
 
     try:
-        with open(file_path, 'rb') as fp:
-            npz = np.load(fp)
-            files = list(npz.files)
-
-            def pick_np_array(candidates):
-                for key in candidates:
-                    if key in npz:
-                        return npz[key]
-                return None
-
-            # 横轴：优先识别 speed/speeds、rpm/rpms 等
-            x_arr = pick_np_array(['speed', 'rpm', 'rpms', 'x', 'speeds', 'x_axis'])
-            # 纵轴：频率
-            y_arr = pick_np_array(['frequency', 'freq', 'frequencies', 'y', 'y_axis'])
-            # 幅值矩阵：优先识别 db_data，其次其它常见命名
-            z_arr = pick_np_array(['db_data', 'values', 'data', 'matrix', 'z', 'amplitude'])
-
-            # 若仍未找到幅值矩阵，则从所有数组中选择第一个二维数组作为矩阵
-            if z_arr is None and files:
-                for key in files:
-                    arr = np.asarray(npz[key])
-                    if arr.ndim >= 2:
-                        z_arr = arr
-                        break
-                if z_arr is None:
-                    # 兜底：退回到第一个数组（可能是一维），尽量保证不抛异常
-                    z_arr = np.asarray(npz[files[0]])
-
-            # 如果仅找到了矩阵，则用其维度推断横纵轴
-            if x_arr is None and z_arr is not None and z_arr.ndim >= 2:
-                x_arr = np.arange(z_arr.shape[-1])
-            if y_arr is None and z_arr is not None and z_arr.ndim >= 2:
-                y_arr = np.arange(z_arr.shape[-2])
-
-            x_axis = np.asarray(x_arr).tolist() if x_arr is not None else []
-            y_axis = np.asarray(y_arr).tolist() if y_arr is not None else []
-
-            if z_arr is None:
-                matrix = np.zeros((len(y_axis), len(x_axis)), dtype=float)
-            else:
-                matrix = np.asarray(z_arr)
-
-            # 防止错误 reshape 导致异常：仅在尺寸完全匹配时才尝试
-            if (
-                matrix.ndim == 1
-                and x_axis
-                and y_axis
-                and len(y_axis) > 0
-                and matrix.size == len(x_axis) * len(y_axis)
-            ):
-                cols = len(x_axis)
-                rows = len(y_axis)
-                matrix = matrix.reshape(rows, cols)
-            elif matrix.ndim > 2:
-                matrix = matrix.squeeze()
-
-            heatmap_values = []
-            for yi, y_val in enumerate(y_axis):
-                for xi, x_val in enumerate(x_axis):
-                    try:
-                        val = float(matrix[yi][xi])
-                    except Exception:
-                        val = None
-                    if val is None:
-                        continue
-                    heatmap_values.append([x_val, y_val, val])
-    except Exception as exc:
-        return Response.error(
-            message=f'频谱数据解析失败: {exc}',
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        response = FileResponse(
+            open(file_path, 'rb'),
+            content_type='application/vnd.openxmlformats-officedocument.presentationml.presentation',
         )
+    except OSError:
+        return Response.bad_request(message='频谱文件无法读取')
 
-    return Response.success(
-        data={
-            'x_axis': x_axis,
-            'y_axis': y_axis,
-            'values': heatmap_values,
-            'x_axis_type': obj.x_axis_type,
-            'title': f"{obj.condition_measure_point.work_condition}-{obj.condition_measure_point.measure_point}",
-        },
-        message='获取成功',
+    quoted_name = quote(filename)
+    # 使用 attachment 形式；是否在浏览器中直接预览由浏览器自身决定
+    response['Content-Disposition'] = (
+        f'attachment; filename="{quoted_name}"; filename*=UTF-8\'\'{quoted_name}'
     )
+    return response

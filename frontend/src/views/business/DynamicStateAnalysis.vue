@@ -186,10 +186,11 @@
                 size="small"
                 type="primary"
                 :icon="Histogram"
-                @click="openSpectrumDialog(row)"
+                :loading="downloadingSpectrumId === row.id"
+                @click="handleSpectrumClick(row)"
                 :disabled="!row.spectrum_url"
               >
-                频谱
+                频谱 PPTX
               </el-button>
               <el-button
                 size="small"
@@ -226,21 +227,6 @@
         />
       </div>
     </el-card>
-
-    <el-dialog
-      v-model="spectrumDialog.visible"
-      width="60%"
-      :title="spectrumDialog.title || '频谱数据'"
-      destroy-on-close
-    >
-      <div v-loading="spectrumDialog.loading" class="spectrum-dialog-body">
-        <div v-if="spectrumDialog.data" ref="spectrumChartRef" class="echarts-container" />
-        <el-empty v-else-if="!spectrumDialog.loading" description="暂无频谱数据" />
-      </div>
-      <template #footer>
-        <el-button @click="spectrumDialog.visible = false">关闭</el-button>
-      </template>
-    </el-dialog>
 
     <el-dialog
       v-model="noiseDialog.visible"
@@ -290,11 +276,10 @@ const {
 
 const soundChartRef = ref(null)
 const speechChartRef = ref(null)
-const spectrumChartRef = ref(null)
 const tableRef = ref(null)
 let soundChart = null
 let speechChart = null
-let spectrumChart = null
+const downloadingSpectrumId = ref(null)
 
 const axisTypeLabel = {
   speed: '车速',
@@ -434,7 +419,6 @@ watch(speechSeries, async () => {
 const resizeCharts = () => {
   soundChart?.resize()
   speechChart?.resize()
-  spectrumChart?.resize()
 }
 
 onMounted(async () => {
@@ -446,18 +430,8 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', resizeCharts)
   soundChart?.dispose()
   speechChart?.dispose()
-  spectrumChart?.dispose()
   soundChart = null
   speechChart = null
-  spectrumChart = null
-})
-
-const spectrumCache = reactive(new Map())
-const spectrumDialog = reactive({
-  visible: false,
-  loading: false,
-  data: null,
-  title: ''
 })
 
 const noiseDialog = reactive({
@@ -466,34 +440,37 @@ const noiseDialog = reactive({
   title: ''
 })
 
-const openSpectrumDialog = async (row) => {
+const handleSpectrumClick = async (row) => {
   if (!row.spectrum_url) {
-    ElMessage.warning('当前数据暂无频谱文件')
+    ElMessage.warning('当前数据暂无频谱 PPTX 文件')
     return
   }
-  spectrumDialog.visible = true
-  spectrumDialog.loading = true
-  spectrumDialog.data = null
-  spectrumDialog.title = `${row.vehicle_model_name || ''} ${row.work_condition || ''} ${row.measure_point || ''}`
-  if (spectrumCache.has(row.id)) {
-    spectrumDialog.data = spectrumCache.get(row.id)
-    spectrumDialog.loading = false
-    await nextTick()
-    renderSpectrumChart()
-    return
-  }
+  downloadingSpectrumId.value = row.id
+  const name = `${row.vehicle_model_name || ''}_${row.work_condition || ''}_${row.measure_point || ''}`
+    .replace(/\s+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '')
+  const filename = name ? `频谱_${name}.pptx` : '频谱数据.pptx'
   try {
-    const res = await dynamicNoiseApi.getSpectrum(row.id)
-    spectrumDialog.data = res?.data || null
-    if (spectrumDialog.data) {
-      spectrumCache.set(row.id, spectrumDialog.data)
+    ElMessage.info('正在下载频谱 PPTX 文件，请稍候...')
+    const blob = await dynamicNoiseApi.getSpectrum(row.id)
+    if (!(blob instanceof Blob)) {
+      throw new Error('频谱 PPTX 数据格式错误')
     }
-    await nextTick()
-    renderSpectrumChart()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(url)
+    ElMessage.success('频谱 PPTX 下载成功')
   } catch (err) {
-    ElMessage.error(err?.message || '频谱数据加载失败')
+    // 浏览器不支持 Blob instanceof 检测或下载失败时兜底提示
+    ElMessage.error(err?.message || '频谱 PPTX 下载失败')
   } finally {
-    spectrumDialog.loading = false
+    downloadingSpectrumId.value = null
   }
 }
 
@@ -506,66 +483,6 @@ const openNoiseDialog = (row) => {
   noiseDialog.src = row.noise_analysis_url
   noiseDialog.title = `${row.vehicle_model_name || ''} ${row.work_condition || ''} ${row.measure_point || ''}`
 }
-
-const renderSpectrumChart = () => {
-  if (!spectrumDialog.visible || !spectrumDialog.data) return
-  spectrumChart = spectrumChart || (spectrumChartRef.value ? echarts.init(spectrumChartRef.value) : null)
-  if (!spectrumChart) return
-  const { values = [], x_axis: xAxis = [], y_axis: yAxis = [], x_axis_type: axisType } = spectrumDialog.data
-  if (!values.length) {
-    spectrumChart.clear()
-    return
-  }
-  spectrumChart.setOption({
-    tooltip: {
-      position: 'top'
-    },
-    grid: { height: '70%', top: '10%' },
-    xAxis: {
-      type: 'value',
-      name: xAxisTitle(axisType),
-      min: xAxis.length ? Math.min(...xAxis) : null,
-      max: xAxis.length ? Math.max(...xAxis) : null
-    },
-    yAxis: {
-      type: 'value',
-      name: '频率 (Hz)',
-      min: yAxis.length ? Math.min(...yAxis) : null,
-      max: yAxis.length ? Math.max(...yAxis) : null
-    },
-    visualMap: {
-      min: Math.min(...values.map((item) => item[2])),
-      max: Math.max(...values.map((item) => item[2])),
-      calculable: true,
-      orient: 'horizontal',
-      left: 'center',
-      bottom: 0
-    },
-    series: [
-      {
-        type: 'heatmap',
-        data: values,
-        emphasis: {
-          itemStyle: {
-            shadowBlur: 10,
-            shadowColor: 'rgba(0, 0, 0, 0.4)'
-          }
-        }
-      }
-    ]
-  })
-  spectrumChart.resize()
-}
-
-watch(
-  () => spectrumDialog.visible,
-  async (visible) => {
-    if (visible && spectrumDialog.data) {
-      await nextTick()
-      renderSpectrumChart()
-    }
-  }
-)
 
 const toggleAudio = (row) => {
   if (!row.audio_url) {
@@ -634,9 +551,6 @@ const toggleAudio = (row) => {
 }
 :deep(.el-table__expand-icon) {
   display: none;
-}
-.spectrum-dialog-body {
-  min-height: 360px;
 }
 .noise-image-wrapper {
   min-height: 200px;
