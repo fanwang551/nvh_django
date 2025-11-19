@@ -20,28 +20,68 @@ const getApiBaseUrl = () => {
  * @returns {string} 完整的图片URL
  */
 export const getImageUrl = (filePath) => {
-  // 如果没有文件路径，返回空字符串
+  // 如果没有文件路径，直接返回空字符串，交给上层通过 v-if 显示“无图”
   if (!filePath) {
     return ''
   }
 
+  // 兼容后端传入非字符串类型（如数字、数组等），避免出现 startsWith 报错
+  let path = typeof filePath === 'string' ? filePath : String(filePath)
+
+  // 如果转换后仍然是空字符串或无效值，直接返回空字符串
+  if (!path || typeof path !== 'string') {
+    return ''
+  }
+
+  // 统一使用正斜杠，避免 Windows 路径分隔符影响 URL
+  path = path.replace(/\\/g, '/')
+
+  // 对包含中文或特殊字符的文件名做安全编码，只编码最后一段文件名，避免路径被整体编码
+  const encodePathFileName = (rawPath) => {
+    const segments = rawPath.split('/')
+    if (!segments.length) return ''
+
+    const fileName = segments.pop()
+    if (!fileName) {
+      return segments.join('/')
+    }
+
+    let encodedFileName
+    try {
+      // 先尝试解码，防止已经编码的路径被二次编码
+      encodedFileName = encodeURIComponent(decodeURIComponent(fileName))
+    } catch {
+      encodedFileName = encodeURIComponent(fileName)
+    }
+
+    return [...segments, encodedFileName].join('/')
+  }
+
   // 如果已经是完整的URL（http或https开头），直接返回
-  if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
-    return filePath
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    try {
+      const url = new URL(path)
+      url.pathname = encodePathFileName(url.pathname)
+      return url.toString()
+    } catch {
+      // 如果 URL 解析失败，退回到简单编码策略
+      return encodePathFileName(path)
+    }
   }
 
   // 如果是以/开头的相对路径，直接返回，让前端同源或网关代理处理（如Vite/Nginx的 /media 反代）
-  if (filePath.startsWith('/')) {
-    return filePath
+  if (path.startsWith('/')) {
+    return `/${encodePathFileName(path.replace(/^\/+/, ''))}`
   }
 
   // 若是常见静态相对路径（不以/开头），补上前导/ 以便同源代理
-  if (filePath.startsWith('media/') || filePath.startsWith('static/')) {
-    return `/${filePath}`
+  if (path.startsWith('media/') || path.startsWith('static/')) {
+    return `/${encodePathFileName(path)}`
   }
 
-  // 如果是相对路径但不以/开头，添加/再拼接
-  return `${getApiBaseUrl()}/${filePath}`
+  // 其他相对路径：拼接后端基础地址，并对文件名做编码
+  const encodedRelativePath = encodePathFileName(path)
+  return `${getApiBaseUrl()}/${encodedRelativePath}`
 }
 
 /**

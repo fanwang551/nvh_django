@@ -93,7 +93,7 @@
           </div>
         </template>
 
-        <div class="table-container">
+          <div class="table-container">
           <el-table
               :data="store.compareResults"
               v-loading="store.compareLoading"
@@ -102,24 +102,42 @@
               border
               :header-cell-style="{ backgroundColor: '#fafafa', color: '#606266', fontWeight: '600', fontSize: '14px' }"
               :scroll-x="true"
-          >
-            <el-table-column prop="vehicle_model_name" label="车型名称" width="180" fixed="left" />
-            <el-table-column
-                v-for="freq in frequencies"
-                :key="freq"
-                :label="`${freq}Hz`"
-                :width="freq >= 1000 ? '90' : '80'"
-                align="center"
             >
-              <template #default="scope">
-                <span class="frequency-value">
-                  {{ formatFrequencyValue(scope.row.frequency_data[`freq_${freq}`]) }}
-                </span>
-              </template>
-            </el-table-column>
-          </el-table>
-        </div>
-      </el-card>
+              <el-table-column prop="vehicle_model_name" label="车型名称" width="180" fixed="left" />
+              <el-table-column
+                  v-for="freq in frequencies"
+                  :key="freq"
+                  :label="`${freq}Hz`"
+                  :width="freq >= 1000 ? '90' : '80'"
+                  align="center"
+              >
+                <template #default="scope">
+                  <span class="frequency-value">
+                    {{ formatFrequencyValue(scope.row.frequency_data[`freq_${freq}`]) }}
+                  </span>
+                </template>
+              </el-table-column>
+              <!-- 详情列：复用图表点击弹窗，表格中也可直接查看测试图 -->
+              <el-table-column
+                  label="详情"
+                  width="100"
+                  align="center"
+                  fixed="right"
+              >
+                <template #default="scope">
+                  <el-button
+                      type="primary"
+                      link
+                      size="small"
+                      @click="showImageDialog(scope.row)"
+                  >
+                    测试图
+                  </el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </el-card>
 
       <!-- 隔声量曲线图 -->
       <el-card class="chart-card" shadow="never">
@@ -160,9 +178,9 @@
         </div>
 
         <div class="image-wrapper">
-          <div v-if="currentImageData.test_image_path" class="image-container">
+          <div v-if="currentTestImagePath" class="image-container">
             <img
-                :src="getImageUrl(currentImageData.test_image_path)"
+                :src="getImageUrl(currentTestImagePath)"
                 :alt="`${currentImageData.vehicle_model_name}测试图片`"
                 class="test-image"
                 @error="handleImageError"
@@ -182,7 +200,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onActivated, onDeactivated, nextTick, watch, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onActivated, onDeactivated, nextTick, watch, onBeforeUnmount } from 'vue'
 import { ElMessage } from 'element-plus'
 import { TrendCharts } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
@@ -201,6 +219,17 @@ const store = useSoundInsulationCompareStore()
 const selectAllVehicles = ref(false)
 const imageDialogVisible = ref(false)
 const currentImageData = ref(null)
+
+// 当前测试图片路径（兼容后端可能返回字符串或数组）
+const currentTestImagePath = computed(() => {
+  const raw = currentImageData.value?.test_image_path
+
+  if (Array.isArray(raw)) {
+    return raw[0] || ''
+  }
+
+  return raw || ''
+})
 
 // 图表相关（组件职责）
 const chartRef = ref(null)
@@ -244,10 +273,21 @@ const updateSelectAllState = () => {
   }
 }
 
-// UI状态管理：显示图片弹窗
+// UI状态管理：显示图片弹窗（支持重复点击同一数据点）
 const showImageDialog = (data) => {
+  if (!data) return
+
   currentImageData.value = data
-  imageDialogVisible.value = true
+
+  // 如果弹窗已经是打开状态，先关闭再在下一帧重新打开，避免某些情况下重复点击不触发展示
+  if (imageDialogVisible.value) {
+    imageDialogVisible.value = false
+    nextTick(() => {
+      imageDialogVisible.value = true
+    })
+  } else {
+    imageDialogVisible.value = true
+  }
 }
 
 // UI状态管理：关闭图片弹窗
@@ -536,7 +576,7 @@ onBeforeUnmount(() => {
 })
 
 // 监听对比结果变化，自动渲染图表
-watch(() => store.compareResult, () => {
+watch(() => store.compareResults, () => {
   if (store.hasResults && chartRef.value) {
     nextTick(() => {
       renderChart()
