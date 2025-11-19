@@ -207,4 +207,5 @@ class DynamicNoiseTableSerializer(serializers.ModelSerializer):
             'noise_analysis_image',
             'audio_file',
             'spectrum_file',
+            'spectrum_image_path',
         )

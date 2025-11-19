@@ -554,6 +554,7 @@ def query_dynamic_noise(request):
         item['noise_analysis_url'] = _build_media_url(obj.noise_analysis_image, request)
         item['audio_url'] = _build_media_url(obj.audio_file, request)
         item['spectrum_url'] = _build_media_url(obj.spectrum_file, request)
+        item['spectrum_image_url'] = _build_media_url(getattr(obj, 'spectrum_image_path', ''), request)
 
     return Response.success(
         data={

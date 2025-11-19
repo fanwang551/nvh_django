@@ -179,7 +179,7 @@
             {{ axisTypeLabel[row.x_axis_type] || '--' }}
           </template>
         </el-table-column>
-        <el-table-column label="详情操作" width="320">
+        <el-table-column label="详情操作" width="400">
           <template #default="{ row }">
             <el-space wrap>
               <el-button
@@ -191,6 +191,15 @@
                 :disabled="!row.spectrum_url"
               >
                 频谱 PPTX
+              </el-button>
+              <el-button
+                size="small"
+                type="warning"
+                :icon="PictureFilled"
+                @click="openSpectrumDialog(row)"
+                :disabled="!row.spectrum_image_url"
+              >
+                频谱预览
               </el-button>
               <el-button
                 size="small"
@@ -246,6 +255,27 @@
       </div>
       <template #footer>
         <el-button @click="noiseDialog.visible = false">关闭</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog
+      v-model="spectrumDialog.visible"
+      width="40%"
+      :title="spectrumDialog.title || '频谱预览'"
+      destroy-on-close
+    >
+      <div class="noise-image-wrapper">
+        <el-image
+          v-if="spectrumDialog.src"
+          :src="spectrumDialog.src"
+          fit="contain"
+          style="width: 100%; max-height: 60vh"
+          :preview-src-list="[spectrumDialog.src]"
+        />
+        <el-empty v-else description="暂无频谱图" />
+      </div>
+      <template #footer>
+        <el-button @click="spectrumDialog.visible = false">关闭</el-button>
       </template>
     </el-dialog>
   </div>
@@ -440,6 +470,12 @@ const noiseDialog = reactive({
   title: ''
 })
 
+const spectrumDialog = reactive({
+  visible: false,
+  src: '',
+  title: ''
+})
+
 const handleSpectrumClick = async (row) => {
   if (!row.spectrum_url) {
     ElMessage.warning('当前数据暂无频谱 PPTX 文件')
@@ -472,6 +508,16 @@ const handleSpectrumClick = async (row) => {
   } finally {
     downloadingSpectrumId.value = null
   }
+}
+
+const openSpectrumDialog = (row) => {
+  if (!row.spectrum_image_url) {
+    ElMessage.warning('当前数据暂无频谱图')
+    return
+  }
+  spectrumDialog.visible = true
+  spectrumDialog.src = row.spectrum_image_url
+  spectrumDialog.title = `${row.vehicle_model_name || ''} ${row.work_condition || ''} ${row.measure_point || ''}`
 }
 
 const openNoiseDialog = (row) => {
