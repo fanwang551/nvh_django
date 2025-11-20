@@ -166,7 +166,7 @@
         <el-table-column type="expand" width="1">
           <template #default="{ row }">
             <div class="audio-player-panel">
-              <audio v-if="row.audio_url" controls :src="row.audio_url" style="width: 100%" />
+              <audio v-if="row.audio_url" controls :src="resolveMediaUrl(row.audio_url)" style="width: 100%" />
               <el-empty v-else description="暂无音频文件" />
             </div>
           </template>
@@ -470,11 +470,29 @@ const noiseDialog = reactive({
   title: ''
 })
 
-const spectrumDialog = reactive({
-  visible: false,
-  src: '',
-  title: ''
-})
+  const spectrumDialog = reactive({
+    visible: false,
+    src: '',
+    title: ''
+  })
+
+  const resolveMediaUrl = (raw) => {
+    if (!raw) return ''
+    try {
+      const base = window.location.origin
+      const url = new URL(raw, base)
+      if (['127.0.0.1', 'localhost'].includes(url.hostname)) {
+        url.protocol = window.location.protocol
+        url.host = window.location.host
+      }
+      return url.href
+    } catch (e) {
+      if (raw.startsWith('/')) {
+        return `${window.location.origin}${raw}`
+      }
+      return raw
+    }
+  }
 
 const handleSpectrumClick = async (row) => {
   if (!row.spectrum_url) {
@@ -510,25 +528,25 @@ const handleSpectrumClick = async (row) => {
   }
 }
 
-const openSpectrumDialog = (row) => {
-  if (!row.spectrum_image_url) {
-    ElMessage.warning('当前数据暂无频谱图')
-    return
+  const openSpectrumDialog = (row) => {
+    if (!row.spectrum_image_url) {
+      ElMessage.warning('当前数据暂无频谱图')
+      return
+    }
+    spectrumDialog.visible = true
+    spectrumDialog.src = resolveMediaUrl(row.spectrum_image_url)
+    spectrumDialog.title = `${row.vehicle_model_name || ''} ${row.work_condition || ''} ${row.measure_point || ''}`
   }
-  spectrumDialog.visible = true
-  spectrumDialog.src = row.spectrum_image_url
-  spectrumDialog.title = `${row.vehicle_model_name || ''} ${row.work_condition || ''} ${row.measure_point || ''}`
-}
 
-const openNoiseDialog = (row) => {
-  if (!row.noise_analysis_url) {
-    ElMessage.warning('当前数据暂无噪声分析图片')
-    return
+  const openNoiseDialog = (row) => {
+    if (!row.noise_analysis_url) {
+      ElMessage.warning('当前数据暂无噪声分析图片')
+      return
+    }
+    noiseDialog.visible = true
+    noiseDialog.src = resolveMediaUrl(row.noise_analysis_url)
+    noiseDialog.title = `${row.vehicle_model_name || ''} ${row.work_condition || ''} ${row.measure_point || ''}`
   }
-  noiseDialog.visible = true
-  noiseDialog.src = row.noise_analysis_url
-  noiseDialog.title = `${row.vehicle_model_name || ''} ${row.work_condition || ''} ${row.measure_point || ''}`
-}
 
 const toggleAudio = (row) => {
   if (!row.audio_url) {
