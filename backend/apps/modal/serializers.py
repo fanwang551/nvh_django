@@ -154,8 +154,7 @@ class AirtightnessImageSerializer(serializers.ModelSerializer):
         model = AirtightnessImage
         fields = [
             'id', 'vehicle_model', 'vehicle_model_name', 'vehicle_model_code',
-            'front_compartment_image', 'door_image', 'tailgate_image',
-            'upload_date', 'notes'
+            'front_compartment_image', 'door_image', 'tailgate_image', 'notes'
         ]
         read_only_fields = ['id']
 

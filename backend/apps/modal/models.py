@@ -127,8 +127,7 @@ class AirtightnessTest(models.Model):
 
     # 备注信息
     notes = models.TextField(null=True, blank=True, verbose_name='备注')
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+
 
     class Meta:
         db_table = 'airtightness_tests'
@@ -152,8 +151,7 @@ class AirtightnessImage(models.Model):
     # 辅助信息
     upload_date = models.DateField(verbose_name='上传日期')
     notes = models.TextField(null=True, blank=True, verbose_name='备注')
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+
 
     class Meta:
         db_table = 'airtightness_images'
