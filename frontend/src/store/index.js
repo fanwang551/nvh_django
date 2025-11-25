@@ -18,12 +18,12 @@ export const useUserStore = defineStore('user', {
     fullName: (state) => {
       const info = state.userInfo
       const user = info?.user
-      // 优先使用 OIDC 返回的规范 name 字段；若包含中文字符，则移除其中的空格
-      if (info?.oidc_info?.name) {
-        const name = info.oidc_info.name || ''
-        const hasCJK = /[\u4E00-\u9FFF]/.test(name)
-        return hasCJK ? name.replace(/\s+/g, '') : name
-      }
+//      // 优先使用 OIDC 返回的规范 name 字段；若包含中文字符，则移除其中的空格
+//      if (info?.oidc_info?.name) {
+//        const name = info.oidc_info.name || ''
+//        const hasCJK = /[\u4E00-\u9FFF]/.test(name)
+//        return hasCJK ? name.replace(/\s+/g, '') : name
+//      }
       // 中文姓名按“姓”+“名”显示（last_name 在前, first_name 在后, 不加空格）
       if (user?.last_name || user?.first_name) {
         return `${user?.last_name || ''}${user?.first_name || ''}`.trim()
