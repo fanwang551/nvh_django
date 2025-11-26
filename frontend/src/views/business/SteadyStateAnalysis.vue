@@ -17,16 +17,40 @@
                 clearable
                 collapse-tags
                 collapse-tags-tooltip
-                filterable
                 @change="onVehicleChange"
                 style="width: 100%"
               >
                 <el-option
-                  v-for="item in vehicleModels"
+                  class="vehicle-model-search-option"
+                  :value="null"
+                >
+                  <div class="vehicle-model-search-input" @mousedown.stop>
+                    <el-input
+                      v-model="vehicleModelSearch"
+                      placeholder="搜索车型..."
+                      clearable
+                      @click.stop
+                      @keydown.stop
+                    >
+                      <template #prefix>
+                        <el-icon><Search /></el-icon>
+                      </template>
+                    </el-input>
+                  </div>
+                </el-option>
+                <el-option
+                  v-for="item in filteredVehicleModels"
                   :key="item.id"
                   :label="item.vehicle_model_name"
                   :value="item.id"
                 />
+                <el-option
+                  v-if="!filteredVehicleModels.length"
+                  :value="null"
+                  disabled
+                >
+                  <span class="vehicle-model-empty">暂无匹配车型</span>
+                </el-option>
               </el-select>
             </el-form-item>
           </el-col>
@@ -127,12 +151,13 @@
 </template>
 
 <script setup>
-import { computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { computed, watch, onMounted, onBeforeUnmount, nextTick, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import * as echarts from 'echarts/core'
 import { LineChart } from 'echarts/charts'
 import { TooltipComponent, LegendComponent, GridComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
+import { Search } from '@element-plus/icons-vue'
 
 import { useSteadyStateAnalysisStore } from '@/store/steadyStateAnalysis'
 
@@ -154,6 +179,17 @@ const {
   isLoading,
   error
 } = storeToRefs(store)
+
+const vehicleModelSearch = ref('')
+const filteredVehicleModels = computed(() => {
+  const keyword = vehicleModelSearch.value.trim().toLowerCase()
+  const list = vehicleModels.value || []
+  if (!keyword) return list
+  return list.filter((item) => {
+    const name = (item?.vehicle_model_name ?? '').toString().toLowerCase()
+    return name.includes(keyword)
+  })
+})
 
 const hasCharts = computed(() => charts.value.length > 0)
 const containerMap = new Map()
@@ -348,5 +384,30 @@ onBeforeUnmount(() => {
   .charts-grid {
     grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
   }
+}
+
+.vehicle-model-search-option {
+  padding: 0;
+  cursor: default;
+}
+.vehicle-model-search-input {
+  width: 100%;
+}
+.vehicle-model-search-input .el-input,
+.vehicle-model-search-input .el-input__wrapper {
+  width: 100%;
+  box-sizing: border-box;
+}
+.vehicle-model-search-input .el-input__wrapper {
+  min-height: var(--el-select-option-height, 34px);
+  padding: 0 12px;
+  box-shadow: none;
+  border-radius: 0;
+}
+.vehicle-model-empty {
+  display: block;
+  padding: 4px 12px;
+  font-size: 12px;
+  color: #909399;
 }
 </style>
