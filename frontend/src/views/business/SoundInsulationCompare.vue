@@ -54,11 +54,36 @@
                   </el-checkbox>
                 </template>
                 <el-option
-                    v-for="vehicle in store.vehicleModels"
+                    class="vehicle-model-search-option"
+                    :value="null"
+                >
+                  <div class="vehicle-model-search-input" @mousedown.stop>
+                    <el-input
+                        v-model="vehicleModelSearch"
+                        placeholder="搜索车型..."
+                        clearable
+                        @click.stop
+                        @keydown.stop
+                    >
+                      <template #prefix>
+                        <el-icon><Search /></el-icon>
+                      </template>
+                    </el-input>
+                  </div>
+                </el-option>
+                <el-option
+                    v-for="vehicle in filteredVehicleModels"
                     :key="vehicle.id"
                     :label="vehicle.vehicle_model_name"
                     :value="vehicle.id"
                 />
+                <el-option
+                    v-if="!filteredVehicleModels.length"
+                    :value="null"
+                    disabled
+                >
+                  <span class="vehicle-model-empty">暂无匹配车型</span>
+                </el-option>
               </el-select>
             </el-form-item>
           </el-col>
@@ -202,7 +227,7 @@
 <script setup>
 import { ref, computed, onMounted, onActivated, onDeactivated, nextTick, watch, onBeforeUnmount } from 'vue'
 import { ElMessage } from 'element-plus'
-import { TrendCharts } from '@element-plus/icons-vue'
+import { Search, TrendCharts } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import { useSoundInsulationCompareStore } from '@/store'
 import { getImageUrl, handleImageError } from '@/utils/imageService'
@@ -214,6 +239,18 @@ defineOptions({
 
 // 使用Pinia store
 const store = useSoundInsulationCompareStore()
+
+const vehicleModelSearch = ref('')
+
+const filteredVehicleModels = computed(() => {
+  const keyword = vehicleModelSearch.value.trim().toLowerCase()
+  const list = store.vehicleModels || []
+  if (!keyword) return list
+  return list.filter((item) => {
+    const name = (item?.vehicle_model_name ?? '').toString().toLowerCase()
+    return name.includes(keyword)
+  })
+})
 
 // UI状态管理（组件职责）
 const selectAllVehicles = ref(false)
@@ -826,6 +863,21 @@ watch(() => store.compareResults, () => {
 .table-container::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
 }
+
+.vehicle-model-search-option { padding: 0; cursor: default; }
+.vehicle-model-search-input { width: 100%; }
+.vehicle-model-search-input .el-input,
+.vehicle-model-search-input .el-input__wrapper {
+  width: 100%;
+  box-sizing: border-box;
+}
+.vehicle-model-search-input .el-input__wrapper {
+  min-height: var(--el-select-option-height, 34px);
+  padding: 0 12px;
+  box-shadow: none;
+  border-radius: 0;
+}
+.vehicle-model-empty { display: block; padding: 4px 12px; font-size: 12px; color: #909399; }
 
 /* 响应式设计 */
   @media (max-width: 1200px) {

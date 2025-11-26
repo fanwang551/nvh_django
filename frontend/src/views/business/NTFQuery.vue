@@ -12,13 +12,30 @@
             v-model="localVehicleIds"
             placeholder="请选择车型（可多选）"
             multiple
-            filterable
             clearable
             :loading="isLoading && !localVehicleIds.length"
             @change="handleVehicleChange"
           >
             <el-option
-              v-for="item in vehicleOptions"
+              class="vehicle-model-search-option"
+              :value="null"
+            >
+              <div class="vehicle-model-search-input" @mousedown.stop>
+                <el-input
+                  v-model="vehicleModelSearch"
+                  placeholder="搜索车型..."
+                  clearable
+                  @click.stop
+                  @keydown.stop
+                >
+                  <template #prefix>
+                    <el-icon><Search /></el-icon>
+                  </template>
+                </el-input>
+              </div>
+            </el-option>
+            <el-option
+              v-for="item in filteredVehicleOptions"
               :key="item.id"
               :label="item.vehicle_model_name"
               :value="item.id"
@@ -187,27 +204,39 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { storeToRefs } from 'pinia'
-import * as echarts from 'echarts/core'
-import { HeatmapChart, CustomChart } from 'echarts/charts'
-import { GridComponent, TooltipComponent, VisualMapComponent, TitleComponent } from 'echarts/components'
-import { CanvasRenderer } from 'echarts/renderers'
-import { useNTFQueryStore } from '@/store'
+  import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+  import { storeToRefs } from 'pinia'
+  import * as echarts from 'echarts/core'
+  import { HeatmapChart, CustomChart } from 'echarts/charts'
+  import { GridComponent, TooltipComponent, VisualMapComponent, TitleComponent } from 'echarts/components'
+  import { CanvasRenderer } from 'echarts/renderers'
+  import { Search } from '@element-plus/icons-vue'
+  import { useNTFQueryStore } from '@/store'
 
 defineOptions({ name: 'NTFQuery' })
 
 const VALUE_LEVEL = { HIGH: 'high', MEDIUM: 'medium', LOW: 'low' }
 
-echarts.use([HeatmapChart, CustomChart, GridComponent, TooltipComponent, VisualMapComponent, TitleComponent, CanvasRenderer])
+  echarts.use([HeatmapChart, CustomChart, GridComponent, TooltipComponent, VisualMapComponent, TitleComponent, CanvasRenderer])
+  
+  const store = useNTFQueryStore()
+  const { vehicleOptions, measurementPointOptions, seatColumns, tableRows, heatmap, isLoading, error, vehicleCards } = storeToRefs(store)
+  
+  const localVehicleIds = ref([])
+  const localPoints = ref([])
+  const localPositions = ref([])
+  const localDirections = ref([])
+  const vehicleModelSearch = ref('')
 
-const store = useNTFQueryStore()
-const { vehicleOptions, measurementPointOptions, seatColumns, tableRows, heatmap, isLoading, error, vehicleCards } = storeToRefs(store)
-
-const localVehicleIds = ref([])
-const localPoints = ref([])
-const localPositions = ref([])
-const localDirections = ref([])
+  const filteredVehicleOptions = computed(() => {
+    const keyword = vehicleModelSearch.value.trim().toLowerCase()
+    const list = vehicleOptions.value || []
+    if (!keyword) return list
+    return list.filter((item) => {
+      const name = (item?.vehicle_model_name ?? '').toString().toLowerCase()
+      return name.includes(keyword)
+    })
+  })
 // 静态的 位置 与 方向 选项（不级联）
 const positionStaticOptions = ['front', 'middle', 'rear']
 const directionStaticOptions = ['x', 'y', 'z']
@@ -657,6 +686,21 @@ function openLayout(url) {
 .ntf-cell--low { color: #67c23a; }
 .level-stats { display: flex; gap: 12px; align-items: center; }
 .level-item strong { margin-right: 4px; }
+
+.vehicle-model-search-option { padding: 0; cursor: default; }
+.vehicle-model-search-input { width: 100%; }
+.vehicle-model-search-input .el-input,
+.vehicle-model-search-input .el-input__wrapper {
+  width: 100%;
+  box-sizing: border-box;
+}
+.vehicle-model-search-input .el-input__wrapper {
+  min-height: var(--el-select-option-height, 34px);
+  padding: 0 12px;
+  box-shadow: none;
+  border-radius: 0;
+}
+.vehicle-model-empty { display: block; padding: 4px 12px; font-size: 12px; color: #909399; }
 
 /* 车辆信息卡片样式 */
 .vehicle-info-card { }

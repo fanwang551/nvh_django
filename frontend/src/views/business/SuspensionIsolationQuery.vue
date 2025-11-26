@@ -22,7 +22,25 @@
                 style="width: 100%"
               >
                 <el-option
-                  v-for="item in store.vehicleModelOptions"
+                  class="vehicle-model-search-option"
+                  :value="null"
+                >
+                  <div class="vehicle-model-search-input" @mousedown.stop>
+                    <el-input
+                      v-model="vehicleModelSearch"
+                      placeholder="搜索车型..."
+                      clearable
+                      @click.stop
+                      @keydown.stop
+                    >
+                      <template #prefix>
+                        <el-icon><Search /></el-icon>
+                      </template>
+                    </el-input>
+                  </div>
+                </el-option>
+                <el-option
+                  v-for="item in filteredVehicleModelOptions"
                   :key="item.id"
                   :label="item.vehicle_model_name"
                   :value="item.id"
@@ -304,6 +322,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Search } from '@element-plus/icons-vue'
 import { useSuspensionIsolationQueryStore } from '@/store/suspensionIsolationQuery'
 
 // 组件名称（用于keep-alive缓存）
@@ -313,6 +332,18 @@ defineOptions({
 
 // 使用Pinia store
 const store = useSuspensionIsolationQueryStore()
+
+const vehicleModelSearch = ref('')
+
+const filteredVehicleModelOptions = computed(() => {
+  const keyword = vehicleModelSearch.value.trim().toLowerCase()
+  const list = store.vehicleModelOptions || []
+  if (!keyword) return list
+  return list.filter((item) => {
+    const name = (item?.vehicle_model_name ?? '').toString().toLowerCase()
+    return name.includes(keyword)
+  })
+})
 
 // UI状态管理（组件职责）
 const selectAllMeasuringPoints = ref(false)
@@ -624,6 +655,21 @@ onMounted(async () => {
 .result-table :deep(.el-table__row:hover > td) {
   background-color: #f5f7fa !important;
 }
+
+.vehicle-model-search-option { padding: 0; cursor: default; }
+.vehicle-model-search-input { width: 100%; }
+.vehicle-model-search-input .el-input,
+.vehicle-model-search-input .el-input__wrapper {
+  width: 100%;
+  box-sizing: border-box;
+}
+.vehicle-model-search-input .el-input__wrapper {
+  min-height: var(--el-select-option-height, 34px);
+  padding: 0 12px;
+  box-shadow: none;
+  border-radius: 0;
+}
+.vehicle-model-empty { display: block; padding: 4px 12px; font-size: 12px; color: #909399; }
 
 /* 图片弹窗样式 */
 .image-dialog :deep(.el-dialog__body) {
