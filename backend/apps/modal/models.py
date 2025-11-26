@@ -142,14 +142,14 @@ class AirtightnessTest(models.Model):
 class AirtightnessImage(models.Model):
     """气密性测试图片表"""
     vehicle_model = models.ForeignKey(VehicleModel, on_delete=models.CASCADE, verbose_name='车型')
-
+    test_date = models.DateField(null=True, blank=True,verbose_name='测试日期')
+    test_engineer = models.CharField(max_length=50,null=True, blank=True, verbose_name='测试工程师')
+    test_location = models.CharField(max_length=100, null=True, blank=True, verbose_name='测试地点')
     # 三个位置的图片路径
     front_compartment_image = models.CharField(max_length=255, null=True, blank=True, verbose_name='前舱图片路径')
     door_image = models.CharField(max_length=255, null=True, blank=True, verbose_name='车门图片路径')
     tailgate_image = models.CharField(max_length=255, null=True, blank=True, verbose_name='尾门图片路径')
 
-    # 辅助信息
-    upload_date = models.DateField(verbose_name='上传日期')
     notes = models.TextField(null=True, blank=True, verbose_name='备注')
 
 
