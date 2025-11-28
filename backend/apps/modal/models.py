@@ -15,7 +15,9 @@ class VehicleModel(models.Model):
     suspension_type = models.CharField(max_length=50, null=True, blank=True, verbose_name='悬挂形式')
     sunroof_type = models.CharField(max_length=50, null=True, blank=True, verbose_name='天窗形式')
     seat_count = models.PositiveSmallIntegerField(null=True, blank=True, verbose_name='座位数')
-
+    subframe_type = models.CharField(max_length=50, null=True, blank=True, verbose_name='副车架形式')
+    front_windshield = models.CharField(max_length=50, null=True, blank=True, verbose_name='前挡玻璃')
+    side_door_glass = models.CharField(max_length=50, null=True, blank=True, verbose_name='侧门玻璃')
     STATUS_CHOICES = [
         ('active', '激活'),
         ('inactive', '未激活'),

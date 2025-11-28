@@ -22,6 +22,7 @@ class WheelPerformance(models.Model):
     rim_stiffness_test_image_url = models.CharField(max_length=255, verbose_name='轮辋刚度测试图 URL')
     force_transfer_first_peak = models.DecimalField(max_digits=7, decimal_places=3, verbose_name='力传递一阶峰值')
     force_transfer_test_image_url = models.CharField(max_length=255, verbose_name='力传递测试图 URL')
+    # {"dB":[],"frequency":[]}
     force_transfer_signal = models.JSONField(default=list, verbose_name='力传递一阶曲线信号')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')

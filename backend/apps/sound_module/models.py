@@ -43,15 +43,13 @@ class SoundInsulationData(models.Model):
     freq_10000 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name='10000Hz隔声量(dB)')
 
     # 测试相关信息
-    # 改为JSON数组，支持多张图片路径
-    test_image_path = models.JSONField(default=list, null=True, blank=True, verbose_name='测试图片路径列表')
+    test_image_path = models.CharField(max_length=500, null=True, blank=True, verbose_name='测试图片路径')
     test_date = models.DateField(null=True, blank=True, verbose_name='测试日期')
     test_location = models.CharField(max_length=100, null=True, blank=True, verbose_name='测试地点')
     test_engineer = models.CharField(max_length=50, null=True, blank=True, verbose_name='测试工程师')
     remarks = models.TextField(null=True, blank=True, verbose_name='备注')
 
     # 时间戳
-
     class Meta:
         db_table = 'sound_insulation_data'
         verbose_name = '隔声量数据'
@@ -66,7 +64,7 @@ class SoundInsulationData(models.Model):
 class VehicleSoundInsulationData(models.Model):
     """车型隔声量数据表"""
     vehicle_model = models.ForeignKey(VehicleModel, on_delete=models.CASCADE, verbose_name='车型')
-
+    sound_insulation_performance = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name='隔声性能')
     # 18个频率的隔声量数据
     freq_200 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name='200Hz隔声量(dB)')
     freq_250 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name='250Hz隔声量(dB)')
@@ -130,7 +128,7 @@ class VehicleReverberationData(models.Model):
     freq_10000 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name='10000Hz混响时间(s)')
 
     # 测试相关信息
-    test_image_path = models.CharField(max_length=500, null=True, blank=True, verbose_name='测试图片路径')
+    test_image_path = models.JSONField(default=list, null=True, blank=True, verbose_name='测试图片路径列表')
     test_date = models.DateField(null=True, blank=True, verbose_name='测试日期')
     test_location = models.CharField(max_length=100, null=True, blank=True, verbose_name='测试地点')
     test_engineer = models.CharField(max_length=50, null=True, blank=True, verbose_name='测试工程师')
