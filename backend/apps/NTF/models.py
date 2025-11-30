@@ -11,7 +11,7 @@ class NTFInfo(models.Model):
         verbose_name='车型信息'
     )
     tester = models.CharField(max_length=50, null=True, blank=True, verbose_name='测试人员')
-    test_time = models.DateTimeField(null=True, blank=True, verbose_name='测试时间')
+    test_time = models.DateField(null=True, blank=True, verbose_name='测试日期')
     location = models.CharField(max_length=100, null=True, blank=True, verbose_name='测试地点')
 
     
