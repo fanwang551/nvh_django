@@ -17,6 +17,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('health/', health_check, name='health_check'),
     path('api/users/', include('apps.users.urls')),
+    path('api/nvh-dashboard/', include('apps.nvh_dashboard.urls')),
     path('api/modal/', include('apps.modal.urls')),
     path('api/sound-insulation/', include('apps.sound_module.urls')),
     path('api/dynamic-stiffness/', include('apps.dynamic_stiffness.urls')),

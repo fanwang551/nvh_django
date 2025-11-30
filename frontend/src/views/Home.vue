@@ -1,25 +1,24 @@
 <template>
   <div class="screen">
-    <!-- 顶部欢迎与时间 -->
-    <section class="hero">
-      <div class="hero-left">
-        <h1 class="title">NVH 数字化大屏</h1>
-        <p class="subtitle">
-          欢迎回来，{{ userStore.fullName || userStore.username || '用户' }} · {{ currentDateTime }}
-        </p>
-        <div class="cta-group">
-          <el-button type="primary" :icon="OfficeBuilding" @click="goToBusiness">进入业务中心</el-button>
-          <el-button type="info" :icon="Setting" @click="goToPermission">权限管理</el-button>
-          <el-button type="success" :icon="Refresh" @click="reloadAll">刷新数据</el-button>
+    <!-- Row 1: 顶部欢迎 + KPI -->
+    <section class="row row-top">
+      <div class="hero">
+        <div class="hero-left">
+          <h1 class="title">NVH 综合试验数据大屏</h1>
+          <p class="subtitle">
+            欢迎回来，{{ userStore.fullName || userStore.username || '用户' }} · {{ currentDateTime }}
+          </p>
+          <div class="cta-group">
+            <el-button type="primary" :icon="OfficeBuilding" @click="goToBusiness">进入业务中心</el-button>
+            <el-button type="info" :icon="Setting" @click="goToPermission">权限管理</el-button>
+            <el-button type="success" :icon="Refresh" @click="reloadAll">刷新数据</el-button>
+          </div>
+        </div>
+        <div class="hero-right">
+          <el-avatar :size="72" class="avatar" :icon="UserFilled" />
         </div>
       </div>
-      <div class="hero-right">
-        <el-avatar :size="72" class="avatar" :icon="UserFilled" />
-      </div>
-    </section>
 
-    <!-- 关键指标 -->
-    <section class="kpi">
       <div class="kpi-grid">
         <div class="kpi-card" v-for="card in kpiCards" :key="card.key">
           <div class="kpi-icon" :style="{ background: card.bg }">
@@ -35,21 +34,79 @@
       </div>
     </section>
 
-    <!-- 图表区 -->
-    <section class="charts">
-      <div class="chart-grid">
-        <div class="chart-card">
-          <div class="chart-title">NTF 测试次数（月度）</div>
-          <div ref="ntfMonthlyRef" class="chart-box"></div>
+    <!-- Row 2: 趋势与分布 -->
+    <section class="row grid-2 trend-row">
+      <div class="chart-card">
+        <div class="chart-title">总试验数据月度趋势（最近36个月）</div>
+        <div ref="trendRef" class="chart-box"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">各类试验数据量分布</div>
+        <div ref="distributionRef" class="chart-box"></div>
+      </div>
+    </section>
+
+    <!-- Row 3: 最新车型性能看板（滚动表格） -->
+    <section class="row">
+      <div class="table-card">
+        <div class="card-header">
+          <div>
+            <div class="card-title-main">最新车型性能看板</div>
+            <div class="card-subtitle-main">数据来源：气密性 / 整车隔声试验</div>
+          </div>
+          <div class="card-extra">鼠标悬停停止滚动</div>
         </div>
-        <div class="chart-card">
-          <div class="chart-title">车型能源类型分布</div>
-          <div ref="energyPieRef" class="chart-box"></div>
+        <div
+          class="table-body"
+          @mouseenter="pauseTableScroll"
+          @mouseleave="resumeTableScroll"
+        >
+          <el-table
+            :data="visibleVehicleRows"
+            border
+            stripe
+            size="small"
+            :header-cell-style="{ background: '#f5f7fa', color: '#606266' }"
+          >
+            <el-table-column prop="vehicle_model_name" label="车型名称" min-width="120" />
+            <el-table-column prop="production_year" label="生产年份" width="90" />
+            <el-table-column label="驱动 / 悬挂" min-width="150">
+              <template #default="{ row }">
+                {{ formatDriveSuspension(row) }}
+              </template>
+            </el-table-column>
+            <el-table-column label="配置" min-width="200" show-overflow-tooltip>
+              <template #default="{ row }">
+                {{ row.configuration || '-' }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="uncontrolled_leakage" label="气密性 (SCFM)" min-width="120">
+              <template #default="{ row }">
+                {{ formatDecimal(row.uncontrolled_leakage) }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="sound_insulation_performance" label="隔声性能 (dB)" min-width="120">
+              <template #default="{ row }">
+                {{ formatDecimal(row.sound_insulation_performance) }}
+              </template>
+            </el-table-column>
+          </el-table>
+          <div v-if="!vehiclePerformance.length" class="empty-tip">暂无车型性能数据</div>
         </div>
-        <div class="chart-card span-2">
-          <div class="chart-title">轮胎品牌分布（Top 8）</div>
-          <div ref="wheelBrandRef" class="chart-box"></div>
-        </div>
+      </div>
+    </section>
+
+    <!-- Row 4: 专项分析（雷达图 + 气味柱状图） -->
+    <section class="row grid-2 row-bottom">
+      <div class="chart-card">
+        <div class="chart-title">整车噪声工况分析（RMS）</div>
+        <div class="chart-subtitle">轮播展示最近 3 个车型</div>
+        <div ref="radarRef" class="chart-box"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">整车气味评测（最近5个样品）</div>
+        <div class="chart-subtitle">静态/动态前后排及均值</div>
+        <div ref="odorRef" class="chart-box"></div>
       </div>
     </section>
   </div>
@@ -67,13 +124,12 @@ import {
   Refresh,
   TrendCharts,
   PieChart,
-  ShoppingBag
+  Histogram,
+  Tickets
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store'
 import { userApi } from '@/api/user'
-import { modalApi } from '@/api/modal'
-import { NtfApi } from '@/api/NTF'
-import wheelPerformanceApi from '@/api/wheelPerformance'
+import { dashboardApi } from '@/api/dashboard'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -87,19 +143,64 @@ const currentDateTime = computed(() => {
 
 // KPI 数据
 const kpiCards = ref([
-  { key: 'vehicles', label: '车型总数', value: 0, icon: ShoppingBag, bg: 'linear-gradient(135deg,#5b8ff9,#3b76f6)' },
-  { key: 'ntf', label: 'NTF测试次数', value: 0, icon: TrendCharts, bg: 'linear-gradient(135deg,#34d399,#10b981)' },
-  { key: 'wheels', label: '车轮性能条目', value: 0, icon: TrendCharts, bg: 'linear-gradient(135deg,#fbbf24,#f59e0b)' },
-  { key: 'airtight', label: '气密性图片', value: 0, icon: PieChart, bg: 'linear-gradient(135deg,#f87171,#ef4444)' }
+  {
+    key: 'total_tests',
+    label: '总试验数',
+    value: 0,
+    icon: TrendCharts,
+    bg: 'linear-gradient(135deg,#2563eb,#3b82f6)'
+  },
+  {
+    key: 'year_tests',
+    label: '本年度试验数',
+    value: 0,
+    icon: Histogram,
+    bg: 'linear-gradient(135deg,#22c55e,#16a34a)'
+  },
+  {
+    key: 'vehicle_models',
+    label: '车型库总数',
+    value: 0,
+    icon: Tickets,
+    bg: 'linear-gradient(135deg,#f97316,#ea580c)'
+  },
+  {
+    key: 'samples',
+    label: '样品总数',
+    value: 0,
+    icon: PieChart,
+    bg: 'linear-gradient(135deg,#ec4899,#db2777)'
+  }
 ])
 
 // 图表 refs
-const ntfMonthlyRef = ref(null)
-const energyPieRef = ref(null)
-const wheelBrandRef = ref(null)
-let ntfMonthlyChart = null
-let energyPieChart = null
-let wheelBrandChart = null
+const trendRef = ref(null)
+const distributionRef = ref(null)
+const radarRef = ref(null)
+const odorRef = ref(null)
+
+let trendChart = null
+let distributionChart = null
+let radarChart = null
+let odorChart = null
+
+// 车型性能滚动表
+const vehiclePerformance = ref([])
+const tableScrollOffset = ref(0)
+const tableScrollPaused = ref(false)
+const visibleRowsCount = 8
+let tableScrollTimer = null
+
+const repeatedVehicleRows = computed(() => {
+  if (!vehiclePerformance.value.length) return []
+  return [...vehiclePerformance.value, ...vehiclePerformance.value]
+})
+
+const visibleVehicleRows = computed(() => {
+  const start = tableScrollOffset.value
+  const end = start + visibleRowsCount
+  return repeatedVehicleRows.value.slice(start, end)
+})
 
 // 路由
 const goToBusiness = () => router.push('/business')
@@ -118,133 +219,250 @@ const refreshUserInfo = async () => {
 // 加载并渲染数据
 const reloadAll = async () => {
   try {
-    const [vehiclesRes, ntfRes, wheelRes, airImgRes] = await Promise.all([
-      modalApi.getVehicleModels(),
-      NtfApi.getInfos(),
-      wheelPerformanceApi.getWheelPerformanceList(),
-      modalApi.getAirtightnessImages()
-    ])
+    const res = await dashboardApi.getHomeDashboard()
+    const data = res?.data || {}
 
-    const vehicles = vehiclesRes?.data || []
-    const ntfInfos = ntfRes?.data || []
-    const wheels = wheelRes?.data || []
-    const airtightImgs = airImgRes?.data || []
+    // KPI
+    const kpis = data.kpis || {}
+    kpiCards.value = kpiCards.value.map(card => ({
+      ...card,
+      value: kpis[card.key] ?? 0
+    }))
 
-    // KPI 更新
-    setKpi('vehicles', vehicles.length)
-    setKpi('ntf', ntfInfos.length)
-    setKpi('wheels', wheels.length)
-    setKpi('airtight', airtightImgs.length)
+    // 车型性能表
+    vehiclePerformance.value = data.vehicle_performance || []
+    resetTableScroll()
 
     await nextTick()
-    // 渲染图表
-    renderNtfMonthly(ntfInfos)
-    renderEnergyPie(vehicles)
-    renderWheelBrandBar(wheels)
 
-  } catch (error) {
-    console.error('加载数据失败', error)
-    ElMessage.error('加载数据失败，请稍后重试')
+    renderTrendChart(data.trend_36_months || {})
+    renderDistributionChart(data.test_type_distribution || [])
+    renderRadarChart(data.noise_radar || {})
+    renderOdorChart(data.odor_bars || [])
+  } catch (err) {
+    console.error(err)
+    ElMessage.error('加载首页数据失败')
   }
 }
 
-function setKpi(key, value) {
-  const item = kpiCards.value.find(i => i.key === key)
-  if (item) item.value = value || 0
+// 格式化
+const formatNumber = (val) => {
+  if (val == null || isNaN(val)) return 0
+  if (val >= 10000) {
+    return (val / 10000).toFixed(1) + '万'
+  }
+  return val
 }
 
-function formatNumber(n) {
-  if (n == null) return 0
-  if (n > 10000) return (n / 10000).toFixed(1) + '万'
-  return n
+const formatDecimal = (value) => {
+  if (value == null || isNaN(value)) return '-'
+  return Number(value).toFixed(1)
 }
 
-// 图表：NTF 月度次数
-function renderNtfMonthly(list) {
-  if (!ntfMonthlyChart) ntfMonthlyChart = echarts.init(ntfMonthlyRef.value)
-  const map = new Map()
-  list.forEach(it => {
-    const t = it.test_time || it.testTime
-    if (!t) return
-    const d = new Date(t)
-    if (isNaN(d)) return
-    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`
-    map.set(key, (map.get(key) || 0) + 1)
-  })
-  const months = Array.from(map.keys()).sort()
-  const values = months.map(m => map.get(m))
-  ntfMonthlyChart.setOption({
-    grid: { left: 40, right: 20, top: 30, bottom: 30 },
-    xAxis: { type: 'category', data: months, axisLabel: { color: '#a6b1c2' } },
-    yAxis: { type: 'value', axisLabel: { color: '#a6b1c2' }, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } } },
+// 图表：月度趋势
+function renderTrendChart(trend) {
+  if (!trendRef.value) return
+  if (!trendChart) trendChart = echarts.init(trendRef.value)
+  const months = trend.months || []
+  const counts = trend.counts || []
+  trendChart.setOption({
+    grid: { left: 50, right: 20, top: 30, bottom: 40 },
+    xAxis: {
+      type: 'category',
+      data: months,
+      axisLabel: { color: '#6b7280', rotate: 40 }
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { color: '#6b7280' },
+      splitLine: { lineStyle: { color: '#e5e7eb' } }
+    },
     tooltip: { trigger: 'axis' },
-    series: [{
-      type: 'bar',
-      data: values,
-      barWidth: 18,
-      itemStyle: {
-        color: new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#5b8ff9'},{offset:1,color:'#3b76f6'}])
+    series: [
+      {
+        type: 'line',
+        data: counts,
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 6,
+        lineStyle: { color: '#2563eb' },
+        itemStyle: { color: '#2563eb' },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(37,99,235,0.35)' },
+            { offset: 1, color: 'rgba(37,99,235,0.02)' }
+          ])
+        }
       }
-    }]
+    ]
   })
 }
 
-// 图表：能源类型
-function renderEnergyPie(list) {
-  if (!energyPieChart) energyPieChart = echarts.init(energyPieRef.value)
-  const count = {}
-  list.forEach(v => {
-    const k = v.energy_type || v.energyType || '未知'
-    count[k] = (count[k] || 0) + 1
-  })
-  const data = Object.entries(count).map(([name, value]) => ({ name, value }))
-  energyPieChart.setOption({
-    tooltip: { trigger: 'item' },
-    legend: { top: '5%', textStyle: { color: '#a6b1c2' } },
-    series: [{
-      name: '能源类型',
-      type: 'pie',
-      radius: ['35%', '60%'],
-      center: ['50%','55%'],
-      roseType: false,
-      label: { color: '#c7d0dd' },
-      data
-    }]
-  })
-}
-
-// 图表：轮胎品牌 Top8
-function renderWheelBrandBar(list) {
-  if (!wheelBrandChart) wheelBrandChart = echarts.init(wheelBrandRef.value)
-  const m = new Map()
-  list.forEach(w => {
-    const k = (w.tire_brand || '').trim() || '未知'
-    m.set(k, (m.get(k) || 0) + 1)
-  })
-  const arr = Array.from(m.entries()).sort((a,b) => b[1]-a[1]).slice(0,8)
-  const names = arr.map(a => a[0])
-  const vals = arr.map(a => a[1])
-  wheelBrandChart.setOption({
-    grid: { left: 80, right: 20, top: 30, bottom: 30 },
-    xAxis: { type: 'value', axisLabel: { color: '#a6b1c2' }, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } } },
-    yAxis: { type: 'category', data: names, axisLabel: { color: '#a6b1c2' } },
+// 图表：试验类型分布
+function renderDistributionChart(list) {
+  if (!distributionRef.value) return
+  if (!distributionChart) distributionChart = echarts.init(distributionRef.value)
+  const names = list.map(item => item.label)
+  const values = list.map(item => item.count || 0)
+  distributionChart.setOption({
+    grid: { left: 120, right: 20, top: 20, bottom: 30 },
+    xAxis: {
+      type: 'value',
+      axisLabel: { color: '#6b7280' },
+      splitLine: { lineStyle: { color: '#e5e7eb' } }
+    },
+    yAxis: {
+      type: 'category',
+      data: names,
+      axisLabel: { color: '#4b5563' }
+    },
     tooltip: { trigger: 'axis' },
-    series: [{
-      type: 'bar',
-      data: vals,
-      barWidth: 14,
-      itemStyle: {
-        color: new echarts.graphic.LinearGradient(1,0,0,0,[{offset:0,color:'#f59e0b'},{offset:1,color:'#fbbf24'}])
+    series: [
+      {
+        type: 'bar',
+        data: values,
+        barWidth: 18,
+        itemStyle: {
+          color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [
+            { offset: 0, color: '#0ea5e9' },
+            { offset: 1, color: '#22c55e' }
+          ])
+        }
       }
-    }]
+    ]
   })
+}
+
+// 图表：噪声雷达图
+function renderRadarChart(noiseRadar) {
+  if (!radarRef.value) return
+  if (!radarChart) radarChart = echarts.init(radarRef.value)
+  const conditions = noiseRadar.conditions || []
+  const series = noiseRadar.series || []
+  const indicators = conditions.map(item => ({
+    name: item.label || item.work_condition || `工况${item.id}`,
+    max: 100
+  }))
+
+  const seriesData = series.map(item => ({
+    name: item.vehicle_model_name,
+    value: (item.values || []).map(v => (v == null ? 0 : Number(v)))
+  }))
+
+  radarChart.setOption({
+    tooltip: {},
+    legend: {
+      data: series.map(s => s.vehicle_model_name),
+      bottom: 0,
+      textStyle: { color: '#4b5563' }
+    },
+    radar: {
+      indicator: indicators,
+      radius: '60%',
+      splitLine: { lineStyle: { color: ['#e5e7eb'] } },
+      splitArea: { areaStyle: { color: ['#f9fafb', '#eff6ff'] } },
+      axisLine: { lineStyle: { color: '#cbd5f5' } }
+    },
+    series: [
+      {
+        type: 'radar',
+        data: seriesData,
+        areaStyle: { opacity: 0.15 }
+      }
+    ]
+  })
+}
+
+// 图表：整车气味柱状图
+function renderOdorChart(odorBars) {
+  if (!odorRef.value) return
+  if (!odorChart) odorChart = echarts.init(odorRef.value)
+  const xLabels = ['静态前排', '动态前排', '静态后排', '动态后排', '均值']
+  const series = odorBars.map(sample => ({
+    name: sample.project_name || sample.part_name || `样品${sample.id}`,
+    type: 'bar',
+    data: [
+      Number(sample.odor_static_front || 0),
+      Number(sample.odor_dynamic_front || 0),
+      Number(sample.odor_static_rear || 0),
+      Number(sample.odor_dynamic_rear || 0),
+      Number(sample.odor_mean || 0)
+    ]
+  }))
+
+  odorChart.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: {
+      data: series.map(s => s.name),
+      top: 0,
+      textStyle: { color: '#4b5563' }
+    },
+    grid: { left: 60, right: 20, top: 40, bottom: 40 },
+    xAxis: {
+      type: 'category',
+      data: xLabels,
+      axisLabel: { color: '#4b5563' }
+    },
+    yAxis: {
+      type: 'value',
+      min: 0,
+      max: 10,
+      axisLabel: { color: '#6b7280' },
+      splitLine: { lineStyle: { color: '#e5e7eb' } }
+    },
+    series
+  })
+}
+
+// 车型性能辅助
+const formatDriveSuspension = (row) => {
+  const drive = row.drive_type || '—'
+  const suspension = row.suspension_type || '—'
+  return `${drive} / ${suspension}`
+}
+
+// 表格滚动控制
+function resetTableScroll() {
+  clearTableScrollTimer()
+  tableScrollOffset.value = 0
+  if (vehiclePerformance.value.length > visibleRowsCount) {
+    startTableScroll()
+  }
+}
+
+function startTableScroll() {
+  if (tableScrollTimer || tableScrollPaused.value) return
+  tableScrollTimer = setInterval(() => {
+    const total = vehiclePerformance.value.length
+    if (total <= visibleRowsCount) return
+    const maxOffset = total
+    tableScrollOffset.value = (tableScrollOffset.value + 1) % maxOffset
+  }, 2500)
+}
+
+function clearTableScrollTimer() {
+  if (tableScrollTimer) {
+    clearInterval(tableScrollTimer)
+    tableScrollTimer = null
+  }
+}
+
+function pauseTableScroll() {
+  tableScrollPaused.value = true
+  clearTableScrollTimer()
+}
+
+function resumeTableScroll() {
+  tableScrollPaused.value = false
+  startTableScroll()
 }
 
 // 自适应
 function handleResize() {
-  ntfMonthlyChart && ntfMonthlyChart.resize()
-  energyPieChart && energyPieChart.resize()
-  wheelBrandChart && wheelBrandChart.resize()
+  trendChart && trendChart.resize()
+  distributionChart && distributionChart.resize()
+  radarChart && radarChart.resize()
+  odorChart && odorChart.resize()
 }
 
 onMounted(async () => {
@@ -255,9 +473,11 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', handleResize)
-  ntfMonthlyChart && ntfMonthlyChart.dispose()
-  energyPieChart && energyPieChart.dispose()
-  wheelBrandChart && wheelBrandChart.dispose()
+  trendChart && trendChart.dispose()
+  distributionChart && distributionChart.dispose()
+  radarChart && radarChart.dispose()
+  odorChart && odorChart.dispose()
+  clearTableScrollTimer()
 })
 </script>
 
@@ -270,6 +490,35 @@ onBeforeUnmount(() => {
               linear-gradient(180deg, #f9fbff 0%, #f6f7fb 100%);
 }
 
+.row {
+  margin-top: 16px;
+}
+
+.row:first-of-type {
+  margin-top: 0;
+}
+
+.row-top {
+  display: grid;
+  grid-template-columns: minmax(420px, 460px) 1fr;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.row.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.trend-row .chart-card {
+  height: 100%;
+}
+
+.row-bottom .chart-card {
+  height: 100%;
+}
+
 .hero {
   display: flex;
   justify-content: space-between;
@@ -277,16 +526,16 @@ onBeforeUnmount(() => {
   gap: 16px;
   padding: 16px 20px;
   border-radius: 16px;
-  background: rgba(255,255,255,0.7);
+  background: rgba(255,255,255,0.86);
   backdrop-filter: blur(6px);
-  border: 1px solid rgba(255,255,255,0.6);
+  border: 1px solid rgba(226,232,240,0.9);
 }
+
 .title { margin: 0; font-size: 28px; color: #1f2d3d; }
 .subtitle { margin: 6px 0 0 0; color: #606266; }
 .cta-group { margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; }
 .avatar { box-shadow: 0 6px 20px rgba(0,0,0,0.08); }
 
-.kpi { margin-top: 16px; }
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0,1fr));
@@ -311,12 +560,6 @@ onBeforeUnmount(() => {
 .kpi-label { color: #8a93a6; font-size: 12px; }
 .kpi-value { color: #1f2d3d; font-size: 20px; font-weight: 700; }
 
-.charts { margin-top: 16px; }
-.chart-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0,1fr));
-  gap: 12px;
-}
 .chart-card {
   background: #ffffff;
   border: 1px solid #eef0f5;
@@ -326,13 +569,65 @@ onBeforeUnmount(() => {
   transition: border-color .2s ease, box-shadow .2s ease;
 }
 .chart-card:hover { border-color: #d7e3ff; box-shadow: 0 8px 20px rgba(59,118,246,0.08); }
-.chart-card.span-2 { grid-column: span 2; }
-.chart-title { color: #2b3a55; font-weight: 600; margin-bottom: 8px; }
+.chart-title { color: #2b3a55; font-weight: 600; margin-bottom: 4px; }
+.chart-subtitle { color: #9ca3af; font-size: 12px; margin-bottom: 4px; }
 .chart-box { width: 100%; height: 260px; }
 
+.table-card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #eef0f5;
+  padding: 12px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.card-title-main {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.card-subtitle-main {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.card-extra {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.table-body {
+  position: relative;
+}
+
+.empty-tip {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: #9ca3af;
+}
+
 @media (max-width: 992px) {
-  .kpi-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
-  .chart-grid { grid-template-columns: 1fr; }
-  .chart-card.span-2 { grid-column: auto; }
+  .row-top {
+    grid-template-columns: 1fr;
+  }
+  .kpi-grid {
+    grid-template-columns: repeat(2, minmax(0,1fr));
+  }
+  .row.grid-2 {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
+
