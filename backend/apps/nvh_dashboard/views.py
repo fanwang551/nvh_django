@@ -8,7 +8,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 
 from utils.response import Response
-from apps.modal.models import AirtightnessTest, VehicleModel
+from apps.modal.models import AirtightnessImage, AirtightnessTest, VehicleModel
 from apps.sound_module.models import (
     SoundInsulationData,
     VehicleSoundInsulationData,
@@ -101,6 +101,11 @@ def home_dashboard(request):
         month_counter: Counter[str] = Counter()
 
         def add_month_counts(qs, date_field: str):
+            """
+            通用的月度计数聚合工具：
+            - 按月份对给定 queryset 进行分组
+            - 将每月记录数累加进 month_counter
+            """
             annotated = (
                 qs.annotate(month=TruncMonth(date_field))
                 .values('month')
@@ -113,12 +118,16 @@ def home_dashboard(request):
                 label = month.strftime('%Y-%m')
                 month_counter[label] += item['count']
 
+        # 1、月度趋势图统计来源：
+        # AirtightnessTest，AirtightnessImage，VehicleReverberationData，
+        # SoundInsulationData，VehicleSoundInsulationData，SampleInfo，NTFInfo
         add_month_counts(AirtightnessTest.objects.all(), 'test_date')
-        add_month_counts(VehicleSoundInsulationData.objects.all(), 'test_date')
-        add_month_counts(AcousticTestData.objects.all(), 'test_date')
-        add_month_counts(NTFInfo.objects.all(), 'test_time')
-        add_month_counts(SampleInfo.objects.all(), 'test_date')
+        add_month_counts(AirtightnessImage.objects.all(), 'test_date')
         add_month_counts(VehicleReverberationData.objects.all(), 'test_date')
+        add_month_counts(SoundInsulationData.objects.all(), 'test_date')
+        add_month_counts(VehicleSoundInsulationData.objects.all(), 'test_date')
+        add_month_counts(SampleInfo.objects.all(), 'test_date')
+        add_month_counts(NTFInfo.objects.all(), 'test_time')
 
         month_labels = _build_month_labels(today, months=36)
         trend_counts = [int(month_counter.get(label, 0)) for label in month_labels]
@@ -272,6 +281,8 @@ def home_dashboard(request):
             {
                 'id': sample.id,
                 'project_name': sample.project_name,
+                'development_stage': sample.development_stage,
+                'status': sample.status,
                 'part_name': sample.part_name,
                 'test_date': sample.test_date,
                 'odor_static_front': sample.odor_static_front,

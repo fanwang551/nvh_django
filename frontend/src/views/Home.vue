@@ -3,19 +3,21 @@
     <!-- Row 1: 顶部欢迎 + KPI -->
     <section class="row row-top">
       <div class="hero">
-        <div class="hero-left">
+        <div class="hero-main">
           <h1 class="title">NVH 综合试验数据大屏</h1>
           <p class="subtitle">
             欢迎回来，{{ userStore.fullName || userStore.username || '用户' }} · {{ currentDateTime }}
           </p>
           <div class="cta-group">
-            <el-button type="primary" :icon="OfficeBuilding" @click="goToBusiness">进入业务中心</el-button>
-            <el-button type="info" :icon="Setting" @click="goToPermission">权限管理</el-button>
-            <el-button type="success" :icon="Refresh" @click="reloadAll">刷新数据</el-button>
+            <el-button
+              class="hero-button"
+              type="primary"
+              :icon="OfficeBuilding"
+              @click="goToBusiness"
+            >
+              进入业务中心
+            </el-button>
           </div>
-        </div>
-        <div class="hero-right">
-          <el-avatar :size="72" class="avatar" :icon="UserFilled" />
         </div>
       </div>
 
@@ -354,11 +356,16 @@ function renderRadarChart(noiseRadar) {
     legend: {
       data: series.map(s => s.vehicle_model_name),
       bottom: 0,
-      textStyle: { color: '#4b5563' }
+      textStyle: { color: '#111827', fontSize: 12 }
     },
     radar: {
       indicator: indicators,
-      radius: '60%',
+      radius: '72%',
+      axisName: {
+        color: '#111827',
+        fontSize: 13,
+        fontWeight: '600'
+      },
       splitLine: { lineStyle: { color: ['#e5e7eb'] } },
       splitArea: { areaStyle: { color: ['#f9fafb', '#eff6ff'] } },
       axisLine: { lineStyle: { color: '#cbd5f5' } }
@@ -379,7 +386,13 @@ function renderOdorChart(odorBars) {
   if (!odorChart) odorChart = echarts.init(odorRef.value)
   const xLabels = ['静态前排', '动态前排', '静态后排', '动态后排', '均值']
   const series = odorBars.map(sample => ({
-    name: sample.project_name || sample.part_name || `样品${sample.id}`,
+    name:
+      [sample.project_name, sample.development_stage, sample.status]
+        .filter(Boolean)
+        .join('-') ||
+      sample.project_name ||
+      sample.part_name ||
+      `样品${sample.id}`,
     type: 'bar',
     data: [
       Number(sample.odor_static_front || 0),
@@ -531,10 +544,37 @@ onBeforeUnmount(() => {
   border: 1px solid rgba(226,232,240,0.9);
 }
 
-.title { margin: 0; font-size: 28px; color: #1f2d3d; }
-.subtitle { margin: 6px 0 0 0; color: #606266; }
-.cta-group { margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; }
-.avatar { box-shadow: 0 6px 20px rgba(0,0,0,0.08); }
+.hero-main {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.title {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #111827;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.cta-group {
+  margin-top: 14px;
+}
+
+.hero-button {
+  padding: 10px 22px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 999px;
+}
 
 .kpi-grid {
   display: grid;
@@ -577,7 +617,8 @@ onBeforeUnmount(() => {
   background: #ffffff;
   border-radius: 12px;
   border: 1px solid #eef0f5;
-  padding: 12px;
+  padding: 16px 16px 12px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
 }
 
 .card-header {
@@ -588,13 +629,13 @@ onBeforeUnmount(() => {
 }
 
 .card-title-main {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
   color: #111827;
 }
 
 .card-subtitle-main {
-  font-size: 12px;
+  font-size: 13px;
   color: #6b7280;
   margin-top: 2px;
 }
@@ -606,6 +647,16 @@ onBeforeUnmount(() => {
 
 .table-body {
   position: relative;
+  margin-top: 6px;
+}
+
+.table-body :deep(.el-table) {
+  font-size: 13px;
+}
+
+.table-body :deep(.el-table__header-wrapper th) {
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .empty-tip {
@@ -630,4 +681,3 @@ onBeforeUnmount(() => {
   }
 }
 </style>
-
