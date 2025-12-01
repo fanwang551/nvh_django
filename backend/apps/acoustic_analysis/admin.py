@@ -21,7 +21,7 @@ class AcousticTestDataAdmin(admin.ModelAdmin):
     )
     list_filter = ('test_date', 'condition_point__measure_type')
     date_hierarchy = 'test_date'
-
+    list_per_page = 10
 
 @admin.register(DynamicNoiseData)
 class DynamicNoiseDataAdmin(admin.ModelAdmin):
@@ -32,4 +32,4 @@ class DynamicNoiseDataAdmin(admin.ModelAdmin):
         'condition_measure_point__measure_point',
     )
     list_filter = ('x_axis_type',)
-
+    list_per_page = 20
