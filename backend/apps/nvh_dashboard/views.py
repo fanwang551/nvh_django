@@ -148,7 +148,7 @@ def home_dashboard(request):
         {'key': 'airtight', 'label': '气密性', 'count': int(airtight_count)},
         {
             'key': 'acoustic',
-            'label': '声学（整车隔声/区域隔声/整车混响）',
+            'label': '声学',
             'count': int(vehicle_sound_count + acoustic_count + reverberation_count),
         },
         {'key': 'ntf', 'label': 'NTF', 'count': int(ntf_count)},

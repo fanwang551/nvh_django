@@ -24,7 +24,16 @@
               round
               @click="goToBusinessCenter"
             >
-              进入业务中心
+              业务中心
+            </el-button>
+            <el-button
+              class="hero-primary-btn"
+              type="primary"
+              size="large"
+              round
+              @click="goToIAQCenter"
+            >
+              车内空气质量中心
             </el-button>
           </div>
         </div>
@@ -48,7 +57,7 @@
     <!-- Row 2: 趋势与分布 -->
     <section class="row grid-2 trend-row">
       <div class="chart-card">
-        <div class="chart-title">总试验数据月度趋势（最近36个月）</div>
+        <div class="chart-title">总试验数据月度趋势</div>
         <div ref="trendRef" class="chart-box"></div>
       </div>
       <div class="chart-card">
@@ -57,13 +66,12 @@
       </div>
     </section>
 
-    <!-- Row 3: 最新车型性能看板（滚动表格） -->
+    <!-- Row 3: 最新车型性能概览 -->
     <section class="row">
       <div class="table-card">
         <div class="card-header">
           <div>
-            <div class="card-title-main">最新车型性能看板</div>
-            <div class="card-subtitle-main">数据来源：气密性 / 整车隔声试验</div>
+            <div class="card-title-main">最新车型性能概览</div>
           </div>
           <div class="card-extra">鼠标悬停停止滚动</div>
         </div>
@@ -111,11 +119,10 @@
     <section class="row grid-2 row-bottom">
       <div class="chart-card">
         <div class="chart-title">整车噪声工况分析（RMS）</div>
-        <div class="chart-subtitle">轮播展示最近 3 个车型</div>
         <div ref="radarRef" class="chart-box"></div>
       </div>
       <div class="chart-card">
-        <div class="chart-title">整车气味评测（最近5个样品）</div>
+        <div class="chart-title">整车气味评测</div>
         <div class="chart-subtitle">静态/动态前后排及均值</div>
         <div ref="odorRef" class="chart-box"></div>
       </div>
