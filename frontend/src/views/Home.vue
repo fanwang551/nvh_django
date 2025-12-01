@@ -6,17 +6,27 @@
         <div class="hero-main">
           <h1 class="title">NVH 试验智能分析平台</h1>
           <p class="subtitle">
-            欢迎回来，{{ userStore.fullName || userStore.username || '用户' }}
+            你好，
+            <span class="subtitle-user">
+              {{ userStore.fullName || userStore.username || '用户' }}
+            </span>
+            <span class="subtitle-dot">·</span>
+            <span class="subtitle-datetime">
+              <span class="subtitle-date">{{ currentDateDisplay }}</span>
+              <span class="subtitle-time">{{ currentTimeDisplay }}</span>
+            </span>
           </p>
-          <p class="hero-datetime">
-            <span class="hero-date-text">{{ currentDateDisplay }}</span>
-            <span class="hero-time-text">{{ currentTimeDisplay }}</span>
-          </p>
-          <p class="hero-description hero-entry-links">
-            <span class="hero-entry" @click="goToBusinessCenter">业务中心</span>
-            <span class="hero-entry-separator">/</span>
-            <span class="hero-entry" @click="goToIAQCenter">业务空气质量中心</span>
-          </p>
+          <div class="hero-actions">
+            <el-button
+              class="hero-primary-btn"
+              type="primary"
+              size="large"
+              round
+              @click="goToBusinessCenter"
+            >
+              进入业务中心
+            </el-button>
+          </div>
         </div>
       </div>
 
@@ -615,7 +625,7 @@ onBeforeUnmount(() => {
 
 .title {
   margin: 0;
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 700;
   letter-spacing: 0.02em;
   color: #111827;
@@ -626,34 +636,65 @@ onBeforeUnmount(() => {
 
 .subtitle {
   margin: 0;
-  font-size: 16px;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #4b5563;
+  letter-spacing: 0.01em;
+}
+
+.subtitle-user {
   font-weight: 600;
   color: #1d4ed8;
-  letter-spacing: 0.02em;
-  text-shadow: 0 1px 2px rgba(37,99,235,0.25);
 }
 
-.hero-datetime {
-  margin: 0;
-  margin-top: 2px;
-  font-size: 13px;
-  color: #374151;
+.subtitle-dot {
+  color: #9ca3af;
+}
+
+.subtitle-datetime {
   display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  white-space: nowrap;
-}
-
-.hero-date-text {
-  padding: 2px 10px;
+  align-items: baseline;
+  gap: 10px;
+  padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(243,244,246,0.9);
-  border: 1px solid rgba(209,213,219,0.9);
+  background: linear-gradient(135deg, rgba(59,130,246,0.06), rgba(59,130,246,0.02));
+  box-shadow: 0 8px 18px rgba(37,99,235,0.12);
+  color: #0f172a;
+  font-size: 14px;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
-.hero-time-text {
+.subtitle-date,
+.subtitle-time {
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+.subtitle-date {
+  font-weight: 500;
+}
+
+.subtitle-time {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.hero-actions {
+  margin-top: 18px;
+}
+
+.hero-primary-btn {
+  padding: 0 22px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
   letter-spacing: 0.06em;
+  box-shadow: 0 14px 30px rgba(37,99,235,0.32);
 }
 
 .hero-description {
