@@ -4,9 +4,9 @@
     <section class="row row-top">
       <div class="hero">
         <div class="hero-main">
-          <h1 class="title">NVH 综合试验数据大屏</h1>
+          <h1 class="title">NVH 试验智能分析平台</h1>
           <p class="subtitle">
-            欢迎回来，{{ userStore.fullName || userStore.username || '用户' }} · {{ currentDateTime }}
+            欢迎回来，{{ userStore.fullName || userStore.username || '用户' }}
           </p>
           <div class="cta-group">
             <el-button
@@ -17,7 +17,20 @@
             >
               进入业务中心
             </el-button>
+            <el-button
+              class="hero-button hero-button-secondary"
+              type="info"
+              plain
+              :icon="Histogram"
+              @click="goToIAQCenter"
+            >
+              车内空气质量中心
+            </el-button>
           </div>
+        </div>
+        <div class="hero-side">
+          <div class="hero-time-label">当前时间</div>
+          <div class="hero-time-value">{{ currentDateTime }}</div>
         </div>
       </div>
 
@@ -129,19 +142,32 @@ import {
   Histogram,
   Tickets
 } from '@element-plus/icons-vue'
-import { useUserStore } from '@/store'
+import { useUserStore, useHomeDashboardStore } from '@/store'
 import { userApi } from '@/api/user'
-import { dashboardApi } from '@/api/dashboard'
 
 const router = useRouter()
 const userStore = useUserStore()
+const homeDashboardStore = useHomeDashboardStore()
 
 // 时间显示
-const currentDateTime = computed(() => {
-  const d = new Date()
-  const opts = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }
-  return d.toLocaleString('zh-CN', opts)
-})
+const currentDateTime = ref('')
+const weekdayMap = ['日', '一', '二', '三', '四', '五', '六']
+let timeTimer = null
+
+function formatDateTime(date) {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  const w = weekdayMap[date.getDay()]
+  const hh = String(date.getHours()).padStart(2, '0')
+  const mm = String(date.getMinutes()).padStart(2, '0')
+  const ss = String(date.getSeconds()).padStart(2, '0')
+  return `${y}年${m}月${d}日 星期${w} ${hh}:${mm}:${ss}`
+}
+
+function updateCurrentTime() {
+  currentDateTime.value = formatDateTime(new Date())
+}
 
 // KPI 数据
 const kpiCards = ref([
@@ -207,6 +233,7 @@ const visibleVehicleRows = computed(() => {
 // 路由
 const goToBusiness = () => router.push('/business')
 const goToPermission = () => router.push('/permission')
+const goToIAQCenter = () => router.push('/vehicle-data/iaq')
 
 // 刷新用户信息
 const refreshUserInfo = async () => {
@@ -218,11 +245,11 @@ const refreshUserInfo = async () => {
   }
 }
 
-// 加载并渲染数据
+// 加载并渲染数据（使用 Pinia 缓存）
 const reloadAll = async () => {
   try {
-    const res = await dashboardApi.getHomeDashboard()
-    const data = res?.data || {}
+    await homeDashboardStore.load()
+    const data = homeDashboardStore.dashboardData || {}
 
     // KPI
     const kpis = data.kpis || {}
@@ -267,8 +294,28 @@ function renderTrendChart(trend) {
   if (!trendChart) trendChart = echarts.init(trendRef.value)
   const months = trend.months || []
   const counts = trend.counts || []
+
+  const total = months.length
+  let dataZoom = []
+  if (total > 0) {
+    const visibleCount = Math.min(10, total)
+    const startIndex = total - visibleCount
+    const endIndex = total - 1
+    dataZoom = [
+      {
+        type: 'slider',
+        show: true,
+        xAxisIndex: 0,
+        startValue: startIndex,
+        endValue: endIndex,
+        height: 22,
+        bottom: 10
+      }
+    ]
+  }
+
   trendChart.setOption({
-    grid: { left: 50, right: 20, top: 30, bottom: 40 },
+    grid: { left: 50, right: 20, top: 30, bottom: 60 },
     xAxis: {
       type: 'category',
       data: months,
@@ -280,6 +327,7 @@ function renderTrendChart(trend) {
       splitLine: { lineStyle: { color: '#e5e7eb' } }
     },
     tooltip: { trigger: 'axis' },
+    dataZoom,
     series: [
       {
         type: 'line',
@@ -360,7 +408,8 @@ function renderRadarChart(noiseRadar) {
     },
     radar: {
       indicator: indicators,
-      radius: '72%',
+      radius: '82%',
+      center: ['50%', '52%'],
       axisName: {
         color: '#111827',
         fontSize: 13,
@@ -480,6 +529,8 @@ function handleResize() {
 
 onMounted(async () => {
   window.addEventListener('resize', handleResize)
+  updateCurrentTime()
+  timeTimer = setInterval(updateCurrentTime, 1000)
   await refreshUserInfo()
   await reloadAll()
 })
@@ -491,6 +542,9 @@ onBeforeUnmount(() => {
   radarChart && radarChart.dispose()
   odorChart && odorChart.dispose()
   clearTableScrollTimer()
+  if (timeTimer) {
+    clearInterval(timeTimer)
+  }
 })
 </script>
 
@@ -530,12 +584,13 @@ onBeforeUnmount(() => {
 
 .row-bottom .chart-card {
   height: 100%;
+  min-height: 360px;
 }
 
 .hero {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: stretch;
   gap: 16px;
   padding: 16px 20px;
   border-radius: 16px;
@@ -549,6 +604,7 @@ onBeforeUnmount(() => {
   flex-direction: column;
   align-items: flex-start;
   gap: 10px;
+  flex: 1;
 }
 
 .title {
@@ -567,6 +623,9 @@ onBeforeUnmount(() => {
 
 .cta-group {
   margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .hero-button {
@@ -574,6 +633,33 @@ onBeforeUnmount(() => {
   font-size: 14px;
   font-weight: 600;
   border-radius: 999px;
+}
+
+.hero-button-secondary {
+  font-weight: 500;
+}
+
+.hero-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  min-width: 230px;
+  padding-left: 16px;
+  border-left: 1px solid rgba(226,232,240,0.5);
+}
+
+.hero-time-label {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.hero-time-value {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #111827;
 }
 
 .kpi-grid {
@@ -612,6 +698,7 @@ onBeforeUnmount(() => {
 .chart-title { color: #2b3a55; font-weight: 600; margin-bottom: 4px; }
 .chart-subtitle { color: #9ca3af; font-size: 12px; margin-bottom: 4px; }
 .chart-box { width: 100%; height: 260px; }
+.row-bottom .chart-box { height: 360px; }
 
 .table-card {
   background: #ffffff;
