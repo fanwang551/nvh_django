@@ -8,29 +8,15 @@
           <p class="subtitle">
             欢迎回来，{{ userStore.fullName || userStore.username || '用户' }}
           </p>
-          <div class="cta-group">
-            <el-button
-              class="hero-button"
-              type="primary"
-              :icon="OfficeBuilding"
-              @click="goToBusiness"
-            >
-              进入业务中心
-            </el-button>
-            <el-button
-              class="hero-button hero-button-secondary"
-              type="info"
-              plain
-              :icon="Histogram"
-              @click="goToIAQCenter"
-            >
-              车内空气质量中心
-            </el-button>
-          </div>
-        </div>
-        <div class="hero-side">
-          <div class="hero-time-label">当前时间</div>
-          <div class="hero-time-value">{{ currentDateTime }}</div>
+          <p class="hero-datetime">
+            <span class="hero-date-text">{{ currentDateDisplay }}</span>
+            <span class="hero-time-text">{{ currentTimeDisplay }}</span>
+          </p>
+          <p class="hero-description hero-entry-links">
+            <span class="hero-entry" @click="goToBusinessCenter">业务中心</span>
+            <span class="hero-entry-separator">/</span>
+            <span class="hero-entry" @click="goToIAQCenter">业务空气质量中心</span>
+          </p>
         </div>
       </div>
 
@@ -154,6 +140,21 @@ const currentDateTime = ref('')
 const weekdayMap = ['日', '一', '二', '三', '四', '五', '六']
 let timeTimer = null
 
+const currentDateDisplay = computed(() => {
+  if (!currentDateTime.value) return ''
+  const parts = currentDateTime.value.split(' ')
+  if (parts.length >= 2) {
+    return `${parts[0]} ${parts[1]}`
+  }
+  return parts[0]
+})
+
+const currentTimeDisplay = computed(() => {
+  if (!currentDateTime.value) return ''
+  const parts = currentDateTime.value.split(' ')
+  return parts[2] || ''
+})
+
 function formatDateTime(date) {
   const y = date.getFullYear()
   const m = String(date.getMonth() + 1).padStart(2, '0')
@@ -167,6 +168,10 @@ function formatDateTime(date) {
 
 function updateCurrentTime() {
   currentDateTime.value = formatDateTime(new Date())
+}
+
+function goToBusinessCenter() {
+  router.push({ name: 'BusinessCenter' })
 }
 
 // KPI 数据
@@ -403,17 +408,18 @@ function renderRadarChart(noiseRadar) {
     tooltip: {},
     legend: {
       data: series.map(s => s.vehicle_model_name),
-      bottom: 0,
+      bottom: 4,
       textStyle: { color: '#111827', fontSize: 12 }
     },
     radar: {
       indicator: indicators,
-      radius: '82%',
-      center: ['50%', '52%'],
+      radius: '60%',
+      center: ['50%', '40%'],
       axisName: {
         color: '#111827',
         fontSize: 13,
-        fontWeight: '600'
+        fontWeight: '600',
+        padding: [2, 4]
       },
       splitLine: { lineStyle: { color: ['#e5e7eb'] } },
       splitArea: { areaStyle: { color: ['#f9fafb', '#eff6ff'] } },
@@ -567,8 +573,8 @@ onBeforeUnmount(() => {
 
 .row-top {
   display: grid;
-  grid-template-columns: minmax(420px, 460px) 1fr;
-  gap: 16px;
+  grid-template-columns: minmax(420px, 440px) 1fr;
+  gap: 12px;
   align-items: stretch;
 }
 
@@ -590,10 +596,10 @@ onBeforeUnmount(() => {
 .hero {
   display: flex;
   justify-content: space-between;
-  align-items: stretch;
-  gap: 16px;
-  padding: 16px 20px;
-  border-radius: 16px;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 18px;
+  border-radius: 14px;
   background: rgba(255,255,255,0.86);
   backdrop-filter: blur(6px);
   border: 1px solid rgba(226,232,240,0.9);
@@ -603,50 +609,83 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 10px;
+  gap: 6px;
   flex: 1;
 }
 
 .title {
   margin: 0;
-  font-size: 30px;
+  font-size: 26px;
   font-weight: 700;
   letter-spacing: 0.02em;
   color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .subtitle {
   margin: 0;
-  font-size: 14px;
-  color: #4b5563;
-}
-
-.cta-group {
-  margin-top: 14px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.hero-button {
-  padding: 10px 22px;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
-  border-radius: 999px;
+  color: #1d4ed8;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 2px rgba(37,99,235,0.25);
 }
 
-.hero-button-secondary {
-  font-weight: 500;
+.hero-datetime {
+  margin: 0;
+  margin-top: 2px;
+  font-size: 13px;
+  color: #374151;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.hero-date-text {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgba(243,244,246,0.9);
+  border: 1px solid rgba(209,213,219,0.9);
+}
+
+.hero-time-text {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+}
+
+.hero-description {
+  margin: 0;
+  margin-top: 2px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.hero-entry-links {
+  letter-spacing: 0.02em;
+}
+
+.hero-entry {
+  transition: color 0.2s ease;
+}
+
+.hero-entry:hover {
+  color: #2563eb;
+}
+
+.hero-entry-separator {
+  color: #9ca3af;
 }
 
 .hero-side {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  justify-content: center;
-  min-width: 230px;
-  padding-left: 16px;
-  border-left: 1px solid rgba(226,232,240,0.5);
+  display: none;
 }
 
 .hero-time-label {
