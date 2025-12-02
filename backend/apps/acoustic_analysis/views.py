@@ -321,8 +321,7 @@ def query_acoustic_data(request):
     table_data = AcousticTableItemSerializer(table_items, many=True).data
     return Response.success(data={'spectrum_series': spectrum_series, 'oa_series': oa_series, 'table': table_data}, message='查询成功')
 
-    # 说明：此前这里有一段尝试“批量拉取再内存去重”的代码，
-    # 在数据量大时会触发数据库端大排序与临时表，风险更高，已移除。
+
 
 
 @api_view(['POST'])

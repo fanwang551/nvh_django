@@ -84,7 +84,7 @@ class ModalData(models.Model):
     """模态数据表"""
     test_project = models.ForeignKey(TestProject, on_delete=models.CASCADE, verbose_name='测试项目')
     frequency = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='频率(Hz)')
-    damping_ratio = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='阻尼比')
+    damping_ratio = models.DecimalField(max_digits=6, decimal_places=4, null=True, blank=True, verbose_name='阻尼比')
     mode_shape_description = models.TextField(null=True, blank=True, verbose_name='模态振型描述')
     mode_shape_file = models.CharField(max_length=255, null=True, blank=True, verbose_name='GIF动图文件路径')
     test_photo_file = models.CharField(max_length=255, null=True, blank=True, verbose_name='测试照片文件路径')
