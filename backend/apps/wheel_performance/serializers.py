@@ -25,10 +25,8 @@ class WheelPerformanceSerializer(serializers.ModelSerializer):
             'force_transfer_first_peak',
             'force_transfer_test_image_url',
             'force_transfer_signal',
-            'created_at',
-            'updated_at',
         )
-        read_only_fields = ('id', 'created_at', 'updated_at')
+
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
