@@ -23,9 +23,16 @@ class VehicleModel(models.Model):
         ('inactive', '未激活'),
     ]
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='active', verbose_name='状态')
+    # 对标车型字段
+    benchmark_vehicle = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='benchmarked_by',
+        verbose_name='对标车型'
+    )
 
-    created_at = None
-    updated_at = None
 
     class Meta:
         db_table = 'vehicle_models'
