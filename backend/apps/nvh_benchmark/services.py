@@ -110,14 +110,46 @@ def parse_force_transfer_signal(signal):
     data = parse_json_field(signal)
     if data is None:
         return []
+
+    # 先按通用规则解析为 [x, y] 数对
     pairs = build_curve_pairs(
         data,
         x_keys=['frequency', 'freq', 'speed', 'rpm'],
         y_keys=['dB', 'db', 'dB(A)', 'value', 'values'],
     )
+
     if not pairs:
         return []
-    max_freq = max((item[0] for item in pairs), default=0)
+
+    # 为兼容 WheelPerformance 查询页，对可能出现的「频率 / dB 维度对调」做一次自动纠正：
+    # - 频率通常在 [0, 300]（或更高），最大值 >= 80
+    # - dB 幅值通常在 [-100, 100]，整体跨度不超过 ~120dB
+    xs = [to_float(p[0]) for p in pairs if to_float(p[0]) is not None]
+    ys = [to_float(p[1]) for p in pairs if to_float(p[1]) is not None]
+
+    if xs and ys:
+        x_min, x_max = min(xs), max(xs)
+        y_min, y_max = min(ys), max(ys)
+        x_range = x_max - x_min
+        y_range = y_max - y_min
+
+        def looks_like_freq(v_min, v_max):
+            return v_max >= 80 and v_max <= 1000
+
+        def looks_like_db(v_min, v_max, v_range):
+            return v_range <= 120 and v_max <= 120 and v_min >= -120
+
+        freq_looks_db = looks_like_db(x_min, x_max, x_range)
+        db_looks_freq = y_max >= 80
+        x_is_freq = looks_like_freq(x_min, x_max)
+        y_is_db = looks_like_db(y_min, y_max, y_range)
+
+        # 若当前 x 更像 dB、y 更像频率，则整体对调坐标轴
+        if (not x_is_freq) and (not y_is_db) and freq_looks_db and db_looks_freq:
+            pairs = [[p[1], p[0]] for p in pairs]
+
+    # 若频率最大值在 30~40 之间，视为以 0.5 为步长但单位偏小，按 10 倍缩放到 0-300 区间
+    max_freq = max((to_float(item[0]) or 0 for item in pairs), default=0)
     if 0 < max_freq <= 40:
         scaled = []
         for freq, value in pairs:
