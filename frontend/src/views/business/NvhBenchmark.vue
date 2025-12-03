@@ -350,6 +350,34 @@ const hasSeries = (dataset) => {
   return false
 }
 
+const getRadarIndicatorSource = (dataset) => {
+  if (Array.isArray(dataset?.indicators) && dataset.indicators.length) return dataset.indicators
+  if (Array.isArray(dataset?.conditions) && dataset.conditions.length) return dataset.conditions
+  if (Array.isArray(dataset?.labels) && dataset.labels.length) return dataset.labels
+  return []
+}
+
+const buildRadarIndicators = (dataset, maxValue) => {
+  const fallbackPoints = Array.isArray(dataset?.points) ? dataset.points : []
+  const source = getRadarIndicatorSource(dataset)
+  const target = source.length ? source : fallbackPoints
+  return target.map((item, index) => {
+    let label
+    if (item && typeof item === 'object') {
+      label = item.label || item.name || item.measure_point || item.work_condition
+    } else if (item != null) {
+      label = item
+    }
+    const finalLabel = label != null && `${label}`.trim()
+      ? `${label}`.trim()
+      : (fallbackPoints[index] != null ? `${fallbackPoints[index]}` : `测点${index + 1}`)
+    return {
+      name: finalLabel,
+      max: maxValue || 10
+    }
+  })
+}
+
 const chartRefs = {
   radarFrontRef: ref(null),
   radarRearRef: ref(null),
@@ -404,13 +432,11 @@ const renderRadarChart = (key, dataset, title) => {
   }
   const chart = initChart(key)
   if (!chart) return
-  const allValues = dataset.series.flatMap((item) => (item.values || [])).filter((value) => typeof value === 'number')
+  const seriesData = Array.isArray(dataset?.series) ? dataset.series : []
+  const allValues = seriesData.flatMap((item) => (item.values || [])).filter((value) => typeof value === 'number')
   const maxValue = allValues.length ? Math.max(...allValues) * 1.1 : 10
-  const indicators = dataset.indicators?.map((indicator) => ({
-    name: indicator.label,
-    max: maxValue || 10
-  })) || []
-  const series = dataset.series.map((item) => ({
+  const indicators = buildRadarIndicators(dataset, maxValue)
+  const series = seriesData.map((item) => ({
     name: item.vehicle_model_name || `车型${item.vehicle_id}`,
     value: (item.values || []).map((value) => (typeof value === 'number' ? value : null))
   }))

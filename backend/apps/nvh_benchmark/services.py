@@ -178,27 +178,67 @@ def fetch_latest_acoustic_values(
     return results
 
 
+def fetch_radar_rms_map(
+    vehicle_ids: Sequence[int], condition_point_ids: Sequence[int]
+) -> Dict[int, Dict[int, float]]:
+    if not vehicle_ids or not condition_point_ids:
+        return {}
+
+    rows = (
+        AcousticTestData.objects.filter(
+            vehicle_model_id__in=vehicle_ids,
+            condition_point_id__in=condition_point_ids,
+            rms_value__isnull=False,
+        )
+        .values('vehicle_model_id', 'condition_point_id', 'rms_value')
+    )
+
+    values_map: Dict[int, Dict[int, float]] = defaultdict(dict)
+    for row in rows:
+        value = to_float(row.get('rms_value'))
+        if value is None:
+            continue
+        values_map[row['vehicle_model_id']][row['condition_point_id']] = value
+    return values_map
+
+
 def build_radar_section(vehicle_ids, vehicle_map, condition_lookup):
     sections = {}
     for key, point_ids in CRUISE_RADAR_POINTS.items():
-        point_labels = [
-            {
-                'id': pid,
-                'label': condition_lookup.get(pid, {}).get('measure_point') or f'测点{pid}',
-            }
-            for pid in point_ids
-        ]
-        values_map = fetch_latest_acoustic_values(vehicle_ids, point_ids, 'rms_value')
+        if not point_ids:
+            sections[key] = {'conditions': [], 'indicators': [], 'series': []}
+            continue
+
+        indicator_items = []
+        for pid in point_ids:
+            meta = condition_lookup.get(pid, {})
+            indicator_items.append(
+                {
+                    'id': pid,
+                    'label': meta.get('measure_point') or meta.get('work_condition') or f'测点{pid}',
+                    'work_condition': meta.get('work_condition'),
+                    'measure_point': meta.get('measure_point'),
+                }
+            )
+
+        values_map = fetch_radar_rms_map(vehicle_ids, point_ids)
         series = []
         for vid in vehicle_ids:
-            data_row = {
-                'vehicle_id': vid,
-                'vehicle_model_name': vehicle_map.get(vid, {}).get('vehicle_model_name', str(vid)),
-                'values': [values_map.get((vid, pid)) for pid in point_ids],
-            }
-            series.append(data_row)
+            vehicle_values = values_map.get(vid, {})
+            ordered_values = [vehicle_values.get(pid) for pid in point_ids]
+            if not any(value is not None for value in ordered_values):
+                continue
+            series.append(
+                {
+                    'vehicle_id': vid,
+                    'vehicle_model_name': vehicle_map.get(vid, {}).get('vehicle_model_name', str(vid)),
+                    'values': ordered_values,
+                }
+            )
+
         sections[key] = {
-            'indicators': point_labels,
+            'conditions': indicator_items,
+            'indicators': [dict(item) for item in indicator_items],
             'series': series,
         }
     return sections
