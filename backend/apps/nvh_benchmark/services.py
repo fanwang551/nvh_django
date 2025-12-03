@@ -247,13 +247,6 @@ def build_radar_section(vehicle_ids, vehicle_map, condition_lookup):
 def build_air_condition_section(vehicle_ids, vehicle_map, condition_lookup):
     sections = {}
     for key, point_ids in AIR_CONDITION_POINTS.items():
-        point_labels = [
-            {
-                'id': pid,
-                'label': condition_lookup.get(pid, {}).get('measure_point') or f'测点{pid}',
-            }
-            for pid in point_ids
-        ]
         # 按测点顺序直接映射为空调档位：第1个测点为1档，第2个为2档，以此类推
         gear_labels = [f'{index + 1}档' for index in range(len(point_ids))]
 
@@ -263,11 +256,10 @@ def build_air_condition_section(vehicle_ids, vehicle_map, condition_lookup):
             series.append({
                 'vehicle_id': vid,
                 'vehicle_model_name': vehicle_map.get(vid, {}).get('vehicle_model_name', str(vid)),
-                'values': [values_map.get((vid, pid)) for pid in point_ids],
+                 'values': [values_map.get((vid, pid)) for pid in point_ids],
             })
         sections[key] = {
             'points': point_ids,
-            'labels': point_labels,
             'gears': gear_labels,
             'series': series,
         }

@@ -558,10 +558,10 @@ const renderCategoryLineChart = (key, dataset, config = {}) => {
   }
   const chart = initChart(key)
   if (!chart) return
-  // 空调全档位噪声趋势：优先使用后端提供的档位标签，其次回退到测点标签/测点编号
+  // 空调全档位噪声趋势：优先使用后端提供的档位标签，其次回退到测点编号
   const categories =
     dataset.gears ||
-    (dataset.labels?.map((item, index) => item?.label || `测点${index + 1}`) || dataset.points || [])
+    (Array.isArray(dataset.points) ? dataset.points : [])
   const series = dataset.series.map((item) => ({
     name: item.vehicle_model_name || `车型${item.vehicle_id}`,
     type: 'line',
