@@ -621,17 +621,43 @@ const renderSuspensionChart = (dataset) => {
   }
   const chart = initChart('suspensionRef')
   if (!chart) return
+  const yName = '隔振率 (dB)'
+  const categories = dataset.categories || []
   const series = (dataset.series || []).map((item) => ({
     name: item.vehicle_model_name || `车型${item.vehicle_id}`,
     type: 'line',
-    data: item.data
+    smooth: true,
+    data: item.data || []
   }))
   chart.setOption({
-    tooltip: { trigger: 'axis' },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'line' },
+      formatter: (params) => {
+        const list = Array.isArray(params) ? params : [params]
+        if (!list.length) return ''
+        const axisLabel = list[0]?.axisValueLabel ?? list[0]?.axisValue ?? ''
+        const lines = []
+        if (axisLabel !== '') {
+          lines.push(`测点-方向：${axisLabel}`)
+        }
+        list.forEach((item) => {
+          const value = item.value
+          let text = value
+          if (typeof value === 'number' && Number.isFinite(value)) {
+            text = value.toFixed(1)
+          } else if (value == null) {
+            text = '-'
+          }
+          lines.push(`${item.marker || ''}${item.seriesName}：${text} ${yName}`)
+        })
+        return lines.join('<br />')
+      }
+    },
     legend: { type: 'scroll', bottom: 0 },
     grid: { left: '3%', right: '3%', bottom: 60, containLabel: true },
-    xAxis: { type: 'category', data: dataset.categories || [] },
-    yAxis: { type: 'value', name: '隔振率 (dB)' },
+    xAxis: { type: 'category', data: categories },
+    yAxis: { type: 'value', name: yName },
     series
   })
 }

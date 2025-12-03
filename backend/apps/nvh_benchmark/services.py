@@ -18,6 +18,8 @@ from .constants import (
     SOUND_INSULATION_FREQ_FIELDS,
     SPEECH_CLARITY_POINTS,
     SUSPENSION_MEASURE_POINTS,
+    SUSPENSION_FRONT_POINT_CANDIDATES,
+    SUSPENSION_REAR_POINT_CANDIDATES,
 )
 
 
@@ -380,25 +382,40 @@ def build_chassis_section(vehicle_ids, vehicle_map):
             continue
         suspension_map[item.test.vehicle_model_id][item.measuring_point] = item
 
-    categories = []
-    for measure_point in SUSPENSION_MEASURE_POINTS:
-        categories.extend([
-            f'{measure_point}-X',
-            f'{measure_point}-Y',
-            f'{measure_point}-Z',
-        ])
+    categories = [
+        '前减振器-X',
+        '前减振器-Y',
+        '前减振器-Z',
+        '后减振器-X',
+        '后减振器-Y',
+        '后减振器-Z',
+    ]
 
     suspension_series = []
     for vid in vehicle_ids:
         mp_data = suspension_map.get(vid, {})
         values = []
-        for measure_point in SUSPENSION_MEASURE_POINTS:
-            data = mp_data.get(measure_point)
-            values.extend([
-                to_float(getattr(data, 'x_isolation_rate', None)),
-                to_float(getattr(data, 'y_isolation_rate', None)),
-                to_float(getattr(data, 'z_isolation_rate', None)),
-            ])
+        front_data = None
+        for measure_point in SUSPENSION_FRONT_POINT_CANDIDATES:
+            if measure_point in mp_data:
+                front_data = mp_data[measure_point]
+                break
+
+        rear_data = None
+        for measure_point in SUSPENSION_REAR_POINT_CANDIDATES:
+            if measure_point in mp_data:
+                rear_data = mp_data[measure_point]
+                break
+
+        for data in (front_data, rear_data):
+            if data is None:
+                values.extend([None, None, None])
+            else:
+                values.extend([
+                    to_float(getattr(data, 'x_isolation_rate', None)),
+                    to_float(getattr(data, 'y_isolation_rate', None)),
+                    to_float(getattr(data, 'z_isolation_rate', None)),
+                ])
         suspension_series.append({
             'vehicle_id': vid,
             'vehicle_model_name': vehicle_map.get(vid, {}).get('vehicle_model_name', str(vid)),
