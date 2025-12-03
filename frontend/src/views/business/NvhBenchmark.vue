@@ -378,16 +378,26 @@ const buildRadarIndicators = (dataset, maxValue) => {
   })
 }
 
+const radarFrontRef = ref(null)
+const radarRearRef = ref(null)
+const accelFrontRef = ref(null)
+const accelRearRef = ref(null)
+const airFrontRef = ref(null)
+const airRearRef = ref(null)
+const forceTransferRef = ref(null)
+const suspensionRef = ref(null)
+const insulationRef = ref(null)
+
 const chartRefs = {
-  radarFrontRef: ref(null),
-  radarRearRef: ref(null),
-  accelFrontRef: ref(null),
-  accelRearRef: ref(null),
-  airFrontRef: ref(null),
-  airRearRef: ref(null),
-  forceTransferRef: ref(null),
-  suspensionRef: ref(null),
-  insulationRef: ref(null)
+  radarFrontRef,
+  radarRearRef,
+  accelFrontRef,
+  accelRearRef,
+  airFrontRef,
+  airRearRef,
+  forceTransferRef,
+  suspensionRef,
+  insulationRef
 }
 
 const chartInstances = reactive({
