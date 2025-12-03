@@ -504,7 +504,29 @@ const renderLinePairsChart = (key, dataset, config = {}) => {
   }))
   chart.setOption({
     tooltip: {
-      trigger: 'axis'
+      trigger: 'axis',
+      axisPointer: { type: 'line' },
+      formatter: (params) => {
+        const list = Array.isArray(params) ? params : [params]
+        if (!list.length) return ''
+        const axisLabel = list[0]?.axisValueLabel ?? list[0]?.axisValue ?? ''
+        const lines = []
+        if (axisLabel !== '') {
+          lines.push(`${config.xName || 'X'}：${axisLabel}`)
+        }
+        list.forEach((item) => {
+          let value = item.value
+          if (Array.isArray(value)) {
+            value = value[1]
+          }
+          let text = value
+          if (typeof value === 'number' && Number.isFinite(value)) {
+            text = value.toFixed(1)
+          }
+          lines.push(`${item.marker || ''}${item.seriesName}：${text}${config.yName ? ` ${config.yName}` : ''}`)
+        })
+        return lines.join('<br />')
+      }
     },
     legend: {
       type: 'scroll',
@@ -548,7 +570,26 @@ const renderCategoryLineChart = (key, dataset, config = {}) => {
   }))
   chart.setOption({
     tooltip: {
-      trigger: 'axis'
+      trigger: 'axis',
+      axisPointer: { type: 'line' },
+      formatter: (params) => {
+        const list = Array.isArray(params) ? params : [params]
+        if (!list.length) return ''
+        const axisLabel = list[0]?.axisValueLabel ?? list[0]?.axisValue ?? ''
+        const lines = []
+        if (axisLabel !== '') {
+          lines.push(`${config.xName || 'X'}：${axisLabel}`)
+        }
+        list.forEach((item) => {
+          const value = item.value
+          let text = value
+          if (typeof value === 'number' && Number.isFinite(value)) {
+            text = value.toFixed(1)
+          }
+          lines.push(`${item.marker || ''}${item.seriesName}：${text}${config.yName ? ` ${config.yName}` : ''}`)
+        })
+        return lines.join('<br />')
+      }
     },
     legend: {
       type: 'scroll',
