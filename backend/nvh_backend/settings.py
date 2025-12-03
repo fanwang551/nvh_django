@@ -44,6 +44,7 @@ LOCAL_APPS = [
     'apps.acoustic_analysis',
     'apps.experience',
     'apps.vehicle_body',
+    'apps.nvh_benchmark',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

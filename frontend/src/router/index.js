@@ -28,6 +28,7 @@ import MaterialPorosityFlowResistanceQuery from '@/views/business/MaterialPorosi
 import DynamicStiffnessQuery from '@/views/business/DynamicStiffnessQuery.vue'
 import VehicleMountIsolationQuery from '@/views/business/VehicleMountIsolationQuery.vue'
 import SuspensionIsolationQuery from '@/views/business/SuspensionIsolationQuery.vue'
+import NvhBenchmark from '@/views/business/NvhBenchmark.vue'
 //import VOCQuery from '@/views/vehicle-data/VocData.vue'
 // Vehicle Data Center views
 import IAQCenter from '@/views/vehicle-data/IAQCenter.vue'
@@ -110,6 +111,12 @@ const routes = [
     name: 'BusinessCenter',
     component: BusinessCenter,
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/business/nvh-benchmark',
+    name: 'NvhBenchmark',
+    component: NvhBenchmark,
+    meta: { requiresAuth: true, title: 'NVH对标分析' }
   },
   {
     path: '/business/modal-data-query',
