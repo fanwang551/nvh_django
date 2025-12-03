@@ -254,6 +254,9 @@ def build_air_condition_section(vehicle_ids, vehicle_map, condition_lookup):
             }
             for pid in point_ids
         ]
+        # 按测点顺序直接映射为空调档位：第1个测点为1档，第2个为2档，以此类推
+        gear_labels = [f'{index + 1}档' for index in range(len(point_ids))]
+
         values_map = fetch_latest_acoustic_values(vehicle_ids, point_ids, 'rms_value')
         series = []
         for vid in vehicle_ids:
@@ -265,6 +268,7 @@ def build_air_condition_section(vehicle_ids, vehicle_map, condition_lookup):
         sections[key] = {
             'points': point_ids,
             'labels': point_labels,
+            'gears': gear_labels,
             'series': series,
         }
     return sections
