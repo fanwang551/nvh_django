@@ -97,14 +97,14 @@
           </div>
         </template>
         <div class="chart-row">
-          <div class="chart-panel">
+          <div class="chart-panel chart-panel--radar">
             <div class="panel-title">匀速前排驾驶员右耳</div>
             <div class="panel-body">
               <div v-if="hasRadarData(radarCards[0].dataset)" ref="radarFrontRef" class="chart-container"></div>
               <el-empty v-else description="暂无数据" />
             </div>
           </div>
-          <div class="chart-panel">
+          <div class="chart-panel chart-panel--radar">
             <div class="panel-title">匀速二排驾驶员左耳</div>
             <div class="panel-body">
               <div v-if="hasRadarData(radarCards[1].dataset)" ref="radarRearRef" class="chart-container"></div>
@@ -351,8 +351,9 @@ const hasSeries = (dataset) => {
 }
 
 const getRadarIndicatorSource = (dataset) => {
-  if (Array.isArray(dataset?.indicators) && dataset.indicators.length) return dataset.indicators
+  // 优先使用后端返回的 conditions（包含 work_condition），其次再退回 indicators / labels
   if (Array.isArray(dataset?.conditions) && dataset.conditions.length) return dataset.conditions
+  if (Array.isArray(dataset?.indicators) && dataset.indicators.length) return dataset.indicators
   if (Array.isArray(dataset?.labels) && dataset.labels.length) return dataset.labels
   return []
 }
@@ -364,7 +365,8 @@ const buildRadarIndicators = (dataset, maxValue) => {
   return target.map((item, index) => {
     let label
     if (item && typeof item === 'object') {
-      label = item.label || item.name || item.measure_point || item.work_condition
+      // 雷达图维度优先使用工况名称
+      label = item.work_condition || item.label || item.name || item.measure_point
     } else if (item != null) {
       label = item
     }
@@ -451,19 +453,35 @@ const renderRadarChart = (key, dataset, title) => {
     value: (item.values || []).map((value) => (typeof value === 'number' ? value : null))
   }))
   chart.setOption({
-    title: { text: title, left: 'center', textStyle: { fontSize: 14 } },
-    legend: { type: 'scroll', bottom: 0 },
+    legend: {
+      type: 'scroll',
+      bottom: 4,
+      textStyle: {
+        color: '#111827',
+        fontSize: 12
+      }
+    },
     tooltip: { trigger: 'item' },
     radar: {
       indicator: indicators,
-      radius: '62%',
-      splitNumber: 5
+      radius: '60%',
+      center: ['50%', '40%'],
+      splitNumber: 5,
+      axisName: {
+        color: '#111827',
+        fontSize: 13,
+        fontWeight: '600',
+        padding: [2, 4]
+      },
+      splitLine: { lineStyle: { color: ['#e5e7eb'] } },
+      splitArea: { areaStyle: { color: ['#f9fafb', '#eff6ff'] } },
+      axisLine: { lineStyle: { color: '#cbd5f5' } }
     },
     series: [
       {
         type: 'radar',
         data: series,
-        areaStyle: { opacity: 0.12 },
+        areaStyle: { opacity: 0.15 },
         lineStyle: { width: 2 }
       }
     ]
@@ -710,6 +728,10 @@ onBeforeUnmount(() => {
   min-height: 420px;
 }
 
+.chart-panel--radar {
+  min-height: 420px;
+}
+
 .panel-title {
   font-weight: 600;
   margin-bottom: 8px;
@@ -723,6 +745,14 @@ onBeforeUnmount(() => {
 .chart-container {
   width: 100%;
   height: 320px;
+}
+
+.chart-panel--radar .panel-body {
+  min-height: 360px;
+}
+
+.chart-panel--radar .chart-container {
+  height: 360px;
 }
 
 .table-wrapper {
