@@ -554,7 +554,9 @@ onMounted(async () => {
   window.addEventListener('resize', handleResize)
   updateCurrentTime()
   timeTimer = setInterval(updateCurrentTime, 1000)
+  if (!userStore.userInfo) {
   await refreshUserInfo()
+  }
   await reloadAll()
 })
 
