@@ -81,6 +81,7 @@ const cachedComponents = ref([
   'DynamicStiffnessQuery',
   'VehicleMountIsolationQuery',
   'SuspensionIsolationQuery',
+  'NvhBenchmark',
   // Vehicle Data Center
   'IAQCenter',
   'DataCenter',
@@ -145,7 +146,8 @@ const addBusinessTab = (routePath) => {
     '/business/material-porosity-flow-resistance-query': { name: 'material-porosity-flow-resistance-query', title: '孔隙率流阻' },
     '/business/dynamic-stiffness-query': { name: 'dynamic-stiffness-query', title: '动刚度' },
     '/business/vehicle-mount-isolation-query': { name: 'vehicle-mount-isolation-query', title: '整车悬置隔振率' },
-    '/business/suspension-isolation-query': { name: 'suspension-isolation-query', title: '整车悬架隔振率' }
+    '/business/suspension-isolation-query': { name: 'suspension-isolation-query', title: '整车悬架隔振率' },
+    '/business/nvh-benchmark':{name:'nvh-benchmark', title:'NVH对标分析'}
   }
 
   // 经验数据库：单独处理路由映射
@@ -242,6 +244,7 @@ const handleTabClick = (tabName) => {
     'dynamic-stiffness-query': '/business/dynamic-stiffness-query',
     'vehicle-mount-isolation-query': '/business/vehicle-mount-isolation-query',
     'suspension-isolation-query': '/business/suspension-isolation-query',
+    'nvh-benchmark':'/business/nvh-benchmark',
     // Vehicle Data Center
     'vehicle-data': '/vehicle-data',
     'iaq-center': '/vehicle-data/iaq',
