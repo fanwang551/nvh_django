@@ -222,10 +222,10 @@
         </template>
         <div v-if="hasAcousticTable" class="table-wrapper">
           <el-table :data="acousticTable" border stripe size="small">
-            <el-table-column prop="vehicle_model_name" label="车型" min-width="160" />
+            <el-table-column prop="vehicle_model_name" label="车型" min-width="200" />
             <el-table-column prop="suspension_type" label="悬架形式" min-width="120" />
-            <el-table-column prop="front_windshield" label="前挡玻璃" min-width="150" />
-            <el-table-column prop="side_door_glass" label="侧门玻璃" min-width="150" />
+            <el-table-column prop="front_windshield" label="前挡玻璃" min-width="100" />
+            <el-table-column prop="side_door_glass" label="侧门玻璃" min-width="100" />
             <el-table-column prop="sound_insulation_performance" label="隔声性能" min-width="120" />
             <el-table-column prop="uncontrolled_leakage" label="气密性泄漏量 (SCFM)" min-width="160" />
             <el-table-column prop="speech_clarity_100" label="100km/h语音清晰度" min-width="170" />
@@ -888,6 +888,34 @@ onBeforeUnmount(() => {
 
 .table-wrapper {
   margin-bottom: 16px;
+}
+
+.table-wrapper :deep(.el-table) {
+  font-size: 12px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.table-wrapper :deep(.el-table th.el-table__cell) {
+  background-color: #409eff !important;
+  color: #ffffff !important;
+  font-weight: bold !important;
+  font-size: 14px !important;
+}
+
+.table-wrapper :deep(.el-table td.el-table__cell) {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* 表格圆角处理 */
+.table-wrapper :deep(.el-table__inner-wrapper) {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.table-wrapper :deep(.el-table--border) {
+  border-radius: 8px;
 }
 
 .error-alert {
