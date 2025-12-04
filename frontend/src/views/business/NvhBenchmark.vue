@@ -7,71 +7,75 @@
           <span class="card-subtitle">已选择 {{ selectedVehicleCount }} 台车型</span>
         </div>
       </template>
-      <el-form label-width="96px" class="filter-form">
-        <el-row :gutter="20">
-          <el-col :md="8" :sm="24">
-            <el-form-item label="主车型">
-              <el-select
-                v-model="selectedMainVehicle"
-                filterable
-                clearable
-                placeholder="请选择主车型"
-                :loading="vehicleLoading"
-                @change="handleMainVehicleChange"
-              >
-                <el-option
-                  v-for="item in vehicleOptions"
-                  :key="item.id"
-                  :label="item.vehicle_model_name"
-                  :value="item.id"
-                />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :md="8" :sm="24">
-            <el-form-item label="对标车型">
-              <el-select
-                v-model="selectedBenchmarkVehicles"
-                multiple
-                clearable
-                collapse-tags
-                collapse-tags-tooltip
-                filterable
-                placeholder="请选择对标车型"
-                :disabled="!selectedMainVehicle"
-              >
-                <el-option
-                  v-for="item in vehicleOptions"
-                  :key="`benchmark-${item.id}`"
-                  :label="item.vehicle_model_name"
-                  :value="item.id"
-                  :disabled="item.id === selectedMainVehicle"
-                />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :md="8" :sm="24">
-            <el-form-item label="扩展模块">
-              <el-space wrap>
-                <el-button
-                  :type="filters.showChassis ? 'primary' : 'default'"
-                  @click="toggleSection('showChassis')"
-                >
-                  底盘详细分析
-                </el-button>
-                <el-button
-                  :type="filters.showAcousticPackage ? 'primary' : 'default'"
-                  @click="toggleSection('showAcousticPackage')"
-                >
-                  声学包分析
-                </el-button>
-              </el-space>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <div class="form-actions">
-          <el-button type="primary" @click="handleQuery" :loading="loading">查询</el-button>
-          <el-button @click="handleReset" :disabled="loading">重置</el-button>
+      <el-form class="filter-form">
+        <div class="filter-row">
+          <div class="filter-item">
+            <span class="filter-label">主车型：</span>
+            <el-select
+              v-model="selectedMainVehicle"
+              filterable
+              clearable
+              placeholder="请选择主车型"
+              :loading="vehicleLoading"
+              @change="handleMainVehicleChange"
+              class="vehicle-select"
+            >
+              <el-option
+                v-for="item in vehicleOptions"
+                :key="item.id"
+                :label="item.vehicle_model_name"
+                :value="item.id"
+              />
+            </el-select>
+          </div>
+          
+          <div class="filter-item">
+            <span class="filter-label">对标车：</span>
+            <el-select
+              v-model="selectedBenchmarkVehicles"
+              multiple
+              clearable
+              collapse-tags
+              collapse-tags-tooltip
+              filterable
+              placeholder="请选择对标车型"
+              :disabled="!selectedMainVehicle"
+              class="vehicle-select"
+            >
+              <el-option
+                v-for="item in vehicleOptions"
+                :key="`benchmark-${item.id}`"
+                :label="item.vehicle_model_name"
+                :value="item.id"
+                :disabled="item.id === selectedMainVehicle"
+              />
+            </el-select>
+          </div>
+          
+          <div class="button-group">
+            <el-button type="primary" @click="handleQuery" :loading="loading">查询</el-button>
+            <el-button @click="handleReset" :disabled="loading">重置</el-button>
+          </div>
+          
+          <div class="spacer"></div>
+          
+          <el-button
+            type="primary"
+            :plain="!filters.showChassis"
+            @click="toggleSection('showChassis')"
+            class="extension-button"
+          >
+            底盘详细分析
+          </el-button>
+          
+          <el-button
+            type="primary"
+            :plain="!filters.showAcousticPackage"
+            @click="toggleSection('showAcousticPackage')"
+            class="extension-button"
+          >
+            声学包分析
+          </el-button>
         </div>
       </el-form>
     </el-card>
@@ -742,6 +746,69 @@ onBeforeUnmount(() => {
   padding-top: 8px;
 }
 
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: nowrap;
+}
+
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.filter-label {
+  font-size: 14px;
+  color: #606266;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.vehicle-select {
+  width: 220px;
+  flex-shrink: 0;
+}
+
+.button-group {
+  display: flex;
+  gap: 12px;
+  margin-left: 24px;
+  flex-shrink: 0;
+}
+
+.spacer {
+  flex: 1;
+  min-width: 20px;
+}
+
+.extension-button {
+  background-color: #409eff;
+  color: #ffffff;
+  border-color: #409eff;
+  flex-shrink: 0;
+}
+
+.extension-button:hover {
+  background-color: #66b1ff;
+  border-color: #66b1ff;
+  color: #ffffff;
+}
+
+.extension-button.is-plain {
+  background-color: #ecf5ff;
+  color: #409eff;
+  border-color: #b3d8ff;
+}
+
+.extension-button.is-plain:hover {
+  background-color: #409eff;
+  color: #ffffff;
+  border-color: #409eff;
+}
+
 .card-header {
   display: flex;
   align-items: center;
@@ -756,12 +823,6 @@ onBeforeUnmount(() => {
 .card-subtitle {
   font-size: 12px;
   color: #909399;
-}
-
-.form-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 12px;
 }
 
 .overview-section {
