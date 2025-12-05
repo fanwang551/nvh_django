@@ -672,6 +672,14 @@ watch(
 
 onMounted(async () => {
   await store.initialize()
+  if (store.hasOverview) {
+    // 确保 DOM 已经更新
+    await nextTick()
+    // 重新初始化并渲染所有图表
+    renderAllCharts()
+    // 重新调整大小以适应容器
+    handleResize()
+  }
   window.addEventListener('resize', handleResize)
 })
 
