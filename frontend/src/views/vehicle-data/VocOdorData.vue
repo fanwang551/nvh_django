@@ -750,7 +750,7 @@ const prioritizedPartNames = computed(() => {
 const vocVisibleColumns = ref(['commission_number', 'benzene', 'toluene', 'ethylbenzene', 'xylene', 'styrene', 'formaldehyde', 'acetaldehyde', 'acrolein', 'acetone', 'tvoc'])
 
 // 气味表格可见列管理 - 默认选择检测时间、零部件、开发阶段
-const odorVisibleColumns = ref(['test_date', 'part_name', 'development_stage'])
+const odorVisibleColumns = ref(['test_date', 'part_name', 'development_stage', 'commission_number', 'status'])
 
 // 样品图弹窗
 const imageDialogVisible = ref(false)

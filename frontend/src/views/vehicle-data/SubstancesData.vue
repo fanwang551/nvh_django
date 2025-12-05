@@ -187,7 +187,7 @@
             <el-table-column
               prop="test_date"
               label="检测时间"
-              width="150"
+              min-width="150"
               align="center"
             >
               <template #default="scope">
@@ -197,7 +197,7 @@
             <el-table-column
               prop="sample_info.status"
               label="检测状态"
-              width="100"
+              min-width="100"
               align="center"
             />
             <el-table-column
@@ -209,13 +209,13 @@
             <el-table-column
               prop="sample_info.test_order_no"
               label="委托单号"
-              width="150"
+              min-width="150"
               align="center"
             />
             <el-table-column
               prop="sample_info.sample_no"
               label="样品编号"
-              width="150"
+              min-width="150"
               align="center"
             />
 
