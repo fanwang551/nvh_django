@@ -355,7 +355,6 @@ const hasSeries = (dataset) => {
 }
 
 const getRadarIndicatorSource = (dataset) => {
-  // 优先使用后端返回的 conditions（包含 work_condition），其次再退回 indicators / labels
   if (Array.isArray(dataset?.conditions) && dataset.conditions.length) return dataset.conditions
   if (Array.isArray(dataset?.indicators) && dataset.indicators.length) return dataset.indicators
   if (Array.isArray(dataset?.labels) && dataset.labels.length) return dataset.labels
@@ -369,7 +368,6 @@ const buildRadarIndicators = (dataset, maxValue) => {
   return target.map((item, index) => {
     let label
     if (item && typeof item === 'object') {
-      // 雷达图维度优先使用工况名称
       label = item.work_condition || item.label || item.name || item.measure_point
     } else if (item != null) {
       label = item
@@ -406,7 +404,8 @@ const chartRefs = {
   insulationRef
 }
 
-const chartInstances = reactive({
+// --- 关键修改点：移除 reactive，使用普通对象存储 ECharts 实例 ---
+const chartInstances = {
   radarFrontRef: null,
   radarRearRef: null,
   accelFrontRef: null,
@@ -416,7 +415,8 @@ const chartInstances = reactive({
   forceTransferRef: null,
   suspensionRef: null,
   insulationRef: null
-})
+}
+// -----------------------------------------------------------
 
 const initChart = (key) => {
   const el = chartRefs[key]?.value
@@ -465,7 +465,10 @@ const renderRadarChart = (key, dataset, title) => {
         fontSize: 12
       }
     },
-    tooltip: { trigger: 'item' },
+    tooltip: { 
+      trigger: 'item',
+      confine: true // 建议添加：防止tooltip超出容器
+    },
     radar: {
       indicator: indicators,
       radius: '60%',
@@ -510,27 +513,7 @@ const renderLinePairsChart = (key, dataset, config = {}) => {
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'line' },
-      formatter: (params) => {
-        const list = Array.isArray(params) ? params : [params]
-        if (!list.length) return ''
-        const axisLabel = list[0]?.axisValueLabel ?? list[0]?.axisValue ?? ''
-        const lines = []
-        if (axisLabel !== '') {
-          lines.push(`${config.xName || 'X'}：${axisLabel}`)
-        }
-        list.forEach((item) => {
-          let value = item.value
-          if (Array.isArray(value)) {
-            value = value[1]
-          }
-          let text = value
-          if (typeof value === 'number' && Number.isFinite(value)) {
-            text = value.toFixed(1)
-          }
-          lines.push(`${item.marker || ''}${item.seriesName}：${text}${config.yName ? ` ${config.yName}` : ''}`)
-        })
-        return lines.join('<br />')
-      }
+      confine: true // 建议添加
     },
     legend: {
       type: 'scroll',
@@ -562,7 +545,6 @@ const renderCategoryLineChart = (key, dataset, config = {}) => {
   }
   const chart = initChart(key)
   if (!chart) return
-  // 空调全档位噪声趋势：优先使用后端提供的档位标签，其次回退到测点编号
   const categories =
     dataset.gears ||
     (Array.isArray(dataset.points) ? dataset.points : [])
@@ -576,24 +558,7 @@ const renderCategoryLineChart = (key, dataset, config = {}) => {
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'line' },
-      formatter: (params) => {
-        const list = Array.isArray(params) ? params : [params]
-        if (!list.length) return ''
-        const axisLabel = list[0]?.axisValueLabel ?? list[0]?.axisValue ?? ''
-        const lines = []
-        if (axisLabel !== '') {
-          lines.push(`${config.xName || 'X'}：${axisLabel}`)
-        }
-        list.forEach((item) => {
-          const value = item.value
-          let text = value
-          if (typeof value === 'number' && Number.isFinite(value)) {
-            text = value.toFixed(1)
-          }
-          lines.push(`${item.marker || ''}${item.seriesName}：${text}${config.yName ? ` ${config.yName}` : ''}`)
-        })
-        return lines.join('<br />')
-      }
+      confine: true // 建议添加
     },
     legend: {
       type: 'scroll',
@@ -637,26 +602,7 @@ const renderSuspensionChart = (dataset) => {
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'line' },
-      formatter: (params) => {
-        const list = Array.isArray(params) ? params : [params]
-        if (!list.length) return ''
-        const axisLabel = list[0]?.axisValueLabel ?? list[0]?.axisValue ?? ''
-        const lines = []
-        if (axisLabel !== '') {
-          lines.push(`测点-方向：${axisLabel}`)
-        }
-        list.forEach((item) => {
-          const value = item.value
-          let text = value
-          if (typeof value === 'number' && Number.isFinite(value)) {
-            text = value.toFixed(1)
-          } else if (value == null) {
-            text = '-'
-          }
-          lines.push(`${item.marker || ''}${item.seriesName}：${text} ${yName}`)
-        })
-        return lines.join('<br />')
-      }
+      confine: true // 建议添加
     },
     legend: { type: 'scroll', bottom: 0 },
     grid: { left: '3%', right: '3%', bottom: 60, containLabel: true },
@@ -681,7 +627,10 @@ const renderInsulationChart = (dataset) => {
     data: item.values || []
   }))
   chart.setOption({
-    tooltip: { trigger: 'axis' },
+    tooltip: { 
+      trigger: 'axis',
+      confine: true // 建议添加
+    },
     legend: { type: 'scroll', bottom: 0 },
     grid: { left: '3%', right: '3%', bottom: 50, containLabel: true },
     xAxis: { type: 'category', name: '频率 (Hz)', data: freqs },
@@ -734,6 +683,7 @@ onBeforeUnmount(() => {
   })
 })
 </script>
+
 
 <style scoped>
 .nvh-benchmark {
