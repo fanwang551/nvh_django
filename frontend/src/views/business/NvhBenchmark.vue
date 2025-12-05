@@ -521,13 +521,15 @@ const renderLinePairsChart = (key, dataset, config = {}) => {
     },
     grid: {
       left: '3%',
-      right: '3%',
-      bottom: 40,
+      right:'3%',
+      bottom: 50,
       containLabel: true
     },
     xAxis: {
       type: 'value',
       name: config.xName || '',
+      nameLocation: 'middle',
+      nameGap:20,
       axisLabel: { formatter: (value) => Number(value).toFixed(1) }
     },
     yAxis: {
@@ -633,7 +635,7 @@ const renderInsulationChart = (dataset) => {
     },
     legend: { type: 'scroll', bottom: 0 },
     grid: { left: '3%', right: '3%', bottom: 50, containLabel: true },
-    xAxis: { type: 'category', name: '频率 (Hz)', data: freqs },
+    xAxis: { type: 'category', name: 'Hz', data: freqs },
     yAxis: { type: 'value', name: '隔声量 (dB)' },
     series
   })
@@ -644,9 +646,9 @@ const renderAllCharts = () => {
   renderRadarChart('radarRearRef', radarCards.value[1].dataset, '匀速二排驾驶员左耳')
   renderLinePairsChart('accelFrontRef', accelerationCards.value[0].dataset, { xName: '车速/转速', yName: 'dB(A)' })
   renderLinePairsChart('accelRearRef', accelerationCards.value[1].dataset, { xName: '车速/转速', yName: 'dB(A)' })
-  renderCategoryLineChart('airFrontRef', airConditionCards.value[0].dataset, { xName: '测点', yName: 'dB(A)' })
-  renderCategoryLineChart('airRearRef', airConditionCards.value[1].dataset, { xName: '测点', yName: 'dB(A)' })
-  renderLinePairsChart('forceTransferRef', { series: chassisForceTransfer.value }, { xName: '频率 (Hz)', yName: 'dB' })
+  renderCategoryLineChart('airFrontRef', airConditionCards.value[0].dataset, { xName: '', yName: 'dB(A)' })
+  renderCategoryLineChart('airRearRef', airConditionCards.value[1].dataset, { xName: '', yName: 'dB(A)' })
+  renderLinePairsChart('forceTransferRef', { series: chassisForceTransfer.value }, { xName: 'Hz', yName: 'dB' })
   renderSuspensionChart(chassisSuspension.value)
   renderInsulationChart(acousticCurve.value)
 }
