@@ -230,6 +230,7 @@ const formatDecimal = (value, digits = 2) => {
 
 const decimalFormatter = (_row, _column, cellValue) => formatDecimal(cellValue)
 const percentFormatter = (_row, _column, cellValue) => formatDecimal(cellValue)
+const decimalFormatter4 = (_row, _column, cellValue) => formatDecimal(cellValue, 4)
 
 const filteredVehicleModels = computed(() => {
   const keyword = vehicleModelSearch.value.trim().toLowerCase()
@@ -256,7 +257,7 @@ const TABLE_COLUMN_CONFIG = {
   ],
   vibration: [
     ...COMMON_COLUMNS,
-    { prop: 'rms_value', label: '有效值 RSS (m/s²)', minWidth: 180, formatter: decimalFormatter },
+    { prop: 'rms_value', label: '有效值 RSS (m/s²)', minWidth: 180, formatter: decimalFormatter4 },
     { prop: 'test_date', label: '测试日期', minWidth: 140 }
   ],
   speed: [
