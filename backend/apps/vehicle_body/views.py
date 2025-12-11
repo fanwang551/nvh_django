@@ -442,7 +442,7 @@ def substances_test_list(request):
         if test_order_no:
             queryset = queryset.filter(test_order_no__icontains=test_order_no)
         if sample_no:
-            queryset = queryset.filter(sample_no__icontains(sample_no))
+            queryset = queryset.filter(sample_no__icontains=sample_no)
         if test_date_start and test_date_end:
             queryset = queryset.filter(test_date__range=[test_date_start, test_date_end])
 
