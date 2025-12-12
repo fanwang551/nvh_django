@@ -57,7 +57,7 @@ class Substance(models.Model):
         ('custom', '自定义'),
     ]
 
-    substance_name_cn = models.CharField(max_length=200, verbose_name='物质中文名')
+    substance_name_cn = models.CharField(max_length=200, null=True, blank=True, verbose_name='物质中文名')
     substance_name_en = models.CharField(max_length=200, null=True, blank=True, verbose_name='物质英文名')
     cas_no = models.CharField(max_length=50, unique=True, verbose_name='CAS号')
     substance_type = models.CharField(max_length=20, choices=SUBSTANCE_TYPE_CHOICES, default='custom', verbose_name='物质类型')
