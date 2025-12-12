@@ -53,7 +53,7 @@ const modules = ref([
   { name: 'modal-data-query', title: '模态查询', icon: DataAnalysis, category: 'modal' },
   { name: 'modal-data-compare', title: '模态对比', icon: TrendCharts, category: 'modal' },
   { name: 'airtight-leak-compare', title: '气密性泄漏量', icon: Connection, category: 'modal' },
-  { name: 'airtightness-image-query', title: '气密性测试图', icon: Picture, category: 'modal' },
+  { name: 'airtightness-image-query', title: '声密性测试图', icon: Picture, category: 'modal' },
 
   // 吸隔声（绿色系）
   { name: 'vehicle-sound-insulation-query', title: '整车隔声量', icon: TrendCharts, category: 'sound' },

@@ -132,7 +132,7 @@ const addBusinessTab = (routePath) => {
     '/business/modal-data-query': { name: 'modal-data-query', title: '模态查询' },
     '/business/modal-data-compare': { name: 'modal-data-compare', title: '模态对比' },
     '/business/airtight-leak-compare': { name: 'airtight-leak-compare', title: '气密性泄漏量' },
-    '/business/airtightness-image-query': { name: 'airtightness-image-query', title: '气密性测试图' },
+    '/business/airtightness-image-query': { name: 'airtightness-image-query', title: '声密性测试图' },
     '/business/sound-insulation-compare': { name: 'sound-insulation-compare', title: '区域隔声量' },
     '/business/acoustic-analysis': { name: 'acoustic-analysis', title: '原始数据分析' },
     '/business/steady-state-analysis': { name: 'steady-state-analysis', title: '稳态数据分析' },
