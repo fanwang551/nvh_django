@@ -65,6 +65,7 @@ export const useSubstanceTraceabilityStore = defineStore('substanceTraceability'
           value: v.key || `key_${idx}`,
           label: v.label,
           project_name: v.project_name,
+          status: v.status || null,
           test_order_no: v.test_order_no,
           sample_no: v.sample_no
         }))

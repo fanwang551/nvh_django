@@ -624,7 +624,7 @@ def contribution_top25(request):
 def vehicle_sample_options(request):
     """
     整车样品下拉选项：返回存在全谱明细的整车样品组合
-    结构：[{ key, label, project_name, test_order_no, sample_no }]
+    结构：[{ key, label, project_name, status, test_order_no, sample_no }]
     """
     try:
         sample_ids = SubstancesTestDetail.objects.values_list('sample_id', flat=True).distinct()
@@ -647,12 +647,13 @@ def vehicle_sample_options(request):
             if combo in seen:
                 continue
             seen.add(combo)
-            label = f"{s.project_name}-{s.test_order_no}-{s.sample_no}"
+            label = f"{s.project_name}-{s.status or ''}-{s.test_order_no}-{s.sample_no}"
             key = f"{s.project_name}||{s.test_order_no}||{s.sample_no}"
             options.append({
                 'key': key,
                 'label': label,
                 'project_name': s.project_name,
+                'status': s.status,
                 'test_order_no': s.test_order_no,
                 'sample_no': s.sample_no,
             })

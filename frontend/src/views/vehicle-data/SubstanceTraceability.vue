@@ -3,78 +3,132 @@
     <!-- 筛选区 -->
     <el-card class="filter-card" shadow="never">
       <el-form class="filter-form">
-        <el-form-item label="车型选择">
-          <el-select
-            v-model="store.searchCriteria.selected_key"
-            placeholder="请选择车型"
-            clearable
-            filterable
-            :loading="store.vehicle_models_loading"
-            style="width: 280px"
-            @change="handleVehicleModelChange"
-          >
-            <el-option
-              v-for="option in store.vehicle_models"
-              :key="option.key"
-              :label="option.label"
-              :value="option.key"
+        <div class="filter-row">
+          <!-- 车型选择 -->
+          <el-form-item label="车型选择">
+            <el-select
+              v-model="selectedProject"
+              placeholder="请选择车型"
+              clearable
+              filterable
+              :loading="store.vehicle_models_loading"
+              style="width: 220px"
+              @change="onProjectChange"
             >
-            </el-option>
-          </el-select>
-        </el-form-item>
+              <el-option
+                v-for="option in projectOptions"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value"
+              />
+            </el-select>
+          </el-form-item>
 
-        <el-form-item label="物质选择">
-          <el-select
-            v-model="store.searchCriteria.cas_nos"
-            placeholder="请选择物质（可多选）"
-            multiple
-            collapse-tags
-            collapse-tags-tooltip
-            clearable
-            filterable
-            :loading="store.substance_options_loading"
-            :disabled="!store.searchCriteria.selected_key"
-            style="width: 400px"
-          >
-            <template #footer>
-              <div style="padding: 8px; text-align: center; border-top: 1px solid #e4e7ed;">
-                已选择 {{ store.selectedSubstanceCount }} 种物质
-                <el-button 
-                  type="text" 
-                  size="small" 
-                  @click="clearSubstances"
-                  style="margin-left: 10px;"
-                >
-                  清空
-                </el-button>
-              </div>
-            </template>
-            <el-option
-              v-for="option in store.substance_options"
-              :key="option.value"
-              :label="option.label"
-              :value="option.value"
+          <!-- 检测状态 -->
+          <el-form-item label="检测状态">
+            <el-select
+              v-model="selectedStatus"
+              placeholder="请选择检测状态"
+              clearable
+              :disabled="!selectedProject"
+              style="width: 160px"
+              @change="onStatusChange"
             >
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span>{{ option.label }}</span>
-                <span style="color: #909399; font-size: 12px;">
-                  {{ formatConcentration(option.concentration) }}
-                </span>
-              </div>
-            </el-option>
-          </el-select>
-        </el-form-item>
+              <el-option
+                v-for="option in statusOptions"
+                :key="option.value || '__empty__'"
+                :label="option.label"
+                :value="option.value"
+              />
+            </el-select>
+          </el-form-item>
 
-        <el-form-item>
-          <el-button 
-            type="primary" 
-            :disabled="!store.canQuery"
-            :loading="store.query_loading"
-            @click="handleQuery"
-          >
-            查询溯源结果
-          </el-button>
-        </el-form-item>
+          <!-- 委托单号 -->
+          <el-form-item label="委托单号">
+            <el-select
+              v-model="selectedOrderKey"
+              placeholder="请选择委托单号"
+              clearable
+              :disabled="!selectedProject || !selectedStatusAvailable"
+              style="width: 200px"
+              @change="onOrderChange"
+            >
+              <el-option
+                v-for="option in orderOptions"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value"
+              />
+            </el-select>
+          </el-form-item>
+        </div>
+
+        <div class="filter-row">
+          <!-- 物质选择 -->
+          <el-form-item label="物质选择">
+            <el-select
+              v-model="store.searchCriteria.cas_nos"
+              placeholder="请选择物质（可多选）"
+              multiple
+              collapse-tags
+              collapse-tags-tooltip
+              clearable
+              filterable
+              :loading="store.substance_options_loading"
+              :disabled="!store.searchCriteria.selected_key"
+              style="width: 320px"
+            >
+              <template #footer>
+                <div style="padding: 8px; text-align: center; border-top: 1px solid #e4e7ed;">
+                  已选择 {{ store.selectedSubstanceCount }} 种物质
+                  <el-button 
+                    type="text" 
+                    size="small" 
+                    @click="clearSubstances"
+                    style="margin-left: 10px;"
+                  >
+                    清空
+                  </el-button>
+                </div>
+              </template>
+              <el-option
+                v-for="option in store.substance_options"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value"
+              >
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span>{{ option.label }}</span>
+                  <span style="color: #909399; font-size: 12px;">
+                    {{ formatConcentration(option.concentration) }}
+                  </span>
+                </div>
+              </el-option>
+            </el-select>
+          </el-form-item>
+
+          <!-- 重置按钮 -->
+          <el-form-item>
+            <el-button 
+              :disabled="store.query_loading"
+              @click="handleReset"
+            >
+              重置
+            </el-button>
+          </el-form-item>
+
+          <!-- 查询按钮 -->
+          <el-form-item>
+            <el-button 
+              type="primary" 
+              :disabled="!store.canQuery"
+              :loading="store.query_loading"
+              @click="handleQuery"
+            >
+              查询
+            </el-button>
+          </el-form-item>
+        </div>
       </el-form>
     </el-card>
 
@@ -371,7 +425,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useSubstanceTraceabilityStore } from '@/store/substanceTraceability'
 import { substancesApi } from '@/api/substances'
 import { ElMessage } from 'element-plus'
@@ -383,10 +437,119 @@ const store = useSubstanceTraceabilityStore()
 const substanceDialogVisible = ref(false)
 const currentSubstance = ref(null)
 
-// 车型变化处理
-const handleVehicleModelChange = (selectedKey) => {
-  console.log('车型选择变化:', selectedKey)
-  console.log('可用选项:', store.vehicle_models)
+// 顶部筛选选择值
+const selectedProject = ref(null)
+const selectedStatus = ref('')
+const selectedOrderKey = ref(null)
+
+// 车型选项
+const projectOptions = computed(() => {
+  const result = []
+  const seen = new Set()
+  if (!store.vehicle_models || store.vehicle_models.length === 0) {
+    return result
+  }
+  store.vehicle_models.forEach(item => {
+    if (!item.project_name) {
+      return
+    }
+    if (seen.has(item.project_name)) {
+      return
+    }
+    seen.add(item.project_name)
+    result.push({
+      value: item.project_name,
+      label: item.project_name
+    })
+  })
+  return result
+})
+
+// 检测状态选项（依赖车型）
+const statusOptions = computed(() => {
+  const result = []
+  const seen = new Set()
+  if (!selectedProject.value || !store.vehicle_models || store.vehicle_models.length === 0) {
+    return result
+  }
+  store.vehicle_models.forEach(item => {
+    if (item.project_name !== selectedProject.value) {
+      return
+    }
+    const rawStatus = item.status || ''
+    const key = rawStatus
+    if (seen.has(key)) {
+      return
+    }
+    seen.add(key)
+    result.push({
+      value: rawStatus,
+      label: rawStatus || '未设置状态'
+    })
+  })
+  return result
+})
+
+const selectedStatusAvailable = computed(() => {
+  return !!selectedStatus.value || statusOptions.value.length === 0
+})
+
+// 委托单号选项（依赖车型+状态）
+const orderOptions = computed(() => {
+  const result = []
+  const map = new Map()
+  if (!selectedProject.value || !store.vehicle_models || store.vehicle_models.length === 0) {
+    return result
+  }
+
+  store.vehicle_models.forEach(item => {
+    if (item.project_name !== selectedProject.value) {
+      return
+    }
+    const rawStatus = item.status || ''
+    if (statusOptions.value.length > 0 && rawStatus !== (selectedStatus.value || '')) {
+      return
+    }
+    const orderNo = item.test_order_no || ''
+    if (!orderNo) {
+      return
+    }
+    if (!map.has(orderNo)) {
+      map.set(orderNo, item)
+    }
+  })
+
+  map.forEach((item, orderNo) => {
+    result.push({
+      value: item.key,
+      label: orderNo
+    })
+  })
+
+  return result
+})
+
+// 顶部筛选联动
+const resetDownstreamSelection = () => {
+  selectedStatus.value = ''
+  selectedOrderKey.value = null
+  store.resetSearchCriteria()
+}
+
+const onProjectChange = () => {
+  resetDownstreamSelection()
+}
+
+const onStatusChange = () => {
+  selectedOrderKey.value = null
+  store.resetSearchCriteria()
+}
+
+const onOrderChange = (selectedKey) => {
+  if (!selectedKey) {
+    store.resetSearchCriteria()
+    return
+  }
   store.handleVehicleModelChange(selectedKey)
 }
 
@@ -480,9 +643,15 @@ onMounted(async () => {
 .filter-form {
   margin: 0;
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.filter-row {
+  display: flex;
   align-items: flex-start;
   gap: 20px;
-  flex-wrap: nowrap;
 }
 
 .filter-form :deep(.el-form-item) {
