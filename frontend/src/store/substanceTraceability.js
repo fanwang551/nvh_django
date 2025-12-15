@@ -7,6 +7,8 @@ export const useSubstanceTraceabilityStore = defineStore('substanceTraceability'
     searchCriteria: {
       project_name: null,
       test_order_no: null,
+      development_stage: null,
+      status: null,
       sample_no: null,
       cas_nos: [],
       selected_key: null  // 用于存储选中的唯一标识
@@ -66,6 +68,7 @@ export const useSubstanceTraceabilityStore = defineStore('substanceTraceability'
           label: v.label,
           project_name: v.project_name,
           status: v.status || null,
+          development_stage: v.development_stage || null,
           test_order_no: v.test_order_no,
           sample_no: v.sample_no
         }))
@@ -94,14 +97,20 @@ export const useSubstanceTraceabilityStore = defineStore('substanceTraceability'
         this.substance_options_loading = true
         this.error = null
 
-        const { project_name, test_order_no, sample_no } = selectedOption
+        const { project_name, test_order_no, sample_no, status, development_stage } = selectedOption
         if (!project_name || !test_order_no || !sample_no) {
           console.warn('选项缺少必要字段')
           this.substance_options = []
           return
         }
 
-        const listResp = await substancesApi.getTraceabilitySubstances({ project_name, test_order_no, sample_no })
+        const listResp = await substancesApi.getTraceabilitySubstances({
+          project_name,
+          test_order_no,
+          sample_no,
+          status,
+          development_stage
+        })
         const details = listResp.data || []
 
         // 按浓度降序排序，构建选项列表
@@ -149,6 +158,8 @@ export const useSubstanceTraceabilityStore = defineStore('substanceTraceability'
         const payload = {
           project_name: this.searchCriteria.project_name,
           test_order_no: this.searchCriteria.test_order_no,
+          development_stage: this.searchCriteria.development_stage,
+          status: this.searchCriteria.status,
           sample_no: this.searchCriteria.sample_no,
           selected_substances: this.searchCriteria.cas_nos
         }
@@ -227,6 +238,8 @@ export const useSubstanceTraceabilityStore = defineStore('substanceTraceability'
       this.searchCriteria = {
         project_name: null,
         test_order_no: null,
+        development_stage: null,
+        status: null,
         sample_no: null,
         cas_nos: [],
         selected_key: null
@@ -249,6 +262,8 @@ export const useSubstanceTraceabilityStore = defineStore('substanceTraceability'
           this.searchCriteria.selected_key = selectedKey
           this.searchCriteria.project_name = selectedOption.project_name
           this.searchCriteria.test_order_no = selectedOption.test_order_no
+          this.searchCriteria.development_stage = selectedOption.development_stage || null
+          this.searchCriteria.status = selectedOption.status || null
           this.searchCriteria.sample_no = selectedOption.sample_no
           
           // 加载该选项对应的物质列表
@@ -258,6 +273,8 @@ export const useSubstanceTraceabilityStore = defineStore('substanceTraceability'
         // 清空选择
         this.searchCriteria.selected_key = null
         this.searchCriteria.project_name = null
+        this.searchCriteria.development_stage = null
+        this.searchCriteria.status = null
         this.searchCriteria.test_order_no = null
         this.searchCriteria.sample_no = null
         this.substance_options = []

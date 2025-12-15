@@ -78,6 +78,8 @@ export const substancesApi = {
    * @param {string} params.project_name
    * @param {string} params.test_order_no
    * @param {string} params.sample_no
+   * @param {string} [params.status] - 检测状态（可选）
+   * @param {string} [params.development_stage] - 开发阶段（可选）
    */
   getTraceabilitySubstances(params = {}) {
     return request.get('/vehicle-body/substance-traceability/substances/', params)
@@ -89,6 +91,8 @@ export const substancesApi = {
    * @param {string} payload.project_name
    * @param {string} payload.test_order_no
    * @param {string} payload.sample_no
+   * @param {string} [payload.status] - 检测状态（可选）
+   * @param {string} [payload.development_stage] - 开发阶段（可选）
    * @param {Array<string>} payload.selected_substances
    */
   postSubstanceRanking(payload = {}) {

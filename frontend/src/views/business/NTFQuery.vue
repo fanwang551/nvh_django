@@ -15,6 +15,7 @@
             clearable
             :loading="isLoading && !localVehicleIds.length"
             @change="handleVehicleChange"
+            style="min-width: 200px;"
           >
             <el-option
               class="vehicle-model-search-option"

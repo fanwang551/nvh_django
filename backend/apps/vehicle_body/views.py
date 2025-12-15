@@ -627,7 +627,7 @@ def contribution_top25(request):
 def vehicle_sample_options(request):
     """
     整车样品下拉选项：返回存在全谱明细的整车样品组合
-    结构：[{ key, label, project_name, status, test_order_no, sample_no }]
+    结构：[{ key, label, project_name, status, development_stage, test_order_no, sample_no }]
     """
     try:
         sample_ids = SubstancesTestDetail.objects.values_list('sample_id', flat=True).distinct()
@@ -646,17 +646,19 @@ def vehicle_sample_options(request):
         seen = set()
         options = []
         for s in qs:
-            combo = (s.project_name, s.test_order_no, s.sample_no)
+            # 使用项目 + 状态 + 开发阶段 + 委托单号 + 样品编号 作为唯一组合键
+            combo = (s.project_name, s.status or '', s.development_stage or '', s.test_order_no, s.sample_no)
             if combo in seen:
                 continue
             seen.add(combo)
             label = f"{s.project_name}-{s.status or ''}-{s.test_order_no}-{s.sample_no}"
-            key = f"{s.project_name}||{s.test_order_no}||{s.sample_no}"
+            key = f"{s.project_name}||{s.status or ''}||{s.development_stage or ''}||{s.test_order_no}||{s.sample_no}"
             options.append({
                 'key': key,
                 'label': label,
                 'project_name': s.project_name,
                 'status': s.status,
+                'development_stage': s.development_stage,
                 'test_order_no': s.test_order_no,
                 'sample_no': s.sample_no,
             })
@@ -680,24 +682,30 @@ def _fmt3(v):
 def traceability_substances(request):
     """
     获取整车样品下的物质列表（下拉数据源）
-    入参：project_name, test_order_no, sample_no
+    入参：project_name, test_order_no, sample_no, status(可选), development_stage(可选)
     返回：[{ cas_no, substance_name_cn, substance_name_en, concentration }]
     """
     try:
         project_name = (request.GET.get('project_name') or '').strip()
         test_order_no = (request.GET.get('test_order_no') or '').strip()
         sample_no = (request.GET.get('sample_no') or '').strip()
+        status = (request.GET.get('status') or '').strip()
+        development_stage = (request.GET.get('development_stage') or '').strip()
         if not (project_name and test_order_no and sample_no):
             return Response.bad_request(message='缺少必要参数：project_name/test_order_no/sample_no')
 
-        try:
-            sample = SampleInfo.objects.get(
-                project_name=project_name,
-                test_order_no=test_order_no,
-                sample_no=sample_no,
-                part_name='整车'
-            )
-        except SampleInfo.DoesNotExist:
+        sample_qs = SampleInfo.objects.filter(
+            project_name=project_name,
+            test_order_no=test_order_no,
+            sample_no=sample_no,
+            part_name='整车'
+        )
+        if status:
+            sample_qs = sample_qs.filter(status=status)
+        if development_stage:
+            sample_qs = sample_qs.filter(development_stage=development_stage)
+        sample = sample_qs.order_by('-test_date', '-id').first()
+        if not sample:
             return Response.not_found(message='整车样品不存在')
 
         details = (
@@ -726,7 +734,7 @@ def traceability_substances(request):
 def traceability_ranking(request):
     """
     所选物质的整车检测详情及 Top5 零件排名（Qij/Wih）
-    入参JSON：{ project_name, test_order_no, sample_no, selected_substances: [cas_no, ...] }
+    入参JSON：{ project_name, test_order_no, sample_no, status(可选), development_stage(可选), selected_substances: [cas_no, ...] }
     返回：[{ cas_no, substance_id, substance_name_cn, substance_name_en, substance_info, retention_time, match_degree, concentration_ratio, concentration, odor_top5, organic_top5 }]
     说明：所有数值统一三位小数字符串；odor_top5=按Qij排序，organic_top5=按Wih排序
     """
@@ -735,6 +743,8 @@ def traceability_ranking(request):
         project_name = (body.get('project_name') or '').strip()
         test_order_no = (body.get('test_order_no') or '').strip()
         sample_no = (body.get('sample_no') or '').strip()
+        status = (body.get('status') or '').strip()
+        development_stage = (body.get('development_stage') or '').strip()
         selected = body.get('selected_substances') or []
 
         if not (project_name and test_order_no and sample_no):
@@ -742,14 +752,18 @@ def traceability_ranking(request):
         if not isinstance(selected, (list, tuple)) or not selected:
             return Response.bad_request(message='缺少所选物质：selected_substances')
 
-        try:
-            vehicle_sample = SampleInfo.objects.get(
-                project_name=project_name,
-                test_order_no=test_order_no,
-                sample_no=sample_no,
-                part_name='整车'
-            )
-        except SampleInfo.DoesNotExist:
+        vehicle_sample_qs = SampleInfo.objects.filter(
+            project_name=project_name,
+            test_order_no=test_order_no,
+            sample_no=sample_no,
+            part_name='整车'
+        )
+        if status:
+            vehicle_sample_qs = vehicle_sample_qs.filter(status=status)
+        if development_stage:
+            vehicle_sample_qs = vehicle_sample_qs.filter(development_stage=development_stage)
+        vehicle_sample = vehicle_sample_qs.order_by('-test_date', '-id').first()
+        if not vehicle_sample:
             return Response.not_found(message='整车样品不存在')
 
         results = []

@@ -12,12 +12,31 @@
               clearable
               filterable
               :loading="store.vehicle_models_loading"
-              style="width: 260px"
+              style="width: 200px"
               @change="onProjectChange"
             >
               <el-option
                 v-for="option in projectOptions"
                 :key="option.value"
+                :label="option.label"
+                :value="option.value"
+              />
+            </el-select>
+          </el-form-item>
+
+          <!-- 开发阶段 -->
+          <el-form-item label="开发阶段">
+            <el-select
+              v-model="selectedStage"
+              placeholder="请选择开发阶段"
+              clearable
+              :disabled="!selectedProject"
+              style="width: 180px"
+              @change="onStageChange"
+            >
+              <el-option
+                v-for="option in stageOptions"
+                :key="option.value || '__empty__'"
                 :label="option.label"
                 :value="option.value"
               />
@@ -31,7 +50,7 @@
               placeholder="请选择检测状态"
               clearable
               :disabled="!selectedProject"
-              style="width: 220px"
+              style="width: 180px"
               @change="onStatusChange"
             >
               <el-option
@@ -50,7 +69,7 @@
               placeholder="请选择委托单号"
               clearable
               :disabled="!selectedProject || !selectedStatusAvailable"
-              style="width: 260px"
+              style="width: 200px"
               @change="onOrderChange"
             >
               <el-option
@@ -76,7 +95,7 @@
               filterable
               :loading="store.substance_options_loading"
               :disabled="!store.searchCriteria.selected_key"
-              style="width: 380px"
+              style="width: 360px"
             >
               <template #footer>
                 <div style="padding: 8px; text-align: center; border-top: 1px solid #e4e7ed;">
@@ -439,6 +458,7 @@ const currentSubstance = ref(null)
 
 // 顶部筛选选择值
 const selectedProject = ref(null)
+const selectedStage = ref('')
 const selectedStatus = ref('')
 const selectedOrderKey = ref(null)
 
@@ -466,6 +486,31 @@ const projectOptions = computed(() => {
 })
 
 // 检测状态选项（依赖车型）
+const stageOptions = computed(() => {
+  const result = []
+  const seen = new Set()
+  if (!selectedProject.value || !store.vehicle_models || store.vehicle_models.length === 0) {
+    return result
+  }
+  store.vehicle_models.forEach(item => {
+    if (item.project_name !== selectedProject.value) {
+      return
+    }
+    const rawStage = item.development_stage || ''
+    const key = rawStage
+    if (seen.has(key)) {
+      return
+    }
+    seen.add(key)
+    result.push({
+      value: rawStage,
+      label: rawStage || '未设置阶段'
+    })
+  })
+  return result
+})
+
+// 检测状态选项（依赖车型 + 开发阶段）
 const statusOptions = computed(() => {
   const result = []
   const seen = new Set()
@@ -475,6 +520,12 @@ const statusOptions = computed(() => {
   store.vehicle_models.forEach(item => {
     if (item.project_name !== selectedProject.value) {
       return
+    }
+    if (selectedStage.value) {
+      const rawStage = item.development_stage || ''
+      if (rawStage !== selectedStage.value) {
+        return
+      }
     }
     const rawStatus = item.status || ''
     const key = rawStatus
@@ -488,6 +539,10 @@ const statusOptions = computed(() => {
     })
   })
   return result
+})
+
+const selectedStageAvailable = computed(() => {
+  return !!selectedStage.value || stageOptions.value.length === 0
 })
 
 const selectedStatusAvailable = computed(() => {
@@ -505,6 +560,12 @@ const orderOptions = computed(() => {
   store.vehicle_models.forEach(item => {
     if (item.project_name !== selectedProject.value) {
       return
+    }
+    if (selectedStage.value) {
+      const rawStage = item.development_stage || ''
+      if (rawStage !== selectedStage.value) {
+        return
+      }
     }
     const rawStatus = item.status || ''
     if (statusOptions.value.length > 0 && rawStatus !== (selectedStatus.value || '')) {
@@ -531,6 +592,7 @@ const orderOptions = computed(() => {
 
 // 顶部筛选联动
 const resetDownstreamSelection = () => {
+  selectedStage.value = ''
   selectedStatus.value = ''
   selectedOrderKey.value = null
   store.resetSearchCriteria()
@@ -538,6 +600,12 @@ const resetDownstreamSelection = () => {
 
 const onProjectChange = () => {
   resetDownstreamSelection()
+}
+
+const onStageChange = () => {
+  selectedStatus.value = ''
+  selectedOrderKey.value = null
+  store.resetSearchCriteria()
 }
 
 const onStatusChange = () => {
@@ -556,6 +624,12 @@ const onOrderChange = (selectedKey) => {
 // 清空物质选择
 const clearSubstances = () => {
   store.searchCriteria.cas_nos = []
+}
+
+// 重置
+const handleReset = () => {
+  selectedProject.value = null
+  resetDownstreamSelection()
 }
 
 // 查询
@@ -651,8 +725,9 @@ onMounted(async () => {
 .filter-row {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
-  column-gap: 40px;
+  justify-content: flex-start;
+  column-gap: 20px;
+  flex-wrap: nowrap;
 }
 
 .filter-form :deep(.el-form-item) {
