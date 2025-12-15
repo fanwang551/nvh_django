@@ -8,26 +8,67 @@
         </div>
       </template>
       <el-form :inline="true" class="query-form">
-        <el-form-item label="项目名称">
+        <!-- 车型名称 -->
+        <el-form-item label="车型名称">
           <el-select
-            v-model="selectedVehicleModelId"
-            placeholder="请选择项目名称"
+            v-model="selectedProjectName"
+            placeholder="请选择车型名称"
             clearable
             filterable
             :loading="vmLoading"
-            style="width: 320px"
-            @change="handleQuery"
+            style="width: 260px"
+            @change="onProjectChange"
           >
             <el-option
-              v-for="(opt, idx) in vehicleModelOptions"
-              :key="opt.key ?? opt.id ?? (opt.value + '_' + idx)"
+              v-for="opt in projectOptions"
+              :key="opt.value"
               :label="opt.label"
               :value="opt.value"
             />
           </el-select>
         </el-form-item>
+
+        <!-- 测试状态 -->
+        <el-form-item label="测试状态">
+          <el-select
+            v-model="selectedStatus"
+            :placeholder="statusPlaceholder"
+            clearable
+            :disabled="!selectedProjectName || !hasHierarchy"
+            style="width: 200px"
+            @change="onStatusChange"
+          >
+            <el-option
+              v-for="opt in statusOptions"
+              :key="opt.value"
+              :label="opt.label"
+              :value="opt.value"
+            />
+          </el-select>
+        </el-form-item>
+
+        <!-- 委托单号 -->
+        <el-form-item label="委托单号">
+          <el-select
+            v-model="selectedOrderNo"
+            :placeholder="orderPlaceholder"
+            clearable
+            :disabled="!selectedProjectName || !hasHierarchy || selectedStatus === null"
+            style="width: 220px"
+            @change="onOrderChange"
+          >
+            <el-option
+              v-for="opt in orderOptions"
+              :key="opt.value"
+              :label="opt.label"
+              :value="opt.value"
+            />
+          </el-select>
+        </el-form-item>
+
+        <!-- 查询按钮 -->
         <el-form-item>
-          <el-button type="primary" :disabled="!selectedVehicleModelId" @click="handleQuery">查询</el-button>
+          <el-button type="primary" :disabled="!canQuery" @click="handleQuery">查询</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -120,9 +161,16 @@ import { substancesApi } from '@/api/substances'
 
 import * as echarts from 'echarts'
 
-const selectedVehicleModelId = ref(null)
-const vehicleModelOptions = ref([])
 const vmLoading = ref(false)
+
+// 车型层级数据源
+const vehicleSamples = ref([])      // 含 project_name / status / test_order_no / sample_no 的整车样品
+const fallbackProjects = ref([])    // 兜底：仅有项目名称的选项
+
+// 三级联动选中值
+const selectedProjectName = ref(null)
+const selectedStatus = ref(null)    // 状态值（包含占位符 '__EMPTY__'）
+const selectedOrderNo = ref(null)
 
 const insufficient = ref(false)
 const partsCount = ref(0)
@@ -150,6 +198,131 @@ const rows = computed(() => {
   return list
 })
 
+// 是否具备完整的三级联动数据源（存在整车样品列表）
+const hasHierarchy = computed(() => vehicleSamples.value.length > 0)
+
+// 车型名称选项：优先使用整车样品数据，其次使用兜底项目列表
+const projectOptions = computed(() => {
+  const result = []
+  const seen = new Set()
+  const source = hasHierarchy.value ? vehicleSamples.value : fallbackProjects.value
+
+  source.forEach(item => {
+    const name = item.project_name
+    if (!name || seen.has(name)) {
+      return
+    }
+    seen.add(name)
+    result.push({
+      value: name,
+      label: name
+    })
+  })
+
+  return result
+})
+
+// 测试状态选项（依赖车型，仅在有整车样品数据时可用）
+const statusOptions = computed(() => {
+  const result = []
+  const seen = new Set()
+
+  if (!hasHierarchy.value || !selectedProjectName.value) {
+    return result
+  }
+
+  vehicleSamples.value.forEach(item => {
+    if (item.project_name !== selectedProjectName.value) {
+      return
+    }
+    const rawStatus = (item.status || '').trim()
+    const value = rawStatus || '__EMPTY__'
+    if (seen.has(value)) {
+      return
+    }
+    seen.add(value)
+    result.push({
+      value,
+      label: rawStatus || '未设置状态'
+    })
+  })
+
+  return result
+})
+
+// 有效的状态过滤值（仅在有真实状态值时参与过滤）
+const effectiveStatus = computed(() => {
+  if (!hasHierarchy.value || selectedStatus.value === null) {
+    return ''
+  }
+  return selectedStatus.value === '__EMPTY__' ? '' : selectedStatus.value
+})
+
+// 委托单号选项（依赖车型 + 状态，仅在有整车样品数据时可用）
+const orderOptions = computed(() => {
+  const result = []
+  const seen = new Set()
+
+  if (!hasHierarchy.value || !selectedProjectName.value || selectedStatus.value === null) {
+    return result
+  }
+
+  vehicleSamples.value.forEach(item => {
+    if (item.project_name !== selectedProjectName.value) {
+      return
+    }
+    const rawStatus = (item.status || '').trim()
+    const statusKey = rawStatus || '__EMPTY__'
+    if (statusKey !== selectedStatus.value) {
+      return
+    }
+    const orderNo = (item.test_order_no || '').trim()
+    if (!orderNo || seen.has(orderNo)) {
+      return
+    }
+    seen.add(orderNo)
+    result.push({
+      value: orderNo,
+      label: orderNo
+    })
+  })
+
+  return result
+})
+
+// 下拉占位提示
+const statusPlaceholder = computed(() => {
+  return selectedProjectName.value ? '请选择测试状态' : '请先选择车型'
+})
+
+const orderPlaceholder = computed(() => {
+  if (!selectedProjectName.value) {
+    return '请先选择车型'
+  }
+  if (selectedStatus.value === null) {
+    return '请先选择测试状态'
+  }
+  return '请选择委托单号'
+})
+
+// 是否可以执行查询
+const canQuery = computed(() => {
+  if (!selectedProjectName.value) {
+    return false
+  }
+  if (!hasHierarchy.value) {
+    // 兜底模式：仅按车型查询
+    return true
+  }
+  if (selectedStatus.value === null) {
+    return false
+  }
+  if (!orderOptions.value.length) {
+    return false
+  }
+  return !!selectedOrderNo.value
+})
+
 const formatNumber = (val) => {
   if (val === null || val === undefined) return '-'
   const num = Number(val)
@@ -162,41 +335,55 @@ const loadVehicleModels = async () => {
     // 直接基于 SampleInfo 的“整车”样品生成下拉项：同一项目名的多条样品全部展示
     const testsResp = await substancesApi.getTestList({ part_name: '整车', page_size: 10000 })
     const tests = (testsResp?.data?.results || [])
-      .filter(r => r?.sample_info?.project_name)
+      .map(r => r?.sample_info || {})
+      .filter(s => s.project_name)
 
     if (tests.length > 0) {
-      vehicleModelOptions.value = tests.map(t => {
-        const s = t.sample_info || {}
-        const orderNo = s.test_order_no || '-'
-        const sampleNo = s.sample_no || '-'
-        return {
-          key: t.id,           // 保证同项目名不同样品的唯一性
-          value: s.project_name, // 查询仍按项目名
-          label: `${s.project_name}-${orderNo}-${sampleNo}`
-        }
-      })
+      // 构造整车样品列表，供三级联动使用
+      vehicleSamples.value = tests.map(s => ({
+        project_name: s.project_name,
+        status: s.status,
+        test_order_no: s.test_order_no,
+        sample_no: s.sample_no
+      }))
+      fallbackProjects.value = []
     } else {
       // 兜底：若没有整车样品，则退回到仅以项目名展示
       const resp = await vocApi.getVehicleModelOptions()
       const options = resp.data || []
-      vehicleModelOptions.value = options.map(item => ({
-        key: item.value,
-        value: item.value,
-        label: `${item.value}-/-/-`
-      }))
+      fallbackProjects.value = options
+        .filter(item => item && item.value)
+        .map(item => ({
+          project_name: item.value
+        }))
+      vehicleSamples.value = []
     }
   } catch (e) {
     console.error(e)
-    ElMessage.error('获取项目名称失败')
+    ElMessage.error('获取车型数据失败')
   } finally {
     vmLoading.value = false
   }
 }
 
 const handleQuery = async () => {
-  if (!selectedVehicleModelId.value) return
+  if (!selectedProjectName.value) return
   try {
-    const resp = await vocApi.getContributionTop25({ project_name: selectedVehicleModelId.value })
+    const params = {
+      project_name: selectedProjectName.value
+    }
+    // 在具备三级联动数据源时，附加状态与委托单号过滤
+    if (hasHierarchy.value) {
+      const statusFilter = effectiveStatus.value
+      if (statusFilter) {
+        params.status = statusFilter
+      }
+      if (selectedOrderNo.value) {
+        params.test_order_no = selectedOrderNo.value
+      }
+    }
+
+    const resp = await vocApi.getContributionTop25(params)
     insufficient.value = !!resp.data?.insufficient
     partsCount.value = resp.data?.parts_count || 0
     partNames.value = resp.data?.part_names || []
@@ -214,6 +401,27 @@ const handleQuery = async () => {
     console.error(e)
     ElMessage.error('查询失败')
   }
+}
+
+// 级联选择联动处理
+const resetDownstreamSelection = () => {
+  selectedStatus.value = null
+  selectedOrderNo.value = null
+}
+
+const onProjectChange = () => {
+  resetDownstreamSelection()
+}
+
+const onStatusChange = () => {
+  selectedOrderNo.value = null
+}
+
+const onOrderChange = async (val) => {
+  if (!val) {
+    return
+  }
+  await handleQuery()
 }
 
 onMounted(async () => {
@@ -376,6 +584,5 @@ onBeforeUnmount(() => {
   .viz-grid { grid-template-columns: 1fr; }
 }
 </style>
-
 
 
