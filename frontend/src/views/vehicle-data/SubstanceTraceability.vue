@@ -12,7 +12,7 @@
               clearable
               filterable
               :loading="store.vehicle_models_loading"
-              style="width: 220px"
+              style="width: 260px"
               @change="onProjectChange"
             >
               <el-option
@@ -31,7 +31,7 @@
               placeholder="请选择检测状态"
               clearable
               :disabled="!selectedProject"
-              style="width: 160px"
+              style="width: 220px"
               @change="onStatusChange"
             >
               <el-option
@@ -50,7 +50,7 @@
               placeholder="请选择委托单号"
               clearable
               :disabled="!selectedProject || !selectedStatusAvailable"
-              style="width: 200px"
+              style="width: 260px"
               @change="onOrderChange"
             >
               <el-option
@@ -76,7 +76,7 @@
               filterable
               :loading="store.substance_options_loading"
               :disabled="!store.searchCriteria.selected_key"
-              style="width: 320px"
+              style="width: 380px"
             >
               <template #footer>
                 <div style="padding: 8px; text-align: center; border-top: 1px solid #e4e7ed;">
@@ -645,13 +645,14 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 12px;
+  gap: 16px;
 }
 
 .filter-row {
   display: flex;
   align-items: flex-start;
-  gap: 20px;
+  justify-content: space-between;
+  column-gap: 40px;
 }
 
 .filter-form :deep(.el-form-item) {
