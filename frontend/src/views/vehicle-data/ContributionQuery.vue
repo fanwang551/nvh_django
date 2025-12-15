@@ -66,6 +66,11 @@
           </el-select>
         </el-form-item>
 
+        <!-- 重置按钮 -->
+        <el-form-item>
+          <el-button @click="handleReset">重置</el-button>
+        </el-form-item>
+
         <!-- 查询按钮 -->
         <el-form-item>
           <el-button type="primary" :disabled="!canQuery" @click="handleQuery">查询</el-button>
@@ -403,6 +408,20 @@ const handleQuery = async () => {
   }
 }
 
+const handleReset = () => {
+  selectedProjectName.value = null
+  selectedStatus.value = null
+  selectedOrderNo.value = null
+
+  insufficient.value = false
+  partsCount.value = 0
+  partNames.value = []
+  insufficientDialog.value = false
+
+  goiTop25.value = []
+  gviTop25.value = []
+}
+
 // 级联选择联动处理
 const resetDownstreamSelection = () => {
   selectedStatus.value = null
@@ -417,11 +436,8 @@ const onStatusChange = () => {
   selectedOrderNo.value = null
 }
 
-const onOrderChange = async (val) => {
-  if (!val) {
-    return
-  }
-  await handleQuery()
+const onOrderChange = () => {
+  // 仅更新选中值，不自动触发查询
 }
 
 onMounted(async () => {
@@ -584,5 +600,4 @@ onBeforeUnmount(() => {
   .viz-grid { grid-template-columns: 1fr; }
 }
 </style>
-
 
