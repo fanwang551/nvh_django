@@ -59,9 +59,10 @@
         <div class="list-header">
           <span>测试时间</span>
           <span>项目</span>
+          <span>状态</span>
           <span>零部件</span>
           <span>样品号</span>
-          <span>TVOC</span>
+          <span>TVOC(μg/m³)</span>
           <span>气味等级</span>
         </div>
         <div
@@ -81,9 +82,10 @@
             >
               <span>{{ formatDateDisplay(row.test_date) }}</span>
               <span>{{ row.project_name || '-' }}</span>
+              <span>{{ row.status || '-' }}</span>
               <span>{{ row.part_name || '-' }}</span>
               <span>{{ row.sample_no || '-' }}</span>
-              <span>{{ formatDecimal(row.tvoc) }}</span>
+              <span>{{ formatTvocDisplay(row) }}</span>
               <span>{{ formatDecimal(row.odor_mean, 1) }}</span>
             </div>
           </div>
@@ -295,6 +297,17 @@ const formatDecimal = (value, fraction = 3) => {
   return Number(value).toFixed(fraction)
 }
 
+const formatTvocDisplay = (row) => {
+  if (!row) return '-'
+  const raw = row.tvoc
+  if (raw === null || raw === undefined || Number.isNaN(Number(raw))) return '-'
+  let value = Number(raw)
+  if (row.part_name === '整车') {
+    value = value * 1000
+  }
+  return value.toFixed(3)
+}
+
 const formatDateDisplay = (value) => {
   if (!value) return '-'
   const date = new Date(value)
@@ -385,10 +398,13 @@ const renderProjectBar3d = (list = []) => {
   const chart = ensureChartInstance('projectBar3d')
   if (!chart) return
 
-  const projects = list.map((item) => item.project_name)
+  const filtered = Array.isArray(list) ? list.filter((item) => item.project_name && item.project_name !== '其他') : []
+  const limited = filtered.slice(0, 5)
+
+  const projects = limited.map((item) => item.project_name)
   const categories = ['整车', '零部件']
   const dataSource = []
-  list.forEach((item, projectIndex) => {
+  limited.forEach((item, projectIndex) => {
     dataSource.push({
       value: [projectIndex, 0, item.vehicle_tests || 0],
       projectName: item.project_name,
@@ -434,7 +450,7 @@ const renderProjectBar3d = (list = []) => {
           label: {
             show: true,
             formatter: ({ value }) => value[2],
-            textStyle: { fontSize: 12, color: '#fff' }
+            textStyle: { fontSize: 12, color: '#000' }
           },
           itemStyle: {
             opacity: 0.95,
@@ -865,7 +881,7 @@ onBeforeUnmount(() => {
 .list-header,
 .list-row {
   display: grid;
-  grid-template-columns: 1.2fr 1fr 1fr 1fr 0.8fr 0.8fr;
+  grid-template-columns: 1.2fr 0.8fr 1fr 1fr 0.8fr 0.8fr 0.8fr;
   gap: 6px;
   font-size: 14px;
 }
@@ -1008,9 +1024,6 @@ onBeforeUnmount(() => {
   .row.row-top .header-panel { margin-bottom: 16px; }
 }
 </style>
-
-
-
 
 
 

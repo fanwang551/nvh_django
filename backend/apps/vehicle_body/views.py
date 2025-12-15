@@ -113,14 +113,6 @@ def iaq_dashboard(request):
                 'part_tests': record.get('part_tests', 0)
             })
 
-        remaining_qs = base_qs.exclude(project_name__in=top_project_names) if top_project_names else base_qs
-        if remaining_qs.exists():
-            project_comparison.append({
-                'project_name': '其他',
-                'vehicle_tests': remaining_qs.filter(part_name='整车').count(),
-                'part_tests': remaining_qs.exclude(part_name='整车').count()
-            })
-
         monthly_rows = (
             base_qs.filter(test_date__year=current_year)
             .annotate(month=ExtractMonth('test_date'))
@@ -137,6 +129,7 @@ def iaq_dashboard(request):
                 'test_date': sample.test_date.isoformat() if sample.test_date else None,
                 'project_name': sample.project_name,
                 'part_name': sample.part_name,
+                'status': sample.status,
                 'sample_no': sample.sample_no,
                 'tvoc': float(sample.tvoc) if sample.tvoc is not None else None,
                 'odor_mean': float(sample.odor_mean) if sample.odor_mean is not None else None
