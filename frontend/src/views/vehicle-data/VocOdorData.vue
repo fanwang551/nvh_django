@@ -49,7 +49,7 @@
                 filterable
                 :loading="store.part_names_loading"
                 style="width: 100%"
-                @change="handleFilterChange"
+                @change="handlePartNamesChange"
               >
                 <el-option
                   v-for="option in prioritizedPartNames"
@@ -298,7 +298,7 @@
             align="center"
           >
             <template #header>
-              <div>苯<br/>(μg/m³)</div>
+              <div>苯<br/>({{ vocUnit }})</div>
             </template>
             <template #default="scope">
               {{ scope.row.benzene_formatted }}
@@ -311,7 +311,7 @@
             align="center"
           >
             <template #header>
-              <div>甲苯<br/>(μg/m³)</div>
+              <div>甲苯<br/>({{ vocUnit }})</div>
             </template>
             <template #default="scope">
               {{ scope.row.toluene_formatted }}
@@ -324,7 +324,7 @@
             align="center"
           >
             <template #header>
-              <div>乙苯<br/>(μg/m³)</div>
+              <div>乙苯<br/>({{ vocUnit }})</div>
             </template>
             <template #default="scope">
               {{ scope.row.ethylbenzene_formatted }}
@@ -337,7 +337,7 @@
             align="center"
           >
             <template #header>
-              <div>二甲苯<br/>(μg/m³)</div>
+              <div>二甲苯<br/>({{ vocUnit }})</div>
             </template>
             <template #default="scope">
               {{ scope.row.xylene_formatted }}
@@ -350,7 +350,7 @@
             align="center"
           >
             <template #header>
-              <div>苯乙烯<br/>(μg/m³)</div>
+              <div>苯乙烯<br/>({{ vocUnit }})</div>
             </template>
             <template #default="scope">
               {{ scope.row.styrene_formatted }}
@@ -363,7 +363,7 @@
             align="center"
           >
             <template #header>
-              <div>甲醛<br/>(μg/m³)</div>
+              <div>甲醛<br/>({{ vocUnit }})</div>
             </template>
             <template #default="scope">
               {{ scope.row.formaldehyde_formatted }}
@@ -376,7 +376,7 @@
             align="center"
           >
             <template #header>
-              <div>乙醛<br/>(μg/m³)</div>
+              <div>乙醛<br/>({{ vocUnit }})</div>
             </template>
             <template #default="scope">
               {{ scope.row.acetaldehyde_formatted }}
@@ -389,7 +389,7 @@
             align="center"
           >
             <template #header>
-              <div>丙烯醛<br/>(μg/m³)</div>
+              <div>丙烯醛<br/>({{ vocUnit }})</div>
             </template>
             <template #default="scope">
               {{ scope.row.acrolein_formatted }}
@@ -402,7 +402,7 @@
             align="center"
           >
             <template #header>
-              <div>丙酮<br/>(μg/m³)</div>
+              <div>丙酮<br/>({{ vocUnit }})</div>
             </template>
             <template #default="scope">
               {{ scope.row.acetone_formatted }}
@@ -415,7 +415,7 @@
             align="center"
           >
             <template #header>
-              <div>TVOC<br/>(μg/m³)</div>
+              <div>TVOC<br/>({{ vocUnit }})</div>
             </template>
             <template #default="scope">
               {{ scope.row.tvoc_formatted }}
@@ -746,6 +746,29 @@ const prioritizedPartNames = computed(() => {
   return options
 })
 
+// 根据当前筛选/结果动态确定VOC单位
+const vocUnit = computed(() => {
+  if (store.filtered_voc_data && store.filtered_voc_data.length > 0) {
+    const partNames = Array.from(new Set(
+      store.filtered_voc_data
+        .map(item => item.sample_info?.part_name)
+        .filter(Boolean)
+    ))
+    const hasWholeVehicle = partNames.includes('整车')
+    const hasOtherParts = partNames.some(name => name !== '整车')
+    if (hasWholeVehicle && !hasOtherParts) {
+      return 'mg/m³'
+    }
+    return 'μg/m³'
+  }
+
+  const selectedParts = store.searchCriteria?.part_names || []
+  if (selectedParts.length === 1 && selectedParts[0] === '整车') {
+    return 'mg/m³'
+  }
+  return 'μg/m³'
+})
+
 // VOC表格可见列管理 - 默认选择所有物质和委托单号
 const vocVisibleColumns = ref(['commission_number', 'benzene', 'toluene', 'ethylbenzene', 'xylene', 'styrene', 'formaldehyde', 'acetaldehyde', 'acrolein', 'acetone', 'tvoc', 'status','development_stage'])
 
@@ -755,6 +778,9 @@ const odorVisibleColumns = ref(['test_date', 'part_name', 'development_stage', '
 // 样品图弹窗
 const imageDialogVisible = ref(false)
 const currentImageUrl = ref('')
+
+// 记录零部件多选前一次值，用于判断“整车/非整车”切换行为
+const previousPartNames = ref([...store.searchCriteria.part_names])
 
 // VOC图表相关
 const chartVisible = ref(false)
@@ -796,6 +822,37 @@ const toggleOdorColumn = (column, visible) => {
       odorVisibleColumns.value.splice(index, 1)
     }
   }
+}
+
+// 零部件多选变更：确保“整车”与其他零部件互斥
+const handlePartNamesChange = (value) => {
+  const newValue = Array.isArray(value) ? [...value] : []
+  const prev = previousPartNames.value || []
+
+  const hadWholeBefore = prev.includes('整车')
+  const hadOtherBefore = prev.some(name => name !== '整车')
+
+  const hasWholeNow = newValue.includes('整车')
+  const hasOtherNow = newValue.some(name => name !== '整车')
+
+  let resolved = newValue
+
+  if (hasWholeNow && hasOtherNow) {
+    if (!hadWholeBefore && hasWholeNow) {
+      // 之前没有“整车”，本次新增“整车”：只保留“整车”
+      resolved = ['整车']
+    } else if (!hadOtherBefore && hasOtherNow) {
+      // 之前只有“整车”，本次新增其他零部件：排除“整车”
+      resolved = newValue.filter(name => name !== '整车')
+    } else {
+      // 不确定来源时，优先排除“整车”，与“选择非整车时排除整车”保持一致
+      resolved = newValue.filter(name => name !== '整车')
+    }
+  }
+
+  store.searchCriteria.part_names = resolved
+  previousPartNames.value = [...resolved]
+  handleFilterChange()
 }
 
 // 显示样品图
@@ -970,13 +1027,12 @@ const renderChart = () => {
     return parts.length > 0 ? parts.join('-') : (s.sampleNo || s.name || '未知')
   })
 
-  // 检查是否全部为整车（用于单位转换）
+  // 检查是否全部为整车（用于单位显示）
   const isAllWholeVehicle = chartData.value.scenario === 'whole_vehicle' || 
     (chartData.value.series.length > 0 && chartData.value.series.every(s => s.part_name === '整车'))
   
-  // 单位和单位转换系数
+  // 单位（整车：mg/m³；零部件：μg/m³），数值不再进行前端单位换算
   const unit = isAllWholeVehicle ? 'mg/m³' : 'μg/m³'
-  const conversionFactor = isAllWholeVehicle ? 1000 : 1
 
   const option = {
     title: {
@@ -1043,7 +1099,7 @@ const renderChart = () => {
     series: chartData.value.series.map((s, idx) => ({
       name: newSeriesNames[idx],
       type: 'bar',
-      data: s.data.map(v => (v / conversionFactor).toFixed(3)),
+      data: s.data.map(v => Number(v).toFixed(3)),
       label: {
         show: true,
         position: 'top',
@@ -1197,6 +1253,7 @@ const handleReset = () => {
   store.resetSearchCriteria()
   vocVisibleColumns.value = ['commission_number', 'benzene', 'toluene', 'ethylbenzene', 'xylene', 'styrene', 'formaldehyde', 'acetaldehyde', 'acrolein', 'acetone', 'tvoc']
   odorVisibleColumns.value = ['test_date', 'part_name', 'development_stage']
+  previousPartNames.value = [...store.searchCriteria.part_names]
 }
 
 // VOC表格分页

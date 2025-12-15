@@ -193,7 +193,17 @@ def _apply_filters(qs, filters):
 
     part_names = filters.get('part_names', []) or []
     if part_names:
-        qs = qs.filter(part_name__in=part_names)
+        part_names = list(part_names)
+        has_whole_vehicle = '整车' in part_names
+        has_other_parts = any(name != '整车' for name in part_names)
+
+        if has_whole_vehicle and has_other_parts:
+            # 出现“整车 + 其他零部件”混合时，按照前端约定：
+            # 选择非“整车”零部件时，自动排除“整车”数据
+            part_names = [name for name in part_names if name != '整车']
+
+        if part_names:
+            qs = qs.filter(part_name__in=part_names)
 
     statuses = filters.get('statuses', []) or []
     if statuses:

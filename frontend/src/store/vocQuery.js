@@ -6,7 +6,8 @@ export const useVocQueryStore = defineStore('vocQuery', {
     // 查询条件
     searchCriteria: {
       project_names: [],  // 改为多选（项目名称）
-      part_names: [],
+      // 默认仅加载“整车”数据，前端表格与图表单位按此互斥规则切换
+      part_names: ['整车'],
       statuses: [],
       development_stages: [],
       test_date_range: null,
@@ -248,9 +249,23 @@ export const useVocQueryStore = defineStore('vocQuery', {
         )
       }
 
-      if (this.searchCriteria.part_names.length > 0) {
+      // 零部件筛选互斥逻辑：
+      // - 默认仅加载“整车”
+      // - “整车”与非“整车”不可同时生效
+      let partNames = this.searchCriteria.part_names || []
+      if (!partNames.length) {
+        partNames = ['整车']
+      }
+      const hasWholeVehicle = partNames.includes('整车')
+      const hasOtherParts = partNames.some(name => name !== '整车')
+      if (hasWholeVehicle && hasOtherParts) {
+        // 出现混合时，按“选择非整车时排除整车”的规则，仅保留非整车
+        partNames = partNames.filter(name => name !== '整车')
+      }
+      this.searchCriteria.part_names = partNames
+      if (partNames.length > 0) {
         filtered = filtered.filter(item =>
-          this.searchCriteria.part_names.includes(item.sample_info?.part_name)
+          partNames.includes(item.sample_info?.part_name)
         )
       }
 
@@ -353,7 +368,8 @@ export const useVocQueryStore = defineStore('vocQuery', {
     resetSearchCriteria() {
       this.searchCriteria = {
         project_names: [],  // 改为多选（项目名称）
-        part_names: [],
+        // 重置后恢复为仅“整车”
+        part_names: ['整车'],
         statuses: [],
         development_stages: [],
         test_date_range: null,
