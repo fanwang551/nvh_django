@@ -1,4 +1,4 @@
-<template>
+“<template>
   <el-config-provider :locale="locale">
     <div class="voc-query">
     <!-- 查询表单 -->
@@ -736,7 +736,7 @@ const locale = ref({
 // Store
 const store = useVocQueryStore()
 
-// 将“整车”选项置顶显示
+// 将"整车"选项置顶显示
 const prioritizedPartNames = computed(() => {
   const options = store.part_names || []
   const idx = options.findIndex(opt => opt?.label === '整车' || opt?.value === '整车')
@@ -779,7 +779,7 @@ const odorVisibleColumns = ref(['test_date', 'part_name', 'development_stage', '
 const imageDialogVisible = ref(false)
 const currentImageUrl = ref('')
 
-// 记录零部件多选前一次值，用于判断“整车/非整车”切换行为
+// 记录零部件多选前一次值，用于判断"整车/非整车"切换行为
 const previousPartNames = ref([...store.searchCriteria.part_names])
 
 // VOC图表相关
@@ -824,7 +824,7 @@ const toggleOdorColumn = (column, visible) => {
   }
 }
 
-// 零部件多选变更：确保“整车”与其他零部件互斥
+// 零部件多选变更：确保"整车"与其他零部件互斥
 const handlePartNamesChange = (value) => {
   const newValue = Array.isArray(value) ? [...value] : []
   const prev = previousPartNames.value || []
@@ -839,13 +839,13 @@ const handlePartNamesChange = (value) => {
 
   if (hasWholeNow && hasOtherNow) {
     if (!hadWholeBefore && hasWholeNow) {
-      // 之前没有“整车”，本次新增“整车”：只保留“整车”
+      // 之前没有"整车"，本次新增"整车"：只保留"整车"
       resolved = ['整车']
     } else if (!hadOtherBefore && hasOtherNow) {
-      // 之前只有“整车”，本次新增其他零部件：排除“整车”
+      // 之前只有"整车"，本次新增其他零部件：排除"整车"
       resolved = newValue.filter(name => name !== '整车')
     } else {
-      // 不确定来源时，优先排除“整车”，与“选择非整车时排除整车”保持一致
+      // 不确定来源时，优先排除"整车"，与"选择非整车时排除整车"保持一致
       resolved = newValue.filter(name => name !== '整车')
     }
   }
@@ -870,10 +870,10 @@ const showChart = async (resultId) => {
   try {
     chartLoading.value = true
     chartVisible.value = true
-    
+
     const response = await vocApi.getRowChartData({ result_id: resultId })
     chartData.value = response.data
-    
+
     await nextTick()
     renderChart()
   } catch (error) {
@@ -909,13 +909,13 @@ const showFilteredChart = async () => {
 
     chartLoading.value = true
     chartVisible.value = true
-    
+
     const response = await vocApi.getFilteredVocChartData({
       filters: store.searchCriteria,
       limit: 10
     })
     chartData.value = response.data
-    
+
     await nextTick()
     renderChart()
   } catch (error) {
@@ -932,10 +932,10 @@ const showOdorChart = async (resultId) => {
   try {
     odorChartLoading.value = true
     odorChartVisible.value = true
-    
+
     const response = await vocApi.getOdorRowChartData({ result_id: resultId })
     odorChartData.value = response.data
-    
+
     await nextTick()
     renderOdorChart()
   } catch (error) {
@@ -971,13 +971,13 @@ const showFilteredOdorChart = async () => {
 
     odorChartLoading.value = true
     odorChartVisible.value = true
-    
+
     const response = await vocApi.getFilteredOdorChartData({
       filters: store.searchCriteria,
       limit: 10
     })
     odorChartData.value = response.data
-    
+
     await nextTick()
     renderOdorChart()
   } catch (error) {
@@ -989,16 +989,16 @@ const showFilteredOdorChart = async () => {
   }
 }
 
-// 渲染VOC图表
+// 渲染VOC图表 - 使用双Y轴，TVOC独立显示
 const renderChart = () => {
   if (!chartContainer.value || !chartData.value) return
-  
+
   if (chartInstance) {
     chartInstance.dispose()
   }
-  
+
   chartInstance = echarts.init(chartContainer.value)
-  
+
   // 智能命名：检查是否需要隐藏相同字段
   const processedSeries = chartData.value.series.map(s => {
     const parts = s.raw_data || {}
@@ -1028,11 +1028,127 @@ const renderChart = () => {
   })
 
   // 检查是否全部为整车（用于单位显示）
-  const isAllWholeVehicle = chartData.value.scenario === 'whole_vehicle' || 
+  const isAllWholeVehicle = chartData.value.scenario === 'whole_vehicle' ||
     (chartData.value.series.length > 0 && chartData.value.series.every(s => s.part_name === '整车'))
-  
+
   // 单位（整车：mg/m³；零部件：μg/m³），数值不再进行前端单位换算
   const unit = isAllWholeVehicle ? 'mg/m³' : 'μg/m³'
+
+  // 找到TVOC在xAxis中的索引
+  const xAxisData = chartData.value.xAxis
+  const tvocIndex = xAxisData.findIndex(item => item === 'TVOC' || item === 'tvoc')
+
+  // 分离数据：其他物质和TVOC
+  const otherCompoundsXAxis = xAxisData.filter((_, idx) => idx !== tvocIndex)
+
+  // 计算其他物质的最大值，用于设置左侧Y轴范围
+  let otherMaxValue = 0
+  chartData.value.series.forEach(s => {
+    s.data.forEach((val, idx) => {
+      if (idx !== tvocIndex) {
+        const numVal = Number(val)
+        if (!isNaN(numVal) && numVal > otherMaxValue) {
+          otherMaxValue = numVal
+        }
+      }
+    })
+  })
+
+  // 计算TVOC的最大值，用于设置右侧Y轴范围
+  let tvocMaxValue = 0
+  chartData.value.series.forEach(s => {
+    if (tvocIndex !== -1 && s.data[tvocIndex] !== undefined) {
+      const numVal = Number(s.data[tvocIndex])
+      if (!isNaN(numVal) && numVal > tvocMaxValue) {
+        tvocMaxValue = numVal
+      }
+    }
+  })
+
+  // 为Y轴设置合适的最大值（留出一些空间）
+  const leftYAxisMax = otherMaxValue > 0 ? Math.ceil(otherMaxValue * 1.2 * 100) / 100 : 'auto'
+  const rightYAxisMax = tvocMaxValue > 0 ? Math.ceil(tvocMaxValue * 1.2 * 100) / 100 : 'auto'
+
+  // 构建系列数据
+  const seriesData = []
+
+  // 定义颜色数组
+  const colors = [
+    '#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de',
+    '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc', '#48b8d0'
+  ]
+
+  chartData.value.series.forEach((s, seriesIdx) => {
+    const seriesName = newSeriesNames[seriesIdx]
+    const baseColor = colors[seriesIdx % colors.length]
+
+    // 其他物质的数据（使用左侧Y轴）
+    const otherData = s.data.filter((_, idx) => idx !== tvocIndex).map(v => Number(v).toFixed(3))
+    seriesData.push({
+      name: seriesName,
+      type: 'bar',
+      yAxisIndex: 0,
+      data: otherData,
+      label: {
+        show: true,
+        position: 'top',
+        formatter: '{c}',
+        fontSize: 9,
+        color: '#333'
+      },
+      barMaxWidth: 100,      // 增大最大宽度
+      barCategoryGap: '25%', // 类目间距
+      itemStyle: {
+        color: baseColor
+      }
+    })
+
+    // TVOC数据（使用右侧Y轴）- 如果存在TVOC
+    if (tvocIndex !== -1 && s.data[tvocIndex] !== undefined) {
+      const tvocValue = Number(s.data[tvocIndex]).toFixed(3)
+      // 创建一个与其他物质数量相同的数组，只在最后一个位置放置TVOC值
+      const tvocData = new Array(otherCompoundsXAxis.length).fill(null)
+
+      seriesData.push({
+      name: seriesName + ' (TVOC)',
+      type: 'bar',
+      yAxisIndex: 1,
+      data: tvocData.concat([tvocValue]),
+      label: {
+        show: true,
+        position: 'top',
+        formatter: function(params) {
+          if (params.value !== null) {
+            return params.value
+          }
+          return ''
+        },
+        fontSize: 10,
+        fontWeight: 'bold',
+        color: '#e65c00'
+      },
+      barMaxWidth: 50,
+      barCategoryGap: '25%', // 类目间距
+      itemStyle: {
+        color: '#ff9933',
+        borderColor: '#e65c00',
+        borderWidth: 1
+      }
+    })
+    }
+  })
+
+  // 更新X轴数据，在末尾添加TVOC
+  const finalXAxisData = tvocIndex !== -1 ? [...otherCompoundsXAxis, 'TVOC'] : otherCompoundsXAxis
+
+  // 构建图例数据
+  const legendData = []
+  newSeriesNames.forEach(name => {
+    legendData.push(name)
+    if (tvocIndex !== -1) {
+      legendData.push(name + ' (TVOC)')
+    }
+  })
 
   const option = {
     title: {
@@ -1041,6 +1157,10 @@ const renderChart = () => {
       textStyle: {
         fontSize: 18,
         fontWeight: 'bold'
+      },
+      subtextStyle: {
+        fontSize: 12,
+        color: '#999'
       }
     },
     tooltip: {
@@ -1051,16 +1171,23 @@ const renderChart = () => {
       formatter: function(params) {
         let result = params[0].axisValue + '<br/>'
         params.forEach(item => {
-          result += item.marker + ' ' + item.seriesName + ': ' + item.value + ' ' + unit + '<br/>'
+          if (item.value !== null && item.value !== undefined) {
+            const isTvoc = item.seriesName.includes('TVOC')
+            result += item.marker + ' ' + item.seriesName + ': ' + item.value + ' ' + unit
+            if (isTvoc) {
+              result += ' (右轴)'
+            }
+            result += '<br/>'
+          }
         })
         return result
       }
     },
     legend: {
-      data: newSeriesNames,
-      top: 40,
+      data: legendData,
+      top: 50,
       type: 'scroll',
-      selected: newSeriesNames.reduce((acc, name) => {
+      selected: legendData.reduce((acc, name) => {
         acc[name] = true
         return acc
       }, {})
@@ -1074,11 +1201,24 @@ const renderChart = () => {
     },
     xAxis: {
       type: 'category',
-      data: chartData.value.xAxis,
+      data: finalXAxisData,
       axisLabel: {
         interval: 0,
         rotate: 0,
-        fontSize: 12
+        fontSize: 11,
+        formatter: function(value) {
+          if (value === 'TVOC') {
+            return '{tvoc|TVOC}'
+          }
+          return value
+        },
+        rich: {
+          tvoc: {
+            color: '#e65c00',
+            fontWeight: 'bold',
+            fontSize: 12
+          }
+        }
       },
       name: '物质名称',
       nameLocation: 'middle',
@@ -1086,32 +1226,78 @@ const renderChart = () => {
       nameTextStyle: {
         fontSize: 14,
         fontWeight: 'bold'
-      }
-    },
-    yAxis: {
-      type: 'value',
-      name: '浓度 (' + unit + ')',
-      nameTextStyle: {
-        fontSize: 14,
-        fontWeight: 'bold'
-      }
-    },
-    series: chartData.value.series.map((s, idx) => ({
-      name: newSeriesNames[idx],
-      type: 'bar',
-      data: s.data.map(v => Number(v).toFixed(3)),
-      label: {
-        show: true,
-        position: 'top',
-        formatter: '{c}',
-        fontSize: 10
       },
-      barMaxWidth: 50
-    }))
+      // 添加分隔线来区分TVOC
+      splitArea: {
+        show: true,
+        areaStyle: {
+          color: finalXAxisData.map((_, idx) =>
+            idx === finalXAxisData.length - 1 && tvocIndex !== -1 ? 'rgba(255, 153, 51, 0.1)' : 'transparent'
+          )
+        }
+      }
+    },
+    yAxis: [
+      {
+        type: 'value',
+        name: '浓度 (' + unit + ')',
+        position: 'left',
+        max: leftYAxisMax,
+        nameTextStyle: {
+          fontSize: 14,
+          fontWeight: 'bold',
+          color: '#5470c6'
+        },
+        axisLine: {
+          show: true,
+          lineStyle: {
+            color: '#5470c6'
+          }
+        },
+        axisLabel: {
+          color: '#5470c6',
+          formatter: function(value) {
+            return value.toFixed(2)
+          }
+        },
+        splitLine: {
+          lineStyle: {
+            type: 'dashed'
+          }
+        }
+      },
+      {
+        type: 'value',
+        name: 'TVOC (' + unit + ')',
+        position: 'right',
+        max: rightYAxisMax,
+        nameTextStyle: {
+          fontSize: 14,
+          fontWeight: 'bold',
+          color: '#e65c00'
+        },
+        axisLine: {
+          show: true,
+          lineStyle: {
+            color: '#e65c00'
+          }
+        },
+        axisLabel: {
+          color: '#e65c00',
+          formatter: function(value) {
+            return value.toFixed(2)
+          }
+        },
+        splitLine: {
+          show: false
+        }
+      }
+    ],
+    series: seriesData
   }
-  
+
   chartInstance.setOption(option)
-  
+
   window.addEventListener('resize', () => {
     chartInstance && chartInstance.resize()
   })
@@ -1120,13 +1306,13 @@ const renderChart = () => {
 // 渲染气味图表
 const renderOdorChart = () => {
   if (!odorChartContainer.value || !odorChartData.value) return
-  
+
   if (odorChartInstance) {
     odorChartInstance.dispose()
   }
-  
+
   odorChartInstance = echarts.init(odorChartContainer.value)
-  
+
   // 智能命名：检查是否需要隐藏相同字段
   const processedSeries = odorChartData.value.series.map(s => {
     const parts = s.raw_data || {}
@@ -1154,7 +1340,7 @@ const renderOdorChart = () => {
     if (uniqueStages.size > 1 && s.stage) parts.push(s.stage)
     return parts.length > 0 ? parts.join('-') : (s.sampleNo || s.name || '未知')
   })
-  
+
   const option = {
     title: {
       text: '气味数据对比分析',
@@ -1230,9 +1416,9 @@ const renderOdorChart = () => {
       barMaxWidth: 50
     }))
   }
-  
+
   odorChartInstance.setOption(option)
-  
+
   window.addEventListener('resize', () => {
     odorChartInstance && odorChartInstance.resize()
   })
@@ -1279,7 +1465,7 @@ onMounted(async () => {
   try {
     // 首先加载车型选项
     await store.fetchVehicleModelOptions()
-    
+
     // 加载所有VOC数据，并自动提取唯一选项
     await store.loadAllVocData()
   } catch (error) {
@@ -1320,6 +1506,11 @@ onMounted(async () => {
 .pagination-container {
   margin-top: 20px;
   text-align: center;
+}
+
+.chart-hint {
+  text-align: center;
+  margin-bottom: 10px;
 }
 
 :deep(.el-card__header) {
