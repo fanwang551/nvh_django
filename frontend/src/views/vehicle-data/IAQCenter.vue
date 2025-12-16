@@ -4,10 +4,10 @@
     <section class="row row-top">
       <div class="header-panel">
         <div class="title-section">
-          <div class="logo-chip">IAQ</div>
+          <div class="logo-chip">VIAQ</div>
           <div class="title-text">
-            <h1>整车空气质量（VOC & 气味）监控大屏</h1>
-            <p>Indoor Air Quality Monitoring Wall</p>
+            <h1>车内空气质量（VOC & 气味）监控大屏</h1>
+            <p>Vehicle Indoor Air Quality Monitoring Wall</p>
           </div>
         </div>
         <div class="time-section">

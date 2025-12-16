@@ -138,7 +138,7 @@
     <!-- 数据不足弹窗 -->
     <el-dialog v-model="insufficientDialog" title="数据不足" width="600px">
       <div class="insufficient-msg">
-        零部件数需≥35，当前项目仅有 {{ partsCount }} 个零部件，数据不足。
+        零部件数需≥25，当前项目仅有 {{ partsCount }} 个零部件，数据不足。
       </div>
       <el-divider content-position="left">已有零部件 ({{ partsCount }})</el-divider>
       <el-scrollbar height="260px">
