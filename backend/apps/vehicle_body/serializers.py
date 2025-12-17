@@ -122,15 +122,21 @@ class VocOdorDataSerializer(serializers.ModelSerializer):
 
 
 class SubstanceSerializer(serializers.ModelSerializer):
-    """物质库序列化器（vehicle_body 独立版本）"""
+    """物质库序列化器（vehicle_body ）"""
+    limit_value_display = serializers.SerializerMethodField()
     class Meta:
         model = Substance
         fields = [
             'id', 'substance_name_cn', 'substance_name_en', 'cas_no',
-            'odor_threshold', 'organic_threshold', 'limit_value',
+            'odor_threshold', 'organic_threshold', 'limit_value', 'limit_value_display',
             'odor_character', 'main_usage', 'remark'
         ]
 
+    def get_limit_value_display(self, obj):
+        """处理限值显示逻辑"""
+        if obj.limit_value == 99999:
+            return '无'
+        return obj.limit_value if obj.limit_value is not None else '-'
 
 class SubstancesTestDetailSerializer(serializers.ModelSerializer):
     """全谱检测明细序列化器（按 Sample 聚合，无主表）"""

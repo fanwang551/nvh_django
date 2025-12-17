@@ -397,7 +397,7 @@
               {{ currentSubstance.organic_threshold || '-' }}
             </el-descriptions-item>
             <el-descriptions-item label="限值(μg/m³)">
-              {{ currentSubstance.limit_value || '-' }}
+              {{ currentSubstance.limit_value_display || '-' }}
             </el-descriptions-item>
             <el-descriptions-item label="气味特性">
               {{ currentSubstance.odor_character || '-' }}
