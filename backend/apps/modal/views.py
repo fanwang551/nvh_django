@@ -74,6 +74,42 @@ def component_list(request):
 
 
 @api_view(['GET'])
+@permission_classes([])  # 临时允许匿名访问用于测试
+def testproject_component_list(request):
+    """
+    获取测试项目中使用到的零件唯一列表
+
+    - 数据来源：TestProject 表中的 component 外键
+    - 仅返回在 TestProject 中出现过的零件（去重）
+    - 支持按零件名称 / 分类搜索
+    """
+    try:
+        # 从 TestProject 中获取所有关联的零件 ID（去重）
+        component_ids = TestProject.objects.filter(
+            component__isnull=False
+        ).values_list('component_id', flat=True).distinct()
+
+        queryset = Component.objects.filter(id__in=component_ids)
+
+        # 支持按零件名称 / 分类搜索
+        search = request.GET.get('search', '')
+        if search:
+            queryset = queryset.filter(
+                Q(component_name__icontains=search) |
+                Q(category__icontains=search)
+            )
+
+        # 与原有零件列表保持一致的排序规则
+        queryset = queryset.order_by('category', 'component_name')
+
+        serializer = ComponentSerializer(queryset, many=True)
+        return Response.success(data=serializer.data, message="获取测试项目零件列表成功")
+
+    except Exception as e:
+        return Response.error(message=f"获取测试项目零件列表失败: {str(e)}")
+
+
+@api_view(['GET'])
 @permission_classes([])
 def modal_data_query(request):
     """模态数据查询（支持多零件筛选）

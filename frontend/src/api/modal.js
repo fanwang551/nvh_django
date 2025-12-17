@@ -24,6 +24,16 @@ export const modalApi = {
   },
 
   /**
+   * 获取测试项目中出现过的唯一零件列表
+   * @param {Object} params - 查询参数
+   * @param {string} params.search - 搜索关键词（可选）
+   * @returns {Promise} 零件列表
+   */
+  getTestProjectComponents(params = {}) {
+    return request.get('/modal/components/from-test-projects/', params)
+  },
+
+  /**
    * 查询模态数据（分页）
    * @param {Object} params - 查询参数
    * @param {number} params.vehicle_model_id - 车型ID（必需）

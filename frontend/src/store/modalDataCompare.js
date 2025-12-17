@@ -90,7 +90,8 @@ export const useModalDataCompareStore = defineStore('modalDataCompare', {
     async loadComponents() {
       try {
         this.componentsLoading = true
-        const response = await modalApi.getComponents()
+        // 从测试项目中获取去重后的零件列表
+        const response = await modalApi.getTestProjectComponents()
         this.componentOptions = response.data || []
       } catch (error) {
         console.error('加载零件列表失败:', error)

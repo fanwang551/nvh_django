@@ -16,6 +16,7 @@
               <el-select
                 v-model="compareForm.componentId"
                 placeholder="请选择零件"
+                filterable
                 clearable
                 :loading="componentsLoading"
                 @change="handleComponentChange"
@@ -37,6 +38,7 @@
               <el-select
                 v-model="compareForm.vehicleModelIds"
                 placeholder="请选择车型（可多选）"
+                filterable
                 multiple
                 collapse-tags
                 collapse-tags-tooltip

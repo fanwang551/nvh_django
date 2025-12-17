@@ -7,6 +7,7 @@ urlpatterns = [
     
     # 零件相关接口
     path('components/', views.component_list, name='component_list'),
+    path('components/from-test-projects/', views.testproject_component_list, name='testproject_component_list'),
     
     # 模态数据相关接口
     path('modal-data/', views.modal_data_query, name='modal_data_query'),
