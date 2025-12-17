@@ -60,8 +60,8 @@
           <span>测试时间</span>
           <span>项目</span>
           <span>状态</span>
-          <span>零部件</span>
-          <span>样品号</span>
+          <span>整车/零部件</span>
+          <span>样品信息</span>
           <span>TVOC(μg/m³)</span>
           <span>气味等级</span>
         </div>
