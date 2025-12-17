@@ -247,14 +247,15 @@ let chartInstance = null
 // 动态计算热力图容器高度：确保每个测点有足够行高，包括像素级间隔线
 const heatmapHeight = computed(() => {
   const rows = Array.isArray(heatmap.value?.points) ? heatmap.value.points.length : 0
-  if (rows === 0) return 420
-  const BASE_OFFSET = 110 // 顶/底部 grid 留白等
-  const ROW_HEIGHT = 20   // 每个数据行期望行高
-  const GAP_HEIGHT = 2    // 间隔行高度（相对较小）
-  // 总行数 = 数据行数 + 间隔行数（数据行之间）
+  if (rows === 0) return 400
+  const BASE_OFFSET = 100 // 顶/底部 grid 留白
+  const ROW_HEIGHT = 18   // 减小每个数据行期望行高
+  const GAP_HEIGHT = 2    // 间隔行高度
   const totalDataRows = rows
-  const totalGapRows = Math.max(0, rows - 1) // 间隔数 = 数据行数 - 1
-  return Math.max(420, BASE_OFFSET + totalDataRows * ROW_HEIGHT + totalGapRows * GAP_HEIGHT)
+  const totalGapRows = Math.max(0, rows - 1)
+  // 设置最大高度限制，避免过高
+  const calculatedHeight = BASE_OFFSET + totalDataRows * ROW_HEIGHT + totalGapRows * GAP_HEIGHT
+  return Math.min(Math.max(400, calculatedHeight), 600) // 限制在400-600px之间
 })
 
 function formatValue(value) {
@@ -448,19 +449,16 @@ function renderHeatmap() {
     try {
       const dom = chartInstance.getDom()
       if (dom !== heatmapRef.value) {
-        // DOM 已改变，销毁旧实例
         chartInstance.dispose()
         chartInstance = null
       }
     } catch (e) {
-      // 实例已无效，重置
       chartInstance = null
     }
   }
-  
+
   if (!chartInstance) chartInstance = echarts.init(heatmapRef.value)
-  
-  // 使用原始点位与矩阵（不再把“间隔行”插为分类行）
+
   const originalPoints = heatmap.value.points || []
   const originalMatrix = heatmap.value.matrix || []
   const originalFrequency = heatmap.value.frequency || []
@@ -470,19 +468,15 @@ function renderHeatmap() {
   const total = originalFrequency.length
   const step = Math.max(1, Math.floor(total / 10))
 
-  // 计算每两行之间需要绘制的像素分隔条（2px）
-  const gapIndices = [] // 在第 i 行与 i+1 行之间绘制
+  const gapIndices = []
   for (let i = 0; i < originalPoints.length - 1; i += 1) gapIndices.push(i)
 
-  // 自定义渲染函数：绘制覆盖全宽的水平矩形作为分隔线
   const GAP_PX = 5
   const renderGapItem = (params, api) => {
-    const i = api.value(0) // 行索引 i 与 i+1 之间
-    // y 方向：位于 i 与 i+1 的中间
+    const i = api.value(0)
     const yTop = api.coord([0, i + 1])[1]
     const yBottom = api.coord([0, i])[1]
     const yMiddle = (yTop + yBottom) / 2
-    // x 方向：覆盖分类轴的可视宽度（以 -0.5 到 N-0.5 近似单元边界）
     const left = api.coord([-0.5, 0])[0]
     const right = api.coord([originalFrequency.length - 0.5, 0])[0]
     const width = right - left
@@ -493,27 +487,34 @@ function renderHeatmap() {
       style: api.style({ fill: '#ffffff' })
     }
   }
+
   const option = {
-    title: { left: 'center', text: 'Frequency vs Measurement Point' },
+    title: { left: 'center', text: 'Frequency vs Measurement Point', top: 10 },
     tooltip: {
       trigger: 'item',
       formatter(params) {
         const rowIndex = params.value[1]
         const point = originalPoints[rowIndex]
         const frequency = originalFrequency[params.value[0]]
-        // 第4维保存原始值，优先展示原始值
         const raw = params.value?.[3]
         const value = Number.isFinite(raw) ? raw : params.value?.[2]
         const displayValue = Number.isFinite(value) ? Number(value).toFixed(2) : '-'
         return `测点：${point}<br/>频率：${frequency} Hz<br/>NTF：${displayValue}`
       }
     },
-    grid: { top: 60, left: 80, right: 20, bottom: 50 },
+    // 调整 grid 边距：增加左侧和右侧空间
+    grid: {
+      top: 50,
+      left: 180,    // 增加左侧边距以显示完整测点名称
+      right: 75,   // 增加右侧边距避免与 visualMap 重叠
+      bottom: 40
+    },
     xAxis: {
       type: 'category',
       data: originalFrequency,
       name: '频率 (Hz)',
       nameGap: 18,
+      nameLocation: 'middle',
       axisLabel: {
         fontSize: 10,
         rotate: 0,
@@ -524,32 +525,42 @@ function renderHeatmap() {
         }
       }
     },
-    yAxis: { 
-      type: 'category', 
-      data: originalPoints, 
-      name: '测点', 
-      nameGap: 16, 
-      axisLabel: { fontSize: 12 }
+    yAxis: {
+      type: 'category',
+      data: originalPoints,
+      name: '测点',
+      nameGap: 20,
+      nameLocation: 'middle',
+      axisLabel: {
+        fontSize: 11,
+        // 确保标签不被截断
+        overflow: 'none',
+        width: 130,  // 设置标签最大宽度
+        ellipsis: '...'  // 超长显示省略号
+      }
     },
     visualMap: {
-      // 固定映射区间 49-69
       min: valueRange.min,
       max: valueRange.max,
       orient: 'vertical',
-      right: 10,
+      right: 15,      // 调整右侧位置
       top: 'center',
-      align: 'auto',
+      align: 'right',  // 对齐方式
       calculable: true,
+      itemWidth: 20,   // 减小宽度
+      itemHeight: 120, // 调整高度
+      textStyle: {
+        fontSize: 11
+      },
       inRange: {
-        // 深蓝/紫 -> 蓝 -> 绿(约60附近) -> 黄 -> 橙 -> 红
         color: ['#1a237e', '#3949ab', '#42a5f5', '#66bb6a', '#fdd835', '#fb8c00', '#e53935', '#b71c1c']
       }
     },
     series: [
-      { 
-        name: 'NTF Heatmap', 
-        type: 'heatmap', 
-        data, 
+      {
+        name: 'NTF Heatmap',
+        type: 'heatmap',
+        data,
         label: { show: false },
         itemStyle: { borderWidth: 0 }
       },
@@ -563,8 +574,7 @@ function renderHeatmap() {
       }
     ]
   }
-  chartInstance.setOption(option)
-  // 高度变化后触发布局刷新
+  chartInstance.setOption(option, true) // 使用 notMerge 确保完全更新
   chartInstance.resize()
 }
 
@@ -679,7 +689,23 @@ function openLayout(url) {
 .card-header { display: flex; align-items: center; justify-content: space-between; }
 .card-title { font-size: 16px; font-weight: 600; }
 .filter-form { max-width: 100%; display: flex; gap: 12px; align-items: center; flex-wrap: nowrap; }
-.heatmap { width: 100%; height: 420px; }
+
+/* 优化热力图容器样式 */
+.heatmap {
+  width: 100%;
+  min-height: 400px;
+  max-height: 600px; /* 限制最大高度 */
+}
+
+/* 热力图卡片添加最大高度限制 */
+.heatmap-card {
+  max-height: 700px; /* 限制卡片最大高度 */
+}
+
+.heatmap-card :deep(.el-card__body) {
+  overflow: auto; /* 内容过多时可滚动 */
+}
+
 .result-table { --el-table-border-color: #ebeef5; }
 .ntf-cell { font-weight: 600; }
 .ntf-cell--high { color: #f56c6c; }
@@ -705,18 +731,15 @@ function openLayout(url) {
 
 /* 车辆信息卡片样式 */
 .vehicle-info-card { }
-/* 两列布局，适配常见两车型场景，更扁平 */
 .vehicle-card-list { display: grid; grid-template-columns: repeat(2, minmax(360px, 1fr)); gap: 12px; }
 .vehicle-card { font-size: 13px; }
 .vehicle-card :deep(.el-card__body) { padding: 10px 12px; }
 .vehicle-card-title { font-weight: 600; margin-bottom: 6px; line-height: 1.4; }
-/* 卡片内部信息两列网格，压缩高度 */
 .vehicle-card-rows { display: grid; grid-template-columns: repeat(2, minmax(220px, 1fr)); column-gap: 16px; row-gap: 6px; }
 .vehicle-card-row { display: grid; grid-template-columns: 80px 1fr; align-items: center; line-height: 1.4; }
 .vehicle-card-row .label { color: #606266; }
 .vehicle-card-row .value { color: #303133; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* 小屏降级为单列，保证可读性 */
 @media (max-width: 992px) {
   .vehicle-card-list { grid-template-columns: 1fr; }
   .vehicle-card-rows { grid-template-columns: 1fr; }
