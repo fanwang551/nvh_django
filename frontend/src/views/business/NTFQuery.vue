@@ -440,11 +440,26 @@ function buildHeatmapSeriesData(matrix) {
   })
   return data
 }
+// 处理测点名称，去掉车型信息
+function formatPointName(fullName) {
+  if (!fullName) return ''
+  const parts = fullName.split('_')
+  // 车型_测点_位置_方向
+  // 去掉第一部分（车型），保留后三部分
+  if (parts.length >= 4) {
+    return parts.slice(1).join('_') // 返回：测点_位置_方向
+  }
+  return fullName
+}
+
+// 获取完整测点名称（用于tooltip）
+function getFullPointName(fullName) {
+  return fullName || ''
+}
 
 function renderHeatmap() {
   if (!heatmapRef.value) return
   
-  // 检查 chartInstance 是否还有效，如果 DOM 被重建则需要重新初始化
   if (chartInstance) {
     try {
       const dom = chartInstance.getDom()
@@ -462,6 +477,9 @@ function renderHeatmap() {
   const originalPoints = heatmap.value.points || []
   const originalMatrix = heatmap.value.matrix || []
   const originalFrequency = heatmap.value.frequency || []
+
+  // 处理Y轴显示的测点名称（去掉车型）
+  const displayPoints = originalPoints.map(p => formatPointName(p))
 
   const data = buildHeatmapSeriesData(originalMatrix)
   const valueRange = computeHeatmapRange()
@@ -494,20 +512,19 @@ function renderHeatmap() {
       trigger: 'item',
       formatter(params) {
         const rowIndex = params.value[1]
-        const point = originalPoints[rowIndex]
+        const fullPoint = originalPoints[rowIndex]
         const frequency = originalFrequency[params.value[0]]
         const raw = params.value?.[3]
         const value = Number.isFinite(raw) ? raw : params.value?.[2]
         const displayValue = Number.isFinite(value) ? Number(value).toFixed(2) : '-'
-        return `测点：${point}<br/>频率：${frequency} Hz<br/>NTF：${displayValue}`
+        return `测点：${fullPoint}<br/>频率：${frequency} Hz<br/>NTF：${displayValue}`
       }
     },
-    // 调整 grid 边距：增加左侧和右侧空间
     grid: {
       top: 50,
-      left: 180,    // 增加左侧边距以显示完整测点名称
-      right: 75,   // 增加右侧边距避免与 visualMap 重叠
-      bottom: 40
+      left: 170,    // 增加左侧边距以容纳完整文本
+      right: 75,
+      bottom: 50
     },
     xAxis: {
       type: 'category',
@@ -527,28 +544,45 @@ function renderHeatmap() {
     },
     yAxis: {
       type: 'category',
-      data: originalPoints,
-      name: '测点',
+      data: displayPoints,
+      name: '',     // name: '测点'
       nameGap: 20,
       nameLocation: 'middle',
       axisLabel: {
         fontSize: 11,
-        // 确保标签不被截断
-        overflow: 'none',
-        width: 130,  // 设置标签最大宽度
-        ellipsis: '...'  // 超长显示省略号
+        // 去掉截断相关配置
+        overflow: 'none',      // 不截断
+        // width: 100,          // 移除宽度限制
+        // ellipsis: '...',     // 移除省略号
+        interval: 0,           // 显示所有标签
+        rotate: 0,             // 不旋转（如果文本太长可以设置为-15到-30度）
+        margin: 8,             // 标签与轴线的距离
+        formatter: (value) => {
+          return value         // 直接显示完整文本
+        }
+      },
+      // 添加 axisPointer 实现悬浮显示完整信息（包含车型）
+      axisPointer: {
+        show: true,
+        type: 'shadow',
+        label: {
+          show: true,
+          formatter: (params) => {
+            return originalPoints[params.value] || params.value
+          }
+        }
       }
     },
     visualMap: {
       min: valueRange.min,
       max: valueRange.max,
       orient: 'vertical',
-      right: 15,      // 调整右侧位置
+      right: 15,
       top: 'center',
-      align: 'right',  // 对齐方式
+      align: 'right',
       calculable: true,
-      itemWidth: 20,   // 减小宽度
-      itemHeight: 120, // 调整高度
+      itemWidth: 20,
+      itemHeight: 120,
       textStyle: {
         fontSize: 11
       },
@@ -574,7 +608,7 @@ function renderHeatmap() {
       }
     ]
   }
-  chartInstance.setOption(option, true) // 使用 notMerge 确保完全更新
+  chartInstance.setOption(option, true)
   chartInstance.resize()
 }
 
