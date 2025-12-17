@@ -134,7 +134,8 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         # 暂时跳过认证，api请求太慢 后续添加token缓存
         # 'apps.users.authentication.OIDCAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
+        # 强制要求 POST 请求必须通过 Django 的 CSRF 检查，实际使用token不需要session
+        # 'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         # 暂时跳过认证，api请求太慢 后续添加token缓存
