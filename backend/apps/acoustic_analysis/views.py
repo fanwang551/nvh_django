@@ -178,13 +178,19 @@ def _pick_value_list(series_dict, preferred_keys):
         value = series_dict.get(key)
         if isinstance(value, list) and len(value):
             return value
-    for key, value in series_dict.items():
-        if key in ('frequency', 'time'):
-            continue
+    return None
+
+
+def _get_frequency_list(series_dict):
+    """从序列字典中提取频率列表，支持多种键名"""
+    if not isinstance(series_dict, dict):
+        return None
+    # 按优先级尝试不同的键名
+    for key in ['frequency', 'freq', 'Hz', 'hz', 'Frequency', 'FREQUENCY']:
+        value = series_dict.get(key)
         if isinstance(value, list) and len(value):
             return value
     return None
-
 
 def _build_media_url(path, request):
     if not path:
@@ -226,14 +232,11 @@ def query_acoustic_data(request):
     work_conditions = serializer.validated_data['work_conditions']
     measure_points = serializer.validated_data['measure_points']
 
-    # 新实现：逐组合取最新一条记录
-    # 关键点：先用轻量查询仅取 id（按 test_date/id 排序），显著降低 MySQL filesort 内存占用
-    # 然后再按 id 取完整对象，避免在大 JSON 行上排序导致 1038 Out of sort memory
     spectrum_series = []
     oa_series = []
     table_items = []
-    # 用于在实际参与查询的组合上判断测点类型是否一致
     used_measure_types = set()
+
     for vm_id in vehicle_model_ids:
         for wc in work_conditions:
             for mp in measure_points:
@@ -258,30 +261,42 @@ def query_acoustic_data(request):
                 )
                 if not obj:
                     continue
+
                 vm_name = getattr(obj.vehicle_model, 'vehicle_model_name', str(vm_id))
                 series_name = f"{vm_name}-{wc}-{mp}"
-                # 以真实参与本次查询的记录为准，判断测点类型
+
                 measure_type = getattr(
                     obj.condition_point,
                     'measure_type',
                     ConditionMeasurePoint.MeasureType.NOISE,
                 )
-                # 如果出现了与之前不同的测点类型，则视为混合查询，直接报错
+
                 if used_measure_types and measure_type not in used_measure_types:
                     return Response.bad_request(
                         message='当前仅支持查询同一测点类型的数据，请调整测点选择',
                     )
                 used_measure_types.add(measure_type)
-                meta = MEASURE_TYPE_META.get(measure_type, MEASURE_TYPE_META[ConditionMeasurePoint.MeasureType.NOISE])
+
+                meta = MEASURE_TYPE_META.get(
+                    measure_type,
+                    MEASURE_TYPE_META[ConditionMeasurePoint.MeasureType.NOISE]
+                )
+
+                # 修改这里：使用新的 _get_frequency_list 函数
                 spectrum = _safe_parse_series(obj.spectrum_json) or {}
-                freq_raw = spectrum.get('frequency') if isinstance(spectrum, dict) else None
+                freq_raw = _get_frequency_list(spectrum)  # 改用新函数
                 freq = _normalize_numeric_list(freq_raw)
-                spectrum_values_raw = _pick_value_list(spectrum, ['dB', 'dB(A)', 'value', 'values', 'amplitude', 'amplitudes'])
+
+                spectrum_values_raw = _pick_value_list(
+                    spectrum,
+                    ['dB', 'dB(A)', 'value', 'values', 'amplitude', 'amplitudes']
+                )
                 spectrum_values = _normalize_numeric_list(spectrum_values_raw)
+
                 if (
-                    measure_type != ConditionMeasurePoint.MeasureType.SPEED
-                    and freq
-                    and spectrum_values
+                        measure_type != ConditionMeasurePoint.MeasureType.SPEED
+                        and freq
+                        and spectrum_values
                 ):
                     length = min(len(freq), len(spectrum_values))
                     spectrum_series.append({
@@ -291,22 +306,33 @@ def query_acoustic_data(request):
                         'frequency': freq[:length],
                         'values': spectrum_values[:length],
                     })
+
+                # OA 数据处理（时间轴也可以类似处理）
                 oa = _safe_parse_series(obj.oa_json) or {}
-                times_raw = oa.get('time') if isinstance(oa, dict) else None
+                # 如果需要，也可以为时间轴创建类似函数
+                times_raw = _pick_value_list(oa, ['time', 'Time', 't', 'T'])
                 times = _normalize_numeric_list(times_raw)
-                oa_values_raw = _pick_value_list(oa, ['OA', 'dB(A)', 'dBA', 'value', 'values'])
+
+                oa_values_raw = _pick_value_list(
+                    oa,
+                    ['OA', 'dB(A)', 'dBA', 'value', 'values']
+                )
                 oa_values = _normalize_numeric_list(oa_values_raw)
+
                 stats = None
                 if oa_values:
                     try:
-                        max_val = max(oa_values); min_val = min(oa_values); avg_val = sum(oa_values) / len(oa_values)
+                        max_val = max(oa_values)
+                        min_val = min(oa_values)
+                        avg_val = sum(oa_values) / len(oa_values)
                         stats = {'max': max_val, 'min': min_val, 'avg': avg_val}
                     except Exception:
                         stats = None
+
                 if (
-                    measure_type != ConditionMeasurePoint.MeasureType.SPEED
-                    and times
-                    and oa_values
+                        measure_type != ConditionMeasurePoint.MeasureType.SPEED
+                        and times
+                        and oa_values
                 ):
                     length = min(len(times), len(oa_values))
                     oa_series.append({
@@ -317,11 +343,18 @@ def query_acoustic_data(request):
                         'values': oa_values[:length],
                         'stats': stats,
                     })
+
                 table_items.append(obj)
+
     table_data = AcousticTableItemSerializer(table_items, many=True).data
-    return Response.success(data={'spectrum_series': spectrum_series, 'oa_series': oa_series, 'table': table_data}, message='查询成功')
-
-
+    return Response.success(
+        data={
+            'spectrum_series': spectrum_series,
+            'oa_series': oa_series,
+            'table': table_data
+        },
+        message='查询成功'
+    )
 
 
 @api_view(['POST'])
@@ -525,7 +558,7 @@ def query_dynamic_noise(request):
 
         sp_pairs = _build_curve_pairs(
             obj.sound_pressure_curve,
-            ['speed', 'rpm', 'speed/rpm'],
+            ['speed', 'rpm', 'speed/rpm', 'km/h'],
             ['dB(A)', 'value', 'values'],
         )
         if sp_pairs:
@@ -537,7 +570,7 @@ def query_dynamic_noise(request):
 
         sc_pairs = _build_curve_pairs(
             obj.speech_clarity_curve,
-            ['speed', 'rpm', 'speed/rpm'],
+            ['speed', 'rpm', 'speed/rpm', 'km/h'],
             ['%AI', 'value', 'values'],
         )
         if sc_pairs:

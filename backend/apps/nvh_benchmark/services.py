@@ -90,7 +90,7 @@ def build_curve_pairs(series_data, x_keys: Sequence[str], y_keys: Sequence[str])
                 x_val = to_float(entry[0])
                 y_val = to_float(entry[1])
             elif isinstance(entry, dict):
-                x_val = to_float(entry.get('x') or entry.get('frequency') or entry.get('speed'))
+                x_val = to_float(entry.get('x') or entry.get('frequency') or entry.get('Hz')or entry.get('speed'))
                 y_val = to_float(entry.get('y') or entry.get('value') or entry.get('dB') or entry.get('dB(A)'))
             else:
                 continue
@@ -114,7 +114,7 @@ def parse_force_transfer_signal(signal):
     # 先按通用规则解析为 [x, y] 数对
     pairs = build_curve_pairs(
         data,
-        x_keys=['frequency', 'freq', 'speed', 'rpm'],
+        x_keys=['frequency','Hz', 'freq', 'speed', 'rpm'],
         y_keys=['dB', 'db', 'dB(A)', 'value', 'values'],
     )
 
@@ -336,7 +336,7 @@ def build_acceleration_section(vehicle_ids, main_vehicle_id, vehicle_map, condit
                 continue
             pairs = build_curve_pairs(
                 parse_json_field(row.sound_pressure_curve),
-                x_keys=['speed', 'rpm', 'speed/rpm', 'Speed'],
+                x_keys=['speed', 'rpm', 'speed/rpm', 'Speed', 'km/h'],
                 y_keys=['dB(A)', 'value', 'values', 'sound_pressure', 'Sound Pressure'],
             )
             if not pairs:
