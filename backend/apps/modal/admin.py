@@ -1,5 +1,45 @@
 from django.contrib import admin
+from django.core.exceptions import ValidationError
+from import_export import resources, fields
+from import_export.widgets import ForeignKeyWidget
+from import_export.admin import ImportExportModelAdmin
+
 from .models import VehicleModel, Component, TestProject, ModalData, AirtightnessTest
+
+
+class TestProjectResource(resources.ModelResource):
+    vehicle_model = fields.Field(
+        column_name='vehicle_model_id',
+        attribute='vehicle_model',
+        widget=ForeignKeyWidget(VehicleModel, 'id'),
+    )
+    component = fields.Field(
+        column_name='component_id',
+        attribute='component',
+        widget=ForeignKeyWidget(Component, 'id'),
+    )
+
+    class Meta:
+        model = TestProject
+        import_id_fields = ('id',)
+        fields = (
+            'id',
+            'test_type',
+            'test_date',
+            'test_location',
+            'test_engineer',
+            'test_status',
+            'excitation_method',
+            'notes',
+            'component',
+            'vehicle_model',
+        )
+        use_transactions = True
+
+    def save_instance(self, instance, is_create, *args, **kwargs):
+        if not is_create:
+            raise ValidationError('记录已存在，禁止覆盖导入，请检查导入文件中的 id。')
+        return super().save_instance(instance, is_create, *args, **kwargs)
 
 
 @admin.register(VehicleModel)
@@ -19,7 +59,8 @@ class ComponentAdmin(admin.ModelAdmin):
 
 
 @admin.register(TestProject)
-class TestProjectAdmin(admin.ModelAdmin):
+class TestProjectAdmin(ImportExportModelAdmin):
+    resource_class = TestProjectResource
     list_display = ['id', 'vehicle_model', 'component', 'test_type', 'test_date', 'test_engineer', 'test_status']
     list_filter = ['test_status', 'test_type', 'test_date']
     search_fields = ['test_type', 'test_engineer']
@@ -27,8 +68,37 @@ class TestProjectAdmin(admin.ModelAdmin):
     raw_id_fields = ['vehicle_model', 'component']
 
 
+class ModalDataResource(resources.ModelResource):
+    test_project = fields.Field(
+        column_name='test_project_id',
+        attribute='test_project',
+        widget=ForeignKeyWidget(TestProject, 'id'),
+    )
+
+    class Meta:
+        model = ModalData
+        import_id_fields = ('id',)
+        fields = (
+            'id',
+            'frequency',
+            'damping_ratio',
+            'mode_shape_description',
+            'mode_shape_file',
+            'test_photo_file',
+            'notes',
+            'test_project',
+        )
+        use_transactions = True
+
+    def save_instance(self, instance, is_create, *args, **kwargs):
+        if not is_create:
+            raise ValidationError('记录已存在，禁止覆盖导入，请检查导入文件中的 id。')
+        return super().save_instance(instance, is_create, *args, **kwargs)
+
+
 @admin.register(ModalData)
-class ModalDataAdmin(admin.ModelAdmin):
+class ModalDataAdmin(ImportExportModelAdmin):
+    resource_class = ModalDataResource
     list_display = ['test_project', 'frequency', 'damping_ratio', 'mode_shape_description']
     list_filter = []
     search_fields = ['test_project__id', 'mode_shape_description']
