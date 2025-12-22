@@ -3,8 +3,9 @@ from django.core.exceptions import ValidationError
 from import_export import resources, fields
 from import_export.widgets import ForeignKeyWidget
 from import_export.admin import ImportExportModelAdmin
-
-from .models import VehicleModel, Component, TestProject, ModalData, AirtightnessTest
+from django.contrib import admin
+from django.utils.html import format_html
+from .models import VehicleModel, Component, TestProject, ModalData, AirtightnessTest,AirtightnessImage
 
 
 class TestProjectResource(resources.ModelResource):
@@ -136,3 +137,62 @@ class AirtightnessTestAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         })
     )
+
+
+@admin.register(AirtightnessImage)
+class AirtightnessImageAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'vehicle_model', 'test_date',
+        'front_preview', 'door_preview', 'tailgate_preview',
+    )
+    list_select_related = ('vehicle_model',)
+    search_fields = ('vehicle_model__vehicle_model_name', 'test_engineer', 'test_location')
+    list_filter = ('test_date', 'vehicle_model')
+
+    # 在编辑页显示预览
+    readonly_fields = ('front_preview_big', 'door_preview_big', 'tailgate_preview_big')
+
+    fieldsets = (
+        ('基础信息', {
+            'fields': ('vehicle_model', 'test_date', 'test_engineer', 'test_location', 'notes')
+        }),
+        ('图片上传', {
+            'fields': (
+                ('front_compartment_image', 'front_preview_big'),
+                ('door_image', 'door_preview_big'),
+                ('tailgate_image', 'tailgate_preview_big'),
+            )
+        }),
+    )
+
+    def _img(self, field, width=120, height=None):
+        if not field:
+            return "-"
+        style = f"width:{width}px;height:auto;"
+        if height:
+            style = f"width:{width}px;height:{height}px;object-fit:contain;"
+        return format_html('<img src="{}" style="{}" />', field.url, style)
+
+    @admin.display(description="前舱预览")
+    def front_preview(self, obj):
+        return self._img(obj.front_compartment_image, width=80)
+
+    @admin.display(description="车门预览")
+    def door_preview(self, obj):
+        return self._img(obj.door_image, width=80)
+
+    @admin.display(description="尾门预览")
+    def tailgate_preview(self, obj):
+        return self._img(obj.tailgate_image, width=80)
+
+    @admin.display(description="前舱大图")
+    def front_preview_big(self, obj):
+        return self._img(obj.front_compartment_image, width=300)
+
+    @admin.display(description="车门大图")
+    def door_preview_big(self, obj):
+        return self._img(obj.door_image, width=300)
+
+    @admin.display(description="尾门大图")
+    def tailgate_preview_big(self, obj):
+        return self._img(obj.tailgate_image, width=300)
