@@ -1,9 +1,112 @@
 from django.contrib import admin
+from django.core.exceptions import ValidationError
+from import_export import resources, fields
+from import_export.widgets import ForeignKeyWidget, DateWidget
+from import_export.admin import ImportExportModelAdmin
+
+from apps.modal.models import VehicleModel
 from .models import (
-    SoundInsulationArea, SoundInsulationData, VehicleSoundInsulationData,
-    VehicleReverberationData, SoundAbsorptionCoefficients, SoundInsulationCoefficients,
-    MaterialPorosityFlowResistance
+    SoundInsulationArea,
+    SoundInsulationData,
+    VehicleSoundInsulationData,
+    VehicleReverberationData,
+    SoundAbsorptionCoefficients,
+    SoundInsulationCoefficients,
+    MaterialPorosityFlowResistance,
 )
+
+
+class FlexibleDateWidget(DateWidget):
+    def __init__(self, *args, **kwargs):
+        self.formats = ["%Y-%m-%d", "%Y/%m/%d", "%Y-%m-%d", "%Y.%m.%d"]
+        super().__init__(self.formats[0], *args, **kwargs)
+
+    def clean(self, value, row=None, *args, **kwargs):
+        from datetime import datetime
+
+        if value in (None, ""):
+            return None
+        if not isinstance(value, str):
+            return super().clean(value, row=row, *args, **kwargs)
+        for fmt in self.formats:
+            try:
+                return datetime.strptime(value, fmt).date()
+            except (TypeError, ValueError):
+                continue
+        raise ValidationError(f"无法解析日期: {value}")
+
+
+class SoundInsulationDataResource(resources.ModelResource):
+    area = fields.Field(
+        column_name="area_id",
+        attribute="area",
+        widget=ForeignKeyWidget(SoundInsulationArea, "id"),
+    )
+    vehicle_model = fields.Field(
+        column_name="vehicle_model_id",
+        attribute="vehicle_model",
+        widget=ForeignKeyWidget(VehicleModel, "id"),
+    )
+    test_date = fields.Field(
+        column_name="test_date",
+        attribute="test_date",
+        widget=FlexibleDateWidget(),
+    )
+
+    class Meta:
+        model = SoundInsulationData
+        import_id_fields = ("id",)
+        fields = (
+            "id",
+            "freq_200",
+            "freq_250",
+            "freq_315",
+            "freq_400",
+            "freq_500",
+            "freq_630",
+            "freq_800",
+            "freq_1000",
+            "freq_1250",
+            "freq_1600",
+            "freq_2000",
+            "freq_2500",
+            "freq_3150",
+            "freq_4000",
+            "freq_5000",
+            "freq_6300",
+            "freq_8000",
+            "freq_10000",
+            "test_image_path",
+            "test_date",
+            "test_location",
+            "test_engineer",
+            "remarks",
+            "area",
+            "vehicle_model",
+        )
+        use_transactions = True
+
+    def before_import_row(self, row, row_number=None, **kwargs):
+        area_id = row.get("area_id")
+        vehicle_model_id = row.get("vehicle_model_id")
+        errors = []
+        if not area_id:
+            errors.append("area_id 不能为空")
+        elif not SoundInsulationArea.objects.filter(id=area_id).exists():
+            errors.append(f"area_id={area_id} 在区域表中不存在")
+        if not vehicle_model_id:
+            errors.append("vehicle_model_id 不能为空")
+        elif not VehicleModel.objects.filter(id=vehicle_model_id).exists():
+            errors.append(f"vehicle_model_id={vehicle_model_id} 在车型表中不存在")
+        if errors:
+            msg = f"第 {row_number} 行数据校验失败: " + "；".join(errors)
+            raise ValidationError(msg)
+        return super().before_import_row(row, row_number=row_number, **kwargs)
+
+    def save_instance(self, instance, is_create, *args, **kwargs):
+        if not is_create:
+            raise ValidationError("记录已存在，禁止覆盖导入，请检查导入文件中的 id。")
+        return super().save_instance(instance, is_create, *args, **kwargs)
 
 
 @admin.register(SoundInsulationArea)
@@ -14,7 +117,8 @@ class SoundInsulationAreaAdmin(admin.ModelAdmin):
 
 
 @admin.register(SoundInsulationData)
-class SoundInsulationDataAdmin(admin.ModelAdmin):
+class SoundInsulationDataAdmin(ImportExportModelAdmin):
+    resource_class = SoundInsulationDataResource
     list_display = [
         'id', 'vehicle_model', 'area', 'test_date', 'test_location',
         'test_engineer'
@@ -43,8 +147,80 @@ class SoundInsulationDataAdmin(admin.ModelAdmin):
     )
 
 
+import json
+
+
+class VehicleSoundInsulationDataResource(resources.ModelResource):
+    vehicle_model = fields.Field(
+        column_name="vehicle_model_id",
+        attribute="vehicle_model",
+        widget=ForeignKeyWidget(VehicleModel, "id"),
+    )
+    test_date = fields.Field(
+        column_name="test_date",
+        attribute="test_date",
+        widget=FlexibleDateWidget(),
+    )
+
+    class Meta:
+        model = VehicleSoundInsulationData
+        import_id_fields = ("id",)
+        fields = (
+            "id",
+            "freq_200",
+            "freq_250",
+            "freq_315",
+            "freq_400",
+            "freq_500",
+            "freq_630",
+            "freq_800",
+            "freq_1000",
+            "freq_1250",
+            "freq_1600",
+            "freq_2000",
+            "freq_2500",
+            "freq_3150",
+            "freq_4000",
+            "freq_5000",
+            "freq_6300",
+            "freq_8000",
+            "freq_10000",
+            "test_date",
+            "test_location",
+            "test_engineer",
+            "remarks",
+            "vehicle_model",
+            "test_image_path",
+        )
+        use_transactions = True
+
+    def before_import_row(self, row, row_number=None, **kwargs):
+        vehicle_model_id = row.get("vehicle_model_id")
+        errors = []
+        if not vehicle_model_id:
+            errors.append("vehicle_model_id 不能为空")
+        elif not VehicleModel.objects.filter(id=vehicle_model_id).exists():
+            errors.append(f"vehicle_model_id={vehicle_model_id} 在车型表中不存在")
+        raw_path = row.get("test_image_path")
+        if raw_path not in (None, "") and isinstance(raw_path, str):
+            try:
+                json.loads(raw_path)
+            except (TypeError, ValueError) as exc:
+                errors.append(f"test_image_path 不是合法 JSON: {exc}")
+        if errors:
+            msg = f"第 {row_number} 行数据校验失败: " + "；".join(errors)
+            raise ValidationError(msg)
+        return super().before_import_row(row, row_number=row_number, **kwargs)
+
+    def save_instance(self, instance, is_create, *args, **kwargs):
+        if not is_create:
+            raise ValidationError("记录已存在，禁止覆盖导入，请检查导入文件中的 id。")
+        return super().save_instance(instance, is_create, *args, **kwargs)
+
+
 @admin.register(VehicleSoundInsulationData)
-class VehicleSoundInsulationDataAdmin(admin.ModelAdmin):
+class VehicleSoundInsulationDataAdmin(ImportExportModelAdmin):
+    resource_class = VehicleSoundInsulationDataResource
     list_display = [
         'id', 'vehicle_model', 'test_date', 'test_location',
         'test_engineer'
@@ -73,8 +249,74 @@ class VehicleSoundInsulationDataAdmin(admin.ModelAdmin):
     )
 
 
+class VehicleReverberationDataResource(resources.ModelResource):
+    vehicle_model = fields.Field(
+        column_name="vehicle_model_id",
+        attribute="vehicle_model",
+        widget=ForeignKeyWidget(VehicleModel, "id"),
+    )
+    test_date = fields.Field(
+        column_name="test_date",
+        attribute="test_date",
+        widget=FlexibleDateWidget(),
+    )
+
+    class Meta:
+        model = VehicleReverberationData
+        import_id_fields = ("id",)
+        fields = (
+            "id",
+            "freq_400",
+            "freq_500",
+            "freq_630",
+            "freq_800",
+            "freq_1000",
+            "freq_1250",
+            "freq_1600",
+            "freq_2000",
+            "freq_2500",
+            "freq_3150",
+            "freq_4000",
+            "freq_5000",
+            "freq_6300",
+            "freq_8000",
+            "freq_10000",
+            "test_date",
+            "test_location",
+            "test_engineer",
+            "remarks",
+            "vehicle_model",
+            "test_image_path",
+        )
+        use_transactions = True
+
+    def before_import_row(self, row, row_number=None, **kwargs):
+        vehicle_model_id = row.get("vehicle_model_id")
+        errors = []
+        if not vehicle_model_id:
+            errors.append("vehicle_model_id 不能为空")
+        elif not VehicleModel.objects.filter(id=vehicle_model_id).exists():
+            errors.append(f"vehicle_model_id={vehicle_model_id} 在车型表中不存在")
+        raw_path = row.get("test_image_path")
+        if raw_path not in (None, "") and isinstance(raw_path, str):
+            try:
+                json.loads(raw_path)
+            except (TypeError, ValueError) as exc:
+                errors.append(f"test_image_path 不是合法 JSON: {exc}")
+        if errors:
+            msg = f"第 {row_number} 行数据校验失败: " + "；".join(errors)
+            raise ValidationError(msg)
+        return super().before_import_row(row, row_number=row_number, **kwargs)
+
+    def save_instance(self, instance, is_create, *args, **kwargs):
+        if not is_create:
+            raise ValidationError("记录已存在，禁止覆盖导入，请检查导入文件中的 id。")
+        return super().save_instance(instance, is_create, *args, **kwargs)
+
+
 @admin.register(VehicleReverberationData)
-class VehicleReverberationDataAdmin(admin.ModelAdmin):
+class VehicleReverberationDataAdmin(ImportExportModelAdmin):
+    resource_class = VehicleReverberationDataResource
     list_display = [
         'id', 'vehicle_model', 'test_date', 'test_location',
         'test_engineer'

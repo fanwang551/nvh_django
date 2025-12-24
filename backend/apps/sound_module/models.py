@@ -52,8 +52,8 @@ class SoundInsulationData(models.Model):
     # 时间戳
     class Meta:
         db_table = 'sound_insulation_data'
-        verbose_name = '隔声量数据'
-        verbose_name_plural = '隔声量数据'
+        verbose_name = '区域隔声量'
+        verbose_name_plural = '区域隔声量'
         ordering = ['-id']
         unique_together = ['vehicle_model', 'area']  # 每个车型在每个区域只能有一条数据
 
@@ -97,13 +97,13 @@ class VehicleSoundInsulationData(models.Model):
 
     class Meta:
         db_table = 'vehicle_sound_insulation_data'
-        verbose_name = '车型隔声量数据'
-        verbose_name_plural = '车型隔声量数据'
+        verbose_name = '整车隔声量'
+        verbose_name_plural = '整车隔声量'
         ordering = ['-id']
         unique_together = ['vehicle_model']  # 每个车型只能有一条隔声量数据
 
     def __str__(self):
-        return f"{self.vehicle_model.vehicle_model_name} - 车型隔声量"
+        return f"{self.vehicle_model.vehicle_model_name} - 整车隔声量"
 
 
 class VehicleReverberationData(models.Model):
@@ -138,13 +138,13 @@ class VehicleReverberationData(models.Model):
 
     class Meta:
         db_table = 'vehicle_reverberation_data'
-        verbose_name = '车辆混响时间数据'
-        verbose_name_plural = '车辆混响时间数据'
+        verbose_name = '整车混响时间'
+        verbose_name_plural = '整车混响时间'
         ordering = ['-id']
         unique_together = ['vehicle_model']  # 每个车型只能有一条混响时间数据
 
     def __str__(self):
-        return f"{self.vehicle_model.vehicle_model_name} - 混响时间"
+        return f"{self.vehicle_model.vehicle_model_name} - 整车混响时间"
 
 
 class SoundAbsorptionCoefficients(models.Model):
