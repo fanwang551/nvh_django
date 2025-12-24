@@ -149,7 +149,7 @@ class AirtightnessTest(models.Model):
 
 
 class AirtightnessImage(models.Model):
-    """气密性测试图片表"""
+    """声密性测试图片表"""
     vehicle_model = models.ForeignKey(VehicleModel, on_delete=models.CASCADE, verbose_name='车型')
     test_date = models.DateField(null=True, blank=True,verbose_name='测试日期')
     test_engineer = models.CharField(max_length=50,null=True, blank=True, verbose_name='测试工程师')
@@ -164,8 +164,8 @@ class AirtightnessImage(models.Model):
 
     class Meta:
         db_table = 'airtightness_images'
-        verbose_name = '气密性测试图片'
-        verbose_name_plural = '气密性测试图片'
+        verbose_name = '声密性测试图片'
+        verbose_name_plural = '声密性测试图片'
         ordering = ['-id']
 
     def __str__(self):
