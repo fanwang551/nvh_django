@@ -12,7 +12,7 @@ class SampleInfo(models.Model):
     status = models.CharField(max_length=20, null=True, blank=True, verbose_name='状态')
     test_order_no = models.CharField(max_length=50, verbose_name='检测委托单号')
     sample_no = models.CharField(max_length=50, verbose_name='样品编号', db_index=True)
-    sample_image_url = models.CharField(max_length=255, null=True, blank=True, verbose_name='样品图URL')
+    sample_image_url = models.ImageField(upload_to='voc_sample/',max_length=255, null=True, blank=True, verbose_name='样品图URL')
     test_date = models.DateField(null=True, blank=True, verbose_name='检测时间')
 
     # VOC检测数据（10项）
