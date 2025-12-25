@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.core.exceptions import ValidationError
+from django.utils.html import format_html
 from import_export import resources, fields
 from import_export.widgets import ForeignKeyWidget, DateWidget
 from import_export.admin import ImportExportModelAdmin
@@ -126,6 +127,19 @@ class SoundInsulationDataAdmin(ImportExportModelAdmin):
     list_filter = ['area', 'test_date', 'test_location', 'test_engineer']
     search_fields = ['vehicle_model__vehicle_model_name', 'area__area_name', 'test_engineer']
     ordering = ['-id']
+    readonly_fields = ('test_image_preview',)
+
+    def test_image_preview(self, obj):
+        if not obj or not obj.test_image_path:
+            return "无图片"
+        return format_html(
+            '<a href="{0}" target="_blank">'
+            '<img src="{0}" style="max-height:240px; max-width:100%; border:1px solid #ddd; padding:4px;" />'
+            '</a>',
+            obj.test_image_path.url
+        )
+
+    test_image_preview.short_description = "图片预览"
 
     fieldsets = (
         ('基本信息', {
@@ -142,7 +156,7 @@ class SoundInsulationDataAdmin(ImportExportModelAdmin):
             'classes': ('collapse',)
         }),
         ('测试信息', {
-            'fields': ('test_image_path', 'test_date', 'test_location', 'test_engineer', 'remarks')
+            'fields': ('test_image_path', 'test_image_preview','test_date', 'test_location', 'test_engineer', 'remarks')
         })
     )
 
