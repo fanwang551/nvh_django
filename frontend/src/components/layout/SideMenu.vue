@@ -26,7 +26,7 @@
       <!-- 业务中心 -->
       <el-menu-item index="business">
         <el-icon><OfficeBuilding /></el-icon>
-        <template #title>业务中心</template>
+        <template #title>NVH数据中心</template>
       </el-menu-item>
 
       <!-- 权限管理 -->

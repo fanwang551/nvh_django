@@ -24,7 +24,7 @@
               round
               @click="goToBusinessCenter"
             >
-              业务中心
+              NVH数据中心
             </el-button>
             <el-button
               class="hero-primary-btn"

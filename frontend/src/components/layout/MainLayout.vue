@@ -95,7 +95,7 @@ const cachedComponents = ref([
 const handleMenuSelect = (menuKey) => {
   const menuConfig = {
     'home': { name: 'home', title: '首页', route: '/' },
-    'business': { name: 'business', title: '业务中心', route: '/business' },
+    'business': { name: 'business', title: 'NVH数据中心', route: '/business' },
     'permission': { name: 'permission', title: '权限管理', route: '/permission' },
     'others': { name: 'others', title: '其他', route: '/others' },
     'vehicle-data': { name: 'vehicle-data', title: '车身数据中心', route: '/vehicle-data' },
@@ -134,7 +134,7 @@ const addBusinessTab = (routePath) => {
     '/business/airtight-leak-compare': { name: 'airtight-leak-compare', title: '气密性泄漏量' },
     '/business/airtightness-image-query': { name: 'airtightness-image-query', title: '声密性测试图' },
     '/business/sound-insulation-compare': { name: 'sound-insulation-compare', title: '区域隔声量' },
-    '/business/acoustic-analysis': { name: 'acoustic-analysis', title: '原始数据分析' },
+    '/business/acoustic-analysis': { name: 'acoustic-analysis', title: '匀速数据分析' },
     '/business/steady-state-analysis': { name: 'steady-state-analysis', title: '稳态数据分析' },
     '/business/dynamic-state-analysis': { name: 'dynamic-state-analysis', title: '动态数据分析' },
     '/business/vehicle-sound-insulation-query': { name: 'vehicle-sound-insulation-query', title: '整车隔声量' },
@@ -161,7 +161,7 @@ const addBusinessTab = (routePath) => {
     if (!businessTabExists) {
       openTabs.push({
         name: 'business',
-        title: '业务中心',
+        title: 'NVH数据中心',
         closable: true
       })
     }
@@ -295,7 +295,7 @@ watch(() => route.path, (newPath) => {
     if (!existingTab) {
       openTabs.push({
         name: 'business',
-        title: '业务中心',
+        title: 'NVH数据中心',
         closable: true
       })
     }
@@ -323,7 +323,7 @@ const initializeTabsFromRoute = () => {
     if (!existingTab) {
       openTabs.push({
         name: 'business',
-        title: '业务中心',
+        title: 'NVH数据中心',
         closable: true
       })
     }
