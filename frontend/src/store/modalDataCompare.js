@@ -1,6 +1,17 @@
 import { defineStore } from 'pinia'
 import modalApi from '@/api/modal'
 
+const normalizeToStringArray = (value) => {
+  if (!value) return []
+  if (Array.isArray(value)) return value.map(v => String(v).trim()).filter(Boolean)
+  return [String(value).trim()].filter(Boolean)
+}
+
+const uniqueSortedStrings = (items) => {
+  const normalized = normalizeToStringArray(items)
+  return Array.from(new Set(normalized)).sort((a, b) => a.localeCompare(b))
+}
+
 export const useModalDataCompareStore = defineStore('modalDataCompare', {
   state: () => ({
     // 对比表单状态 - 需要保持的状态
@@ -41,9 +52,10 @@ export const useModalDataCompareStore = defineStore('modalDataCompare', {
   getters: {
     // 是否可以执行对比
     canCompare: (state) => {
+      const testStatuses = normalizeToStringArray(state.compareForm.testStatuses)
       return state.compareForm.componentId &&
              state.compareForm.vehicleModelIds.length > 0 &&
-             state.compareForm.testStatuses.length > 0 &&
+             testStatuses.length > 0 &&
              state.compareForm.modeTypes.length > 0
     },
     
@@ -124,7 +136,7 @@ export const useModalDataCompareStore = defineStore('modalDataCompare', {
           vehicle_model_ids: this.compareForm.vehicleModelIds.join(',')
         }
         const response = await modalApi.getTestStatuses(params)
-        this.testStatusOptions = response.data || []
+        this.testStatusOptions = uniqueSortedStrings(response.data || [])
       } catch (error) {
         console.error('加载测试状态失败:', error)
         throw error
@@ -138,10 +150,7 @@ export const useModalDataCompareStore = defineStore('modalDataCompare', {
       try {
         this.modeTypesLoading = true
         
-        // 处理testStatuses，确保它是数组格式
-        const testStatusesArray = Array.isArray(this.compareForm.testStatuses)
-          ? this.compareForm.testStatuses
-          : [this.compareForm.testStatuses]
+        const testStatusesArray = normalizeToStringArray(this.compareForm.testStatuses)
         
         const params = {
           component_id: this.compareForm.componentId,
@@ -149,7 +158,12 @@ export const useModalDataCompareStore = defineStore('modalDataCompare', {
           test_statuses: testStatusesArray.join(',')
         }
         const response = await modalApi.getModeTypes(params)
-        this.modeTypeOptions = response.data || []
+        this.modeTypeOptions = uniqueSortedStrings(response.data || [])
+
+        if (this.compareForm.modeTypes.length > 0) {
+          const allowed = new Set(this.modeTypeOptions)
+          this.compareForm.modeTypes = this.compareForm.modeTypes.filter(modeType => allowed.has(modeType))
+        }
       } catch (error) {
         console.error('加载振型类型失败:', error)
         throw error
@@ -167,10 +181,7 @@ export const useModalDataCompareStore = defineStore('modalDataCompare', {
       try {
         this.compareLoading = true
         
-        // 处理testStatuses，确保它是数组格式
-        const testStatusesArray = Array.isArray(this.compareForm.testStatuses)
-          ? this.compareForm.testStatuses
-          : [this.compareForm.testStatuses]
+        const testStatusesArray = normalizeToStringArray(this.compareForm.testStatuses)
         
         const params = {
           component_id: this.compareForm.componentId,
@@ -192,24 +203,49 @@ export const useModalDataCompareStore = defineStore('modalDataCompare', {
     },
     
     // 处理零件选择变化
-    handleComponentChange(componentId) {
+    async handleComponentChange(componentId) {
       this.compareForm.componentId = componentId
-      // 当选择零件时，加载对应的振型类型
-      if (componentId) {
-        this.loadModeTypesByComponent(componentId)
-      } else {
-        this.modeTypeOptions = []
-      }
+
+      // 级联清理：零件变化会影响车型/测试状态/振型
+      this.compareForm.vehicleModelIds = []
+      this.compareForm.testStatuses = []
+      this.compareForm.modeTypes = []
+
+      this.vehicleModelOptions = []
+      this.testStatusOptions = []
+      this.modeTypeOptions = []
+
+      if (!componentId) return
+      await this.loadRelatedVehicleModels(componentId)
     },
     
     // 处理车型选择变化
-    handleVehicleModelChange(vehicleModelIds) {
-      this.compareForm.vehicleModelIds = vehicleModelIds
+    async handleVehicleModelChange(vehicleModelIds) {
+      this.compareForm.vehicleModelIds = vehicleModelIds || []
+
+      // 级联清理：车型变化会影响测试状态/振型
+      this.compareForm.testStatuses = []
+      this.compareForm.modeTypes = []
+
+      this.testStatusOptions = []
+      this.modeTypeOptions = []
+
+      if (!this.compareForm.componentId || this.compareForm.vehicleModelIds.length === 0) return
+      await this.loadTestStatuses()
     },
     
     // 处理测试状态选择变化
-    handleTestStatusChange(testStatuses) {
+    async handleTestStatusChange(testStatuses) {
       this.compareForm.testStatuses = testStatuses
+
+      // 级联清理：测试状态变化会影响振型
+      this.compareForm.modeTypes = []
+      this.modeTypeOptions = []
+
+      const testStatusesArray = normalizeToStringArray(this.compareForm.testStatuses)
+      if (!this.compareForm.componentId || this.compareForm.vehicleModelIds.length === 0 || testStatusesArray.length === 0) return
+
+      await this.loadModeTypes()
     },
     
     // 处理振型类型选择变化
@@ -250,29 +286,18 @@ export const useModalDataCompareStore = defineStore('modalDataCompare', {
 
         // 本地生成筛选选项，避免额外请求
         const componentMap = new Map()
-        const vehicleMap = new Map()
-        const statusSet = new Set()
 
         allData.forEach(d => {
           if (d.component_id && d.component_name && !componentMap.has(d.component_id)) {
             componentMap.set(d.component_id, { id: d.component_id, component_name: d.component_name })
           }
-          if (d.vehicle_model_id && d.vehicle_model_name && !vehicleMap.has(d.vehicle_model_id)) {
-            vehicleMap.set(d.vehicle_model_id, { id: d.vehicle_model_id, vehicle_model_name: d.vehicle_model_name })
-          }
-          if (d.test_status) statusSet.add(d.test_status)
         })
 
         // 仅当尚未加载到对应选项时才覆盖，避免与其它地方加载冲突
         if (this.componentOptions.length === 0) {
           this.componentOptions = Array.from(componentMap.values()).sort((a, b) => a.component_name.localeCompare(b.component_name))
         }
-        if (this.vehicleModelOptions.length === 0) {
-          this.vehicleModelOptions = Array.from(vehicleMap.values()).sort((a, b) => a.vehicle_model_name.localeCompare(b.vehicle_model_name))
-        }
-        this.testStatusOptions = Array.from(statusSet.values())
-        // 振型选项按零件动态加载，这里不预填充
-        this.modeTypeOptions = []
+        // 测试状态与振型由级联接口按已选条件动态加载，这里不预填充
 
       } catch (error) {
         console.error('加载所有模态数据失败:', error)
@@ -285,7 +310,7 @@ export const useModalDataCompareStore = defineStore('modalDataCompare', {
       try {
         this.modeTypesLoading = true
         const response = await modalApi.getModeTypesByComponent({ component_id: componentId })
-        this.modeTypeOptions = response.data || []
+        this.modeTypeOptions = uniqueSortedStrings(response.data || [])
       } catch (error) {
         console.error('根据零件加载振型类型失败:', error)
         this.modeTypeOptions = []
@@ -297,6 +322,7 @@ export const useModalDataCompareStore = defineStore('modalDataCompare', {
     // 筛选表格数据
     filterTableData() {
       let filtered = [...this.allModalData]
+      const testStatusesArray = normalizeToStringArray(this.compareForm.testStatuses)
       
       // 按零件筛选
       if (this.compareForm.componentId) {
@@ -311,9 +337,9 @@ export const useModalDataCompareStore = defineStore('modalDataCompare', {
       }
       
       // 按测试状态筛选
-      if (this.compareForm.testStatuses.length > 0) {
+      if (testStatusesArray.length > 0) {
         filtered = filtered.filter(item => 
-          this.compareForm.testStatuses.includes(item.test_status)
+          testStatusesArray.includes(item.test_status)
         )
       }
       

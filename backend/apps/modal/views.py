@@ -12,6 +12,29 @@ from .serializers import (
 )
 
 
+def _normalize_distinct_str_list(values):
+    """规范化字符串列表：strip、过滤空值、去重，并返回排序后的列表。"""
+    seen = set()
+    cleaned = []
+
+    for value in values:
+        if value is None:
+            continue
+
+        text = str(value).strip()
+        if not text:
+            continue
+
+        if text in seen:
+            continue
+
+        seen.add(text)
+        cleaned.append(text)
+
+    cleaned.sort()
+    return cleaned
+
+
 @api_view(['GET'])
 @permission_classes([])  # 临时允许匿名访问用于测试
 def vehicle_model_list(request):
@@ -306,7 +329,7 @@ def get_test_statuses(request):
 
         # 获取不重复的测试状态
         test_statuses = queryset.values_list('test_status', flat=True).distinct()
-        test_statuses = [status for status in test_statuses if status]  # 过滤空值
+        test_statuses = _normalize_distinct_str_list(test_statuses)
 
         return Response.success(data=test_statuses)
 
@@ -321,7 +344,7 @@ def get_all_test_statuses(request):
     try:
         # 获取所有不重复的测试状态
         test_statuses = TestProject.objects.values_list('test_status', flat=True).distinct()
-        test_statuses = [status for status in test_statuses if status]  # 过滤空值
+        test_statuses = _normalize_distinct_str_list(test_statuses)
         
         return Response.success(data=test_statuses)
 
@@ -349,7 +372,7 @@ def get_mode_types_by_component(request):
 
         # 获取不重复的振型类型
         mode_types = queryset.values_list('mode_shape_description', flat=True).distinct()
-        mode_types = [mode_type for mode_type in mode_types if mode_type]  # 过滤空值
+        mode_types = _normalize_distinct_str_list(mode_types)
         
         return Response.success(data=mode_types)
 
@@ -387,7 +410,7 @@ def get_mode_types(request):
 
         # 获取不重复的振型类型（从mode_shape_description字段）
         mode_types = queryset.values_list('mode_shape_description', flat=True).distinct()
-        mode_types = [mode_type for mode_type in mode_types if mode_type]  # 过滤空值
+        mode_types = _normalize_distinct_str_list(mode_types)
 
         return Response.success(data=mode_types)
 

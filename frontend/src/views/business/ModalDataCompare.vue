@@ -317,19 +317,37 @@ const paginatedTableData = computed(() => {
 })
 
 // 事件处理方法
-const handleComponentChange = (componentId) => {
-  store.handleComponentChange(componentId)
-  filterTableData()
+const handleComponentChange = async (componentId) => {
+  try {
+    await store.handleComponentChange(componentId)
+  } catch (error) {
+    console.error('零件切换处理失败:', error)
+    ElMessage.error('零件切换失败，请重试')
+  } finally {
+    filterTableData()
+  }
 }
 
-const handleVehicleModelChange = (vehicleModelIds) => {
-  store.handleVehicleModelChange(vehicleModelIds)
-  filterTableData()
+const handleVehicleModelChange = async (vehicleModelIds) => {
+  try {
+    await store.handleVehicleModelChange(vehicleModelIds)
+  } catch (error) {
+    console.error('车型切换处理失败:', error)
+    ElMessage.error('车型切换失败，请重试')
+  } finally {
+    filterTableData()
+  }
 }
 
-const handleTestStatusChange = (testStatuses) => {
-  store.handleTestStatusChange(testStatuses)
-  filterTableData()
+const handleTestStatusChange = async (testStatuses) => {
+  try {
+    await store.handleTestStatusChange(testStatuses)
+  } catch (error) {
+    console.error('测试状态切换处理失败:', error)
+    ElMessage.error('测试状态切换失败，请重试')
+  } finally {
+    filterTableData()
+  }
 }
 
 const handleModeTypeChange = (modeTypes) => {
