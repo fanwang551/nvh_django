@@ -192,5 +192,6 @@ class SubstancesTestListItemSerializer(serializers.ModelSerializer):
             'status': obj.status,
             'test_order_no': obj.test_order_no,
             'sample_no': obj.sample_no,
-            'sample_image_url': obj.sample_image_url,
+            # 返回图片访问路径，避免将二进制内容序列化为 JSON
+            'sample_image_url': obj.sample_image_url.url if getattr(obj, 'sample_image_url', None) else None,
         }

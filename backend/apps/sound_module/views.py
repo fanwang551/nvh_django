@@ -132,7 +132,7 @@ def sound_insulation_compare(request):
                 'area_id': data.area.id,
                 'area_name': data.area.area_name,
                 'frequency_data': frequency_data,
-                'test_image_path': (data.test_image_path or []),
+                'test_image_path': data.test_image_path.url if data.test_image_path else None ,
                 'test_date': data.test_date.isoformat() if data.test_date else None,
                 'test_location': data.test_location,
                 'test_engineer': data.test_engineer,
