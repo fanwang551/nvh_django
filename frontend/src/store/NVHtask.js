@@ -7,7 +7,7 @@ import { nvhTaskApi } from '@/api/nvhTask'
 import { useUserStore } from '@/store/index'
 
 // 安排人员白名单
-const SCHEDULER_WHITELIST = ['w1234', 'w1235']
+const SCHEDULER_WHITELIST = ['test']
 
 export const useTaskStore = defineStore('nvhTask', {
   state: () => ({

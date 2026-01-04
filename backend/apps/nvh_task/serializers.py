@@ -25,11 +25,22 @@ class EntryExitSerializer(serializers.ModelSerializer):
 
 class TestProcessAttachmentSerializer(serializers.ModelSerializer):
     """试验过程记录附件序列化器"""
+    # 覆盖 file_url 字段，接受字符串路径
+    file_url = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
     class Meta:
         model = TestProcessAttachment
         fields = ['id', 'test_info', 'record_name', 'file_url', 'sort_no', 'created_at']
         read_only_fields = ['id', 'created_at']
+
+    def to_representation(self, instance):
+        """序列化时返回文件路径字符串"""
+        ret = super().to_representation(instance)
+        if instance.file_url:
+            ret['file_url'] = instance.file_url.name if hasattr(instance.file_url, 'name') else str(instance.file_url)
+        else:
+            ret['file_url'] = ''
+        return ret
 
 
 class TestProcessListSerializer(serializers.ModelSerializer):
@@ -45,6 +56,8 @@ class TestInfoSerializer(serializers.ModelSerializer):
     """试验信息序列化器"""
     process_attachments = TestProcessAttachmentSerializer(many=True, read_only=True)
     process_attachment_count = serializers.SerializerMethodField()
+    # 覆盖 teardown_attachment_url 字段，接受字符串路径
+    teardown_attachment_url = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
     class Meta:
         model = TestInfo
@@ -62,9 +75,21 @@ class TestInfoSerializer(serializers.ModelSerializer):
     def get_process_attachment_count(self, obj):
         return obj.process_attachments.count()
 
+    def to_representation(self, instance):
+        """序列化时返回文件路径字符串"""
+        ret = super().to_representation(instance)
+        # ImageField 转为字符串路径
+        if instance.teardown_attachment_url:
+            ret['teardown_attachment_url'] = instance.teardown_attachment_url.name if hasattr(instance.teardown_attachment_url, 'name') else str(instance.teardown_attachment_url)
+        else:
+            ret['teardown_attachment_url'] = ''
+        return ret
+
 
 class DocApprovalSerializer(serializers.ModelSerializer):
     """技术资料发放批准单序列化器"""
+    # 覆盖 file_url 字段，接受字符串路径（已上传文件的相对路径）
+    file_url = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
     class Meta:
         model = DocApproval
@@ -74,6 +99,16 @@ class DocApprovalSerializer(serializers.ModelSerializer):
             'file_url', 'status', 'submitted_at', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'main', 'created_at', 'updated_at']
+
+    def to_representation(self, instance):
+        """序列化时返回文件路径字符串"""
+        ret = super().to_representation(instance)
+        # ImageField 转为字符串路径
+        if instance.file_url:
+            ret['file_url'] = instance.file_url.name if hasattr(instance.file_url, 'name') else str(instance.file_url)
+        else:
+            ret['file_url'] = ''
+        return ret
 
 
 class MainRecordListSerializer(serializers.ModelSerializer):

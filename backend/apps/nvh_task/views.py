@@ -1,6 +1,9 @@
 """
 NVH Task Views
 """
+import os
+import uuid
+import shutil
 from django.conf import settings
 from django.db.models import Q
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -18,6 +21,65 @@ from .serializers import (
     TestProcessAttachmentSerializer, TestProcessListSerializer
 )
 from . import services
+
+
+# ==================== 文件上传常量 ====================
+
+ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+TEMP_UPLOAD_DIR = 'nvh_task/_temp'  # 临时目录前缀
+
+
+# ==================== 文件上传辅助函数 ====================
+
+def confirm_file_upload(temp_path: str, upload_type: str) -> str:
+    """
+    确认文件上传：将临时文件移动到最终目录
+    :param temp_path: 临时文件相对路径（如 nvh_task/_temp/xxx.jpg）
+    :param upload_type: 上传类型
+    :return: 最终文件相对路径
+    """
+    if not temp_path:
+        return ''
+
+    # 如果已经是最终路径（不在临时目录），直接返回
+    if not temp_path.startswith(TEMP_UPLOAD_DIR):
+        return temp_path
+
+    # 确定最终目录
+    type_to_dir = {
+        'teardown_record': 'nvh_task/teardown_record',
+        'nvh_test_process': 'nvh_task/nvh_test_process',
+        'nvh_task_approval': 'nvh_task/nvh_task_approval',
+    }
+    final_dir = type_to_dir.get(upload_type, 'nvh_task/nvh_test_process')
+
+    # 获取文件名
+    filename = os.path.basename(temp_path)
+
+    # 源路径和目标路径
+    src_path = os.path.join(settings.MEDIA_ROOT, temp_path)
+    dest_dir = os.path.join(settings.MEDIA_ROOT, final_dir)
+    os.makedirs(dest_dir, exist_ok=True)
+    dest_path = os.path.join(dest_dir, filename)
+
+    # 移动文件
+    if os.path.exists(src_path):
+        shutil.move(src_path, dest_path)
+
+    return f"{final_dir}/{filename}"
+
+
+def cleanup_temp_file(temp_path: str):
+    """清理临时文件"""
+    if not temp_path or not temp_path.startswith(TEMP_UPLOAD_DIR):
+        return
+    full_path = os.path.join(settings.MEDIA_ROOT, temp_path)
+    if os.path.exists(full_path):
+        try:
+            os.remove(full_path)
+        except Exception:
+            pass
 
 
 # ==================== 分页工具 ====================
@@ -291,7 +353,15 @@ def test_info_by_main(request, main_id):
         except TestInfo.DoesNotExist:
             return Response.not_found(message='试验信息不存在，请先GET创建')
 
-        serializer = TestInfoSerializer(instance, data=request.data, partial=True)
+        data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
+
+        # 处理文件上传确认：如果 teardown_attachment_url 是临时路径，移动到最终目录
+        teardown_url = data.get('teardown_attachment_url', '')
+        if teardown_url and teardown_url.startswith(TEMP_UPLOAD_DIR):
+            final_path = confirm_file_upload(teardown_url, 'teardown_record')
+            data['teardown_attachment_url'] = final_path
+
+        serializer = TestInfoSerializer(instance, data=data, partial=True)
         if serializer.is_valid():
             instance = serializer.save()
             output = TestInfoSerializer(instance).data
@@ -355,7 +425,15 @@ def doc_approval_by_main(request, main_id):
         except DocApproval.DoesNotExist:
             return Response.not_found(message='技术资料批准单不存在，请先GET创建')
 
-        serializer = DocApprovalSerializer(instance, data=request.data, partial=True)
+        data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
+
+        # 处理文件上传确认：如果 file_url 是临时路径，移动到最终目录
+        file_url = data.get('file_url', '')
+        if file_url and file_url.startswith(TEMP_UPLOAD_DIR):
+            final_path = confirm_file_upload(file_url, 'nvh_task_approval')
+            data['file_url'] = final_path
+
+        serializer = DocApprovalSerializer(instance, data=data, partial=True)
         if serializer.is_valid():
             instance = serializer.save()
             output = DocApprovalSerializer(instance).data
@@ -413,7 +491,15 @@ def process_attachment_list(request):
         return Response.success(data=serializer.data, message='获取过程记录附件列表成功')
 
     # POST 创建
-    serializer = TestProcessAttachmentSerializer(data=request.data)
+    data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
+
+    # 处理文件上传确认：如果 file_url 是临时路径，移动到最终目录
+    file_url = data.get('file_url', '')
+    if file_url and file_url.startswith(TEMP_UPLOAD_DIR):
+        final_path = confirm_file_upload(file_url, 'nvh_test_process')
+        data['file_url'] = final_path
+
+    serializer = TestProcessAttachmentSerializer(data=data)
     if serializer.is_valid():
         instance = serializer.save()
         output = TestProcessAttachmentSerializer(instance).data
@@ -435,7 +521,15 @@ def process_attachment_detail(request, pk):
         return Response.success(data=serializer.data, message='获取过程记录附件详情成功')
 
     if request.method == 'PATCH':
-        serializer = TestProcessAttachmentSerializer(instance, data=request.data, partial=True)
+        data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
+
+        # 处理文件上传确认
+        file_url = data.get('file_url', '')
+        if file_url and file_url.startswith(TEMP_UPLOAD_DIR):
+            final_path = confirm_file_upload(file_url, 'nvh_test_process')
+            data['file_url'] = final_path
+
+        serializer = TestProcessAttachmentSerializer(instance, data=data, partial=True)
         if serializer.is_valid():
             instance = serializer.save()
             output = TestProcessAttachmentSerializer(instance).data
@@ -469,22 +563,13 @@ def process_list_options(request):
 
 # ==================== 图片上传视图 ====================
 
-import os
-import uuid
-from django.conf import settings
-from rest_framework.parsers import MultiPartParser, FormParser
-
-
-ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
-
-
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def upload_image(request):
     """
     通用图片上传接口
-    支持上传到不同目录：teardown_record / nvh_test_process / nvh_task_approval
+    文件先保存到临时目录，返回临时路径
+    当表单保存成功时，由 confirm_upload 移动到最终目录
     """
     file = request.FILES.get('file')
     upload_type = request.POST.get('type', 'nvh_test_process')  # 默认过程记录
@@ -500,42 +585,35 @@ def upload_image(request):
     if file.size > MAX_FILE_SIZE:
         return Response.bad_request(message=f'文件大小超过限制（最大 5MB）')
 
-    # 确定保存目录
-    type_to_dir = {
-        'teardown_record': 'nvh_task/teardown_record',
-        'nvh_test_process': 'nvh_task/nvh_test_process',
-        'nvh_task_approval': 'nvh_task/nvh_task_approval',
-    }
-    sub_dir = type_to_dir.get(upload_type, 'nvh_task/nvh_test_process')
-
     # 生成唯一文件名
     ext = os.path.splitext(file.name)[1].lower()
     if not ext:
         ext = '.jpg'
     new_filename = f"{uuid.uuid4().hex}{ext}"
 
-    # 完整保存路径
-    save_dir = os.path.join(settings.MEDIA_ROOT, sub_dir)
-    os.makedirs(save_dir, exist_ok=True)
-    save_path = os.path.join(save_dir, new_filename)
+    # 保存到临时目录
+    temp_dir = os.path.join(settings.MEDIA_ROOT, TEMP_UPLOAD_DIR)
+    os.makedirs(temp_dir, exist_ok=True)
+    temp_path = os.path.join(temp_dir, new_filename)
 
-    # 保存文件
     try:
-        with open(save_path, 'wb+') as dest:
+        with open(temp_path, 'wb+') as dest:
             for chunk in file.chunks():
                 dest.write(chunk)
     except Exception as e:
         return Response.error(message=f'文件保存失败: {str(e)}')
 
-    # 返回相对路径（相对于 MEDIA_ROOT）
-    relative_path = f"{sub_dir}/{new_filename}"
-    full_url = f"{settings.MEDIA_URL}{relative_path}"
+    # 返回临时路径和目标类型
+    temp_relative_path = f"{TEMP_UPLOAD_DIR}/{new_filename}"
+    full_url = f"{settings.MEDIA_URL}{temp_relative_path}"
 
     return Response.success(
         data={
-            'relative_path': relative_path,
+            'relative_path': temp_relative_path,
             'url': full_url,
             'filename': new_filename,
+            'upload_type': upload_type,
+            'is_temp': True,
         },
-        message='上传成功'
+        message='上传成功（临时）'
     )

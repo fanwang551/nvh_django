@@ -27,28 +27,30 @@
       <el-form-item label="文件(图片)">
         <div class="upload-area">
           <el-image
-            v-if="formData.file_url"
-            :src="getImageUrl(formData.file_url)"
+            v-if="previewUrl"
+            :src="previewUrl"
             fit="cover"
             style="width: 120px; height: 90px; border-radius: 6px"
-            :preview-src-list="[getImageUrl(formData.file_url)]"
+            :preview-src-list="[previewUrl]"
           />
           <el-upload
             action="/api/nvh-task/upload/"
             :show-file-list="false"
             :before-upload="beforeUpload"
             :http-request="uploadFile"
+            :disabled="uploading"
           >
-            <el-button size="small">{{ formData.file_url ? '更换文件' : '上传文件' }}</el-button>
+            <el-button size="small" :loading="uploading">{{ formData.file_url ? '更换文件' : '上传文件' }}</el-button>
           </el-upload>
           <span v-if="!formData.file_url" class="upload-hint">* 提交前必须上传文件</span>
+          <span v-if="pendingUpload" class="upload-hint pending">文件已选择，请点击保存</span>
         </div>
       </el-form-item>
     </el-form>
 
     <!-- 操作按钮 -->
     <div class="form-actions">
-      <el-button @click="handleSave" :disabled="isSubmitted && !store.isScheduler">保存草稿</el-button>
+      <el-button @click="handleSave" :disabled="isSubmitted && !store.isScheduler" :loading="saving">保存草稿</el-button>
       <el-button v-if="!isSubmitted" type="primary" @click="handleSubmit">提交</el-button>
       <el-button v-else type="warning" @click="handleUnsubmit">撤回提交</el-button>
     </div>
@@ -75,10 +77,21 @@ const formData = ref({
 })
 
 const uploading = ref(false)
+const saving = ref(false)
+const pendingUpload = ref(false)  // 标记是否有待保存的上传文件
 
 const currentMain = computed(() => store.drawer.currentMain)
 const docApprovalData = computed(() => store.docApproval.data)
 const isSubmitted = computed(() => docApprovalData.value?.status === 'SUBMITTED')
+
+// 计算预览URL
+const previewUrl = computed(() => {
+  const url = formData.value.file_url
+  if (!url) return ''
+  if (url.startsWith('http')) return url
+  if (url.startsWith('/media/')) return url
+  return `/media/${url}`
+})
 
 const getImageUrl = (url) => {
   if (!url) return ''
@@ -107,7 +120,7 @@ const beforeUpload = (file) => {
 }
 
 /**
- * 上传技术资料文件
+ * 上传技术资料文件（上传到临时目录，不立即保存到数据库）
  */
 const uploadFile = async ({ file }) => {
   uploading.value = true
@@ -115,10 +128,9 @@ const uploadFile = async ({ file }) => {
     const res = await nvhTaskApi.uploadImage(file, 'nvh_task_approval')
     if (res?.data?.relative_path) {
       formData.value.file_url = res.data.relative_path
+      pendingUpload.value = true  // 标记有待保存的文件
       markDirty()
-      ElMessage.success('文件上传成功')
-      // 自动保存到后端
-      await store.updateDocApproval({ file_url: res.data.relative_path })
+      ElMessage.success('文件已上传，请点击保存草稿')
     }
   } catch (e) {
     ElMessage.error(e?.message || '上传失败')
@@ -131,6 +143,7 @@ const uploadFile = async ({ file }) => {
 watch(docApprovalData, (val) => {
   if (val) {
     formData.value = { ...val }
+    pendingUpload.value = false  // 从服务器加载的数据，没有待保存的上传
   }
 }, { immediate: true })
 
@@ -145,16 +158,34 @@ watch(currentMain, (main) => {
 
 // 保存
 const handleSave = async () => {
+  saving.value = true
   try {
     await store.updateDocApproval(formData.value)
+    pendingUpload.value = false  // 保存成功后清除待保存标记
     ElMessage.success('保存成功')
   } catch (e) {
     ElMessage.error('保存失败')
+  } finally {
+    saving.value = false
   }
 }
 
 // 提交
 const handleSubmit = async () => {
+  // 如果有待保存的上传，先保存
+  if (pendingUpload.value || store.docApproval.dirty) {
+    saving.value = true
+    try {
+      await store.updateDocApproval(formData.value)
+      pendingUpload.value = false
+    } catch (e) {
+      ElMessage.error('保存失败，无法提交')
+      saving.value = false
+      return
+    }
+    saving.value = false
+  }
+
   try {
     await store.submitDocApproval()
     ElMessage.success('提交成功')
@@ -204,6 +235,10 @@ onMounted(async () => {
 .upload-hint {
   font-size: 12px;
   color: #e6a23c;
+}
+
+.upload-hint.pending {
+  color: #409eff;
 }
 
 .form-actions {
