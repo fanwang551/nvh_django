@@ -46,6 +46,7 @@ LOCAL_APPS = [
     'apps.experience',
     'apps.vehicle_body',
     'apps.nvh_benchmark',
+    'apps.nvh_task',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
