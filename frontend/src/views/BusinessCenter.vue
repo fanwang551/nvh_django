@@ -33,7 +33,8 @@ import {
   Picture,
   MagicStick,
   Setting,
-  Odometer
+  Odometer,
+  Document
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -49,6 +50,7 @@ const categoryLabel = {
 // 扁平化业务模块（取消折叠分组，统一卡片网格）
 const modules = ref([
   { name: 'nvh-benchmark', title: 'NVH对标分析', icon: TrendCharts, category: 'other' },
+  { name: 'task-main-list', title: '试验任务管理', icon: Document, category: 'other' },
   // 模态与气密性（蓝色系）
   { name: 'modal-data-query', title: '模态查询', icon: DataAnalysis, category: 'modal' },
   { name: 'modal-data-compare', title: '模态对比', icon: TrendCharts, category: 'modal' },

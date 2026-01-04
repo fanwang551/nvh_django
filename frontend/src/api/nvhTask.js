@@ -226,6 +226,22 @@ export const nvhTaskApi = {
    */
   createProcessOption(data) {
     return request.post('/nvh-task/process-list-options/', data)
+  },
+
+  // ==================== 图片上传 ====================
+
+  /**
+   * 上传图片
+   * @param {File} file 文件对象
+   * @param {string} type 上传类型：teardown_record / nvh_test_process / nvh_task_approval
+   */
+  uploadImage(file, type = 'nvh_test_process') {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('type', type)
+    return request.post('/nvh-task/upload/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
   }
 }
 

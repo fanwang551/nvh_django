@@ -28,4 +28,7 @@ urlpatterns = [
 
     # TestProcessList (字典表)
     path('process-list-options/', views.process_list_options, name='nvh-task-process-list-options'),
+
+    # 图片上传
+    path('upload/', views.upload_image, name='nvh-task-upload'),
 ]

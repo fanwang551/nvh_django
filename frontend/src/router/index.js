@@ -29,6 +29,7 @@ import DynamicStiffnessQuery from '@/views/business/DynamicStiffnessQuery.vue'
 import VehicleMountIsolationQuery from '@/views/business/VehicleMountIsolationQuery.vue'
 import SuspensionIsolationQuery from '@/views/business/SuspensionIsolationQuery.vue'
 import NvhBenchmark from '@/views/business/NvhBenchmark.vue'
+import TaskMainList from '@/views/business/TaskMainList.vue'
 //import VOCQuery from '@/views/vehicle-data/VocData.vue'
 // Vehicle Data Center views
 import IAQCenter from '@/views/vehicle-data/IAQCenter.vue'
@@ -117,6 +118,12 @@ const routes = [
     name: 'NvhBenchmark',
     component: NvhBenchmark,
     meta: { requiresAuth: true, title: 'NVH对标分析' }
+  },
+  {
+    path: '/business/task-main-list',
+    name: 'TaskMainList',
+    component: TaskMainList,
+    meta: { requiresAuth: true, title: '试验任务管理' }
   },
   {
     path: '/business/modal-data-query',

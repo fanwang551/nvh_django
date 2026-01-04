@@ -465,3 +465,77 @@ def process_list_options(request):
         output = TestProcessListSerializer(instance).data
         return Response.success(data=output, message='创建过程记录表名成功', status_code=201)
     return Response.bad_request(message='创建过程记录表名失败', data=serializer.errors)
+
+
+# ==================== 图片上传视图 ====================
+
+import os
+import uuid
+from django.conf import settings
+from rest_framework.parsers import MultiPartParser, FormParser
+
+
+ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def upload_image(request):
+    """
+    通用图片上传接口
+    支持上传到不同目录：teardown_record / nvh_test_process / nvh_task_approval
+    """
+    file = request.FILES.get('file')
+    upload_type = request.POST.get('type', 'nvh_test_process')  # 默认过程记录
+
+    if not file:
+        return Response.bad_request(message='未选择文件')
+
+    # 校验文件类型
+    if file.content_type not in ALLOWED_IMAGE_TYPES:
+        return Response.bad_request(message=f'不支持的文件类型: {file.content_type}，仅支持 jpg/png/webp/gif')
+
+    # 校验文件大小
+    if file.size > MAX_FILE_SIZE:
+        return Response.bad_request(message=f'文件大小超过限制（最大 5MB）')
+
+    # 确定保存目录
+    type_to_dir = {
+        'teardown_record': 'nvh_task/teardown_record',
+        'nvh_test_process': 'nvh_task/nvh_test_process',
+        'nvh_task_approval': 'nvh_task/nvh_task_approval',
+    }
+    sub_dir = type_to_dir.get(upload_type, 'nvh_task/nvh_test_process')
+
+    # 生成唯一文件名
+    ext = os.path.splitext(file.name)[1].lower()
+    if not ext:
+        ext = '.jpg'
+    new_filename = f"{uuid.uuid4().hex}{ext}"
+
+    # 完整保存路径
+    save_dir = os.path.join(settings.MEDIA_ROOT, sub_dir)
+    os.makedirs(save_dir, exist_ok=True)
+    save_path = os.path.join(save_dir, new_filename)
+
+    # 保存文件
+    try:
+        with open(save_path, 'wb+') as dest:
+            for chunk in file.chunks():
+                dest.write(chunk)
+    except Exception as e:
+        return Response.error(message=f'文件保存失败: {str(e)}')
+
+    # 返回相对路径（相对于 MEDIA_ROOT）
+    relative_path = f"{sub_dir}/{new_filename}"
+    full_url = f"{settings.MEDIA_URL}{relative_path}"
+
+    return Response.success(
+        data={
+            'relative_path': relative_path,
+            'url': full_url,
+            'filename': new_filename,
+        },
+        message='上传成功'
+    )
