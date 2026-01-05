@@ -172,19 +172,17 @@ const handleSave = async () => {
 
 // 提交
 const handleSubmit = async () => {
-  // 如果有待保存的上传，先保存
-  if (pendingUpload.value || store.docApproval.dirty) {
-    saving.value = true
-    try {
-      await store.updateDocApproval(formData.value)
-      pendingUpload.value = false
-    } catch (e) {
-      ElMessage.error('保存失败，无法提交')
-      saving.value = false
-      return
-    }
+  // 提交等价于：保存草稿 + 提交（避免只保存部分字段）
+  saving.value = true
+  try {
+    await store.updateDocApproval(formData.value)
+    pendingUpload.value = false
+  } catch (e) {
+    ElMessage.error('保存失败，无法提交')
     saving.value = false
+    return
   }
+  saving.value = false
 
   try {
     await store.submitDocApproval()

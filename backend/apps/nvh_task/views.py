@@ -5,6 +5,7 @@ import os
 import uuid
 import shutil
 from django.conf import settings
+from django.db import transaction
 from django.db.models import Q
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework.decorators import api_view, permission_classes
@@ -32,6 +33,30 @@ TEMP_UPLOAD_DIR = 'nvh_task/_temp'  # 临时目录前缀
 
 # ==================== 文件上传辅助函数 ====================
 
+def get_final_upload_path(temp_path: str, upload_type: str) -> str:
+    """
+    将临时路径转换为最终路径（不做移动）
+    :param temp_path: 临时文件相对路径（如 nvh_task/_temp/xxx.jpg）
+    :param upload_type: 上传类型
+    :return: 最终文件相对路径
+    """
+    if not temp_path:
+        return ''
+
+    # 如果已经是最终路径（不在临时目录），直接返回
+    if not temp_path.startswith(TEMP_UPLOAD_DIR):
+        return temp_path
+
+    type_to_dir = {
+        'teardown_record': 'nvh_task/teardown_record',
+        'nvh_test_process': 'nvh_task/nvh_test_process',
+        'nvh_task_approval': 'nvh_task/nvh_task_approval',
+    }
+    final_dir = type_to_dir.get(upload_type, 'nvh_task/nvh_test_process')
+    filename = os.path.basename(temp_path)
+    return f"{final_dir}/{filename}"
+
+
 def confirm_file_upload(temp_path: str, upload_type: str) -> str:
     """
     确认文件上传：将临时文件移动到最终目录
@@ -46,28 +71,19 @@ def confirm_file_upload(temp_path: str, upload_type: str) -> str:
     if not temp_path.startswith(TEMP_UPLOAD_DIR):
         return temp_path
 
-    # 确定最终目录
-    type_to_dir = {
-        'teardown_record': 'nvh_task/teardown_record',
-        'nvh_test_process': 'nvh_task/nvh_test_process',
-        'nvh_task_approval': 'nvh_task/nvh_task_approval',
-    }
-    final_dir = type_to_dir.get(upload_type, 'nvh_task/nvh_test_process')
+    final_relative_path = get_final_upload_path(temp_path, upload_type)
+    final_dir = os.path.dirname(final_relative_path)
 
-    # 获取文件名
-    filename = os.path.basename(temp_path)
-
-    # 源路径和目标路径
     src_path = os.path.join(settings.MEDIA_ROOT, temp_path)
     dest_dir = os.path.join(settings.MEDIA_ROOT, final_dir)
     os.makedirs(dest_dir, exist_ok=True)
-    dest_path = os.path.join(dest_dir, filename)
+    dest_path = os.path.join(settings.MEDIA_ROOT, final_relative_path)
 
     # 移动文件
     if os.path.exists(src_path):
         shutil.move(src_path, dest_path)
 
-    return f"{final_dir}/{filename}"
+    return final_relative_path
 
 
 def cleanup_temp_file(temp_path: str):
@@ -348,25 +364,32 @@ def test_info_by_main(request, main_id):
         return Response.success(data=serializer.data, message='获取试验信息成功')
 
     if request.method == 'PATCH':
-        try:
-            instance = TestInfo.objects.get(main=main)
-        except TestInfo.DoesNotExist:
-            return Response.not_found(message='试验信息不存在，请先GET创建')
+        instance, _created = TestInfo.objects.get_or_create(
+            main=main,
+            defaults={'status': STATUS_DRAFT}
+        )
 
         data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
 
-        # 处理文件上传确认：如果 teardown_attachment_url 是临时路径，移动到最终目录
+        move_teardown_from = ''
         teardown_url = data.get('teardown_attachment_url', '')
         if teardown_url and teardown_url.startswith(TEMP_UPLOAD_DIR):
-            final_path = confirm_file_upload(teardown_url, 'teardown_record')
-            data['teardown_attachment_url'] = final_path
+            move_teardown_from = teardown_url
+            data['teardown_attachment_url'] = get_final_upload_path(teardown_url, 'teardown_record')
 
         serializer = TestInfoSerializer(instance, data=data, partial=True)
-        if serializer.is_valid():
+        if not serializer.is_valid():
+            return Response.bad_request(message='更新试验信息失败', data=serializer.errors)
+
+        with transaction.atomic():
             instance = serializer.save()
-            output = TestInfoSerializer(instance).data
-            return Response.success(data=output, message='更新试验信息成功')
-        return Response.bad_request(message='更新试验信息失败', data=serializer.errors)
+            if move_teardown_from:
+                transaction.on_commit(
+                    lambda p=move_teardown_from: confirm_file_upload(p, 'teardown_record')
+                )
+
+        output = TestInfoSerializer(instance).data
+        return Response.success(data=output, message='更新试验信息成功')
 
 
 @api_view(['POST'])
@@ -420,25 +443,32 @@ def doc_approval_by_main(request, main_id):
         return Response.success(data=serializer.data, message='获取技术资料批准单成功')
 
     if request.method == 'PATCH':
-        try:
-            instance = DocApproval.objects.get(main=main)
-        except DocApproval.DoesNotExist:
-            return Response.not_found(message='技术资料批准单不存在，请先GET创建')
+        instance, _created = DocApproval.objects.get_or_create(
+            main=main,
+            defaults={'status': STATUS_DRAFT}
+        )
 
         data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
 
-        # 处理文件上传确认：如果 file_url 是临时路径，移动到最终目录
+        move_doc_file_from = ''
         file_url = data.get('file_url', '')
         if file_url and file_url.startswith(TEMP_UPLOAD_DIR):
-            final_path = confirm_file_upload(file_url, 'nvh_task_approval')
-            data['file_url'] = final_path
+            move_doc_file_from = file_url
+            data['file_url'] = get_final_upload_path(file_url, 'nvh_task_approval')
 
         serializer = DocApprovalSerializer(instance, data=data, partial=True)
-        if serializer.is_valid():
+        if not serializer.is_valid():
+            return Response.bad_request(message='更新技术资料批准单失败', data=serializer.errors)
+
+        with transaction.atomic():
             instance = serializer.save()
-            output = DocApprovalSerializer(instance).data
-            return Response.success(data=output, message='更新技术资料批准单成功')
-        return Response.bad_request(message='更新技术资料批准单失败', data=serializer.errors)
+            if move_doc_file_from:
+                transaction.on_commit(
+                    lambda p=move_doc_file_from: confirm_file_upload(p, 'nvh_task_approval')
+                )
+
+        output = DocApprovalSerializer(instance).data
+        return Response.success(data=output, message='更新技术资料批准单成功')
 
 
 @api_view(['POST'])
@@ -493,18 +523,25 @@ def process_attachment_list(request):
     # POST 创建
     data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
 
-    # 处理文件上传确认：如果 file_url 是临时路径，移动到最终目录
+    move_file_from = ''
     file_url = data.get('file_url', '')
     if file_url and file_url.startswith(TEMP_UPLOAD_DIR):
-        final_path = confirm_file_upload(file_url, 'nvh_test_process')
-        data['file_url'] = final_path
+        move_file_from = file_url
+        data['file_url'] = get_final_upload_path(file_url, 'nvh_test_process')
 
     serializer = TestProcessAttachmentSerializer(data=data)
-    if serializer.is_valid():
+    if not serializer.is_valid():
+        return Response.bad_request(message='创建过程记录附件失败', data=serializer.errors)
+
+    with transaction.atomic():
         instance = serializer.save()
-        output = TestProcessAttachmentSerializer(instance).data
-        return Response.success(data=output, message='创建过程记录附件成功', status_code=201)
-    return Response.bad_request(message='创建过程记录附件失败', data=serializer.errors)
+        if move_file_from:
+            transaction.on_commit(
+                lambda p=move_file_from: confirm_file_upload(p, 'nvh_test_process')
+            )
+
+    output = TestProcessAttachmentSerializer(instance).data
+    return Response.success(data=output, message='创建过程记录附件成功', status_code=201)
 
 
 @api_view(['GET', 'PATCH', 'DELETE'])
@@ -523,18 +560,25 @@ def process_attachment_detail(request, pk):
     if request.method == 'PATCH':
         data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
 
-        # 处理文件上传确认
+        move_file_from = ''
         file_url = data.get('file_url', '')
         if file_url and file_url.startswith(TEMP_UPLOAD_DIR):
-            final_path = confirm_file_upload(file_url, 'nvh_test_process')
-            data['file_url'] = final_path
+            move_file_from = file_url
+            data['file_url'] = get_final_upload_path(file_url, 'nvh_test_process')
 
         serializer = TestProcessAttachmentSerializer(instance, data=data, partial=True)
-        if serializer.is_valid():
+        if not serializer.is_valid():
+            return Response.bad_request(message='更新过程记录附件失败', data=serializer.errors)
+
+        with transaction.atomic():
             instance = serializer.save()
-            output = TestProcessAttachmentSerializer(instance).data
-            return Response.success(data=output, message='更新过程记录附件成功')
-        return Response.bad_request(message='更新过程记录附件失败', data=serializer.errors)
+            if move_file_from:
+                transaction.on_commit(
+                    lambda p=move_file_from: confirm_file_upload(p, 'nvh_test_process')
+                )
+
+        output = TestProcessAttachmentSerializer(instance).data
+        return Response.success(data=output, message='更新过程记录附件成功')
 
     if request.method == 'DELETE':
         instance.soft_delete()

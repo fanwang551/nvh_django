@@ -206,8 +206,16 @@ const handleSave = async () => {
   }
 }
 
-// 提交
+// 提交（先保存再提交，确保所有字段完整保存）
 const handleSubmit = async () => {
+  // 提交等价于：保存草稿 + 提交（避免只保存部分字段）
+  try {
+    await store.updateEntryExit(entryExitData.value.id, formData.value)
+  } catch (e) {
+    ElMessage.error('保存失败，无法提交')
+    return
+  }
+
   try {
     await store.submitEntryExit()
     ElMessage.success('提交成功')

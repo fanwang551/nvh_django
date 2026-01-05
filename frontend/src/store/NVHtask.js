@@ -455,9 +455,11 @@ export const useTaskStore = defineStore('nvhTask', {
 
     async createProcessAttachment(data) {
       const res = await nvhTaskApi.createProcessAttachment(data)
-      // 重新加载 TestInfo 以更新 process_attachment_count
-      await this.loadTestInfo()
-      return res?.data
+      const created = res?.data || null
+      if (created && this.testInfo.data && created.test_info === this.testInfo.data.id) {
+        this.testInfo.data.process_attachment_count = (this.testInfo.data.process_attachment_count || 0) + 1
+      }
+      return created
     },
 
     async updateProcessAttachment(id, data) {
@@ -467,8 +469,10 @@ export const useTaskStore = defineStore('nvhTask', {
 
     async deleteProcessAttachment(id) {
       await nvhTaskApi.deleteProcessAttachment(id)
-      // 重新加载 TestInfo 以更新 process_attachment_count
-      await this.loadTestInfo()
+      if (this.testInfo.data) {
+        const current = this.testInfo.data.process_attachment_count || 0
+        this.testInfo.data.process_attachment_count = Math.max(0, current - 1)
+      }
     },
 
     // ==================== 过程记录表名选项 ====================

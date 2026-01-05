@@ -82,6 +82,7 @@
             >
               <el-button size="small">{{ formData.teardown_attachment_url ? '更换图片' : '上传图片' }}</el-button>
             </el-upload>
+            <span v-if="isTeardownTemp" class="upload-hint pending">图片已上传，请点击保存草稿</span>
           </div>
         </el-form-item>
 
@@ -106,6 +107,17 @@
               <span class="process-name">{{ att.record_name }}</span>
               <el-button type="danger" link size="small" @click="deleteAttachment(att.id)">删除</el-button>
             </div>
+            <div v-for="pending in pendingProcessUploads" :key="pending.client_id" class="process-item pending-item">
+              <el-image
+                :src="getImageUrl(pending.file_url)"
+                fit="cover"
+                style="width: 80px; height: 60px; border-radius: 4px"
+                :preview-src-list="pendingProcessUploads.map(a => getImageUrl(a.file_url))"
+              />
+              <span class="process-name">{{ pending.record_name }}</span>
+              <span class="pending-text">待保存</span>
+              <el-button type="danger" link size="small" @click="removePendingProcess(pending.client_id)">移除</el-button>
+            </div>
             <div class="add-process">
               <el-select v-model="newAttachment.record_name" placeholder="选择或输入表名" filterable allow-create style="width: 200px">
                 <el-option v-for="opt in store.processOptions" :key="opt.id" :label="opt.test_process_name" :value="opt.test_process_name" />
@@ -116,8 +128,9 @@
                 :before-upload="beforeUpload"
                 :http-request="uploadProcessImage"
               >
-                <el-button size="small" :disabled="!newAttachment.record_name">上传图片</el-button>
+                <el-button size="small" :disabled="!newAttachment.record_name" :loading="uploading">上传图片</el-button>
               </el-upload>
+              <span v-if="pendingProcessUploads.length > 0" class="process-hint pending">已选择 {{ pendingProcessUploads.length }} 张图片，点击保存草稿后生效</span>
             </div>
           </div>
         </el-form-item>
@@ -157,10 +170,15 @@ const formData = ref({
 const processAttachments = ref([])
 const newAttachment = ref({ record_name: '' })
 const uploading = ref(false)
+const saving = ref(false)
+const pendingProcessUploads = ref([]) // [{ client_id, record_name, file_url(temp) }]
 
 const currentMain = computed(() => store.drawer.currentMain)
 const testInfoData = computed(() => store.testInfo.data)
 const isSubmitted = computed(() => testInfoData.value?.status === 'SUBMITTED')
+
+const TEMP_PREFIX = 'nvh_task/_temp/'
+const isTeardownTemp = computed(() => (formData.value.teardown_attachment_url || '').startsWith(TEMP_PREFIX))
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '--'
@@ -217,6 +235,7 @@ const beforeUpload = (file) => {
 /**
  * 上传拆装记录图片
  * 上传成功后将返回的相对路径写入 formData.teardown_attachment_url
+ * 不立即保存到后端，等用户点击保存/提交时一起保存
  */
 const uploadTeardownImage = async ({ file }) => {
   uploading.value = true
@@ -224,10 +243,9 @@ const uploadTeardownImage = async ({ file }) => {
     const res = await nvhTaskApi.uploadImage(file, 'teardown_record')
     if (res?.data?.relative_path) {
       formData.value.teardown_attachment_url = res.data.relative_path
+      formData.value.include_teardown_record = '是'
       markDirty()
-      ElMessage.success('拆装记录图片上传成功')
-      // 自动保存到后端
-      await store.updateTestInfo({ teardown_attachment_url: res.data.relative_path })
+      ElMessage.success('拆装记录图片已上传，请点击保存草稿')
     }
   } catch (e) {
     ElMessage.error(e?.message || '上传失败')
@@ -248,34 +266,34 @@ const uploadProcessImage = async ({ file }) => {
 
   uploading.value = true
   try {
-    // 1. 上传图片到服务器
+    // 1) 上传图片到服务器（临时）
     const uploadRes = await nvhTaskApi.uploadImage(file, 'nvh_test_process')
     if (!uploadRes?.data?.relative_path) {
       throw new Error('上传失败，未获取到文件路径')
     }
 
-    // 2. 创建过程记录附件记录
-    const attachmentData = {
-      test_info: testInfoData.value.id,
+    // 2) 暂存到本地，等“保存草稿/提交”时一起落库
+    pendingProcessUploads.value.push({
+      client_id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
       record_name: newAttachment.value.record_name,
-      file_url: uploadRes.data.relative_path,
-      sort_no: processAttachments.value.length
-    }
+      file_url: uploadRes.data.relative_path
+    })
+    formData.value.include_process_record = '是'
+    markDirty()
 
-    await store.createProcessAttachment(attachmentData)
-
-    // 3. 刷新附件列表
-    await loadAttachments()
-
-    // 4. 清空输入
+    // 3) 清空输入
     newAttachment.value.record_name = ''
 
-    ElMessage.success('过程记录图片上传成功')
+    ElMessage.success('过程记录图片已上传，请点击保存草稿')
   } catch (e) {
     ElMessage.error(e?.message || '上传失败')
   } finally {
     uploading.value = false
   }
+}
+
+const removePendingProcess = (clientId) => {
+  pendingProcessUploads.value = pendingProcessUploads.value.filter(p => p.client_id !== clientId)
 }
 
 // 删除附件
@@ -299,23 +317,96 @@ const loadAttachments = async () => {
 // 监听数据变化
 watch(testInfoData, (val) => {
   if (val) {
-    formData.value = { ...val }
+    formData.value = {
+      ...formData.value,
+      contact_phone: val.contact_phone ?? '',
+      nvh_lab_mgmt_no: val.nvh_lab_mgmt_no ?? '',
+      sample_type: val.sample_type ?? '',
+      rd_stage: val.rd_stage ?? '',
+      delivery_dept: val.delivery_dept ?? '',
+      report_required: val.report_required ?? '',
+      report_no: val.report_no ?? '/',
+      include_teardown_record: val.include_teardown_record ?? '否',
+      include_process_record: val.include_process_record ?? '否',
+      teardown_attachment_url: val.teardown_attachment_url || ''
+    }
+
+    // 有附件时，自动将对应“是否包含...”显示为“是”
+    if (formData.value.teardown_attachment_url) {
+      formData.value.include_teardown_record = '是'
+    }
+    if ((val.process_attachment_count || 0) > 0) {
+      formData.value.include_process_record = '是'
+    }
     loadAttachments()
   }
 }, { immediate: true })
 
+// 根据附件/上传状态自动设置"是否包含..."字段（只“拉到是”，不强行改回否）
+watch([processAttachments, pendingProcessUploads], () => {
+  if ((processAttachments.value?.length || 0) + (pendingProcessUploads.value?.length || 0) > 0) {
+    formData.value.include_process_record = '是'
+  }
+}, { immediate: true })
+watch(() => formData.value.teardown_attachment_url, (url) => {
+  if (url) formData.value.include_teardown_record = '是'
+}, { immediate: true })
+
 // 保存
-const handleSave = async () => {
-  try {
-    await store.updateTestInfo(formData.value)
-    ElMessage.success('保存成功')
-  } catch (e) {
-    ElMessage.error('保存失败')
+const persistAll = async () => {
+  // 先保存 TestInfo 全量字段（包括拆装图片临时路径确认）
+  await store.updateTestInfo(formData.value)
+
+  // 再把“待保存”的过程记录图片落库（此时不会重置表单）
+  const testInfoId = store.testInfo.data?.id || testInfoData.value?.id
+  if (!testInfoId) {
+    throw new Error('试验信息未初始化，无法保存过程记录附件')
+  }
+
+  if (pendingProcessUploads.value.length > 0) {
+    await loadAttachments()
+    const baseSortNo = processAttachments.value.length
+    const pending = [...pendingProcessUploads.value]
+
+    for (let i = 0; i < pending.length; i += 1) {
+      await store.createProcessAttachment({
+        test_info: testInfoId,
+        record_name: pending[i].record_name,
+        file_url: pending[i].file_url,
+        sort_no: baseSortNo + i
+      })
+    }
+
+    pendingProcessUploads.value = []
+    await loadAttachments()
+    await store.loadTestInfo()
   }
 }
 
-// 提交
+const handleSave = async () => {
+  saving.value = true
+  try {
+    await persistAll()
+    ElMessage.success('保存成功')
+  } catch (e) {
+    ElMessage.error('保存失败')
+  } finally {
+    saving.value = false
+  }
+}
+
+// 提交（等价于“保存草稿 + 提交”，避免只保存部分字段）
 const handleSubmit = async () => {
+  saving.value = true
+  try {
+    await persistAll()
+  } catch (e) {
+    ElMessage.error('保存失败，无法提交')
+    saving.value = false
+    return
+  }
+  saving.value = false
+
   try {
     await store.submitTestInfo()
     ElMessage.success('提交成功')
@@ -384,6 +475,11 @@ onMounted(async () => {
   gap: 12px;
 }
 
+.upload-hint.pending {
+  font-size: 12px;
+  color: #409eff;
+}
+
 .process-list {
   width: 100%;
 }
@@ -392,6 +488,11 @@ onMounted(async () => {
   font-size: 12px;
   color: #909399;
   margin-bottom: 8px;
+}
+
+.process-hint.pending {
+  color: #409eff;
+  margin-bottom: 0;
 }
 
 .process-item {
@@ -404,9 +505,18 @@ onMounted(async () => {
   margin-bottom: 8px;
 }
 
+.process-item.pending-item {
+  opacity: 0.9;
+}
+
 .process-name {
   flex: 1;
   font-size: 13px;
+}
+
+.pending-text {
+  font-size: 12px;
+  color: #409eff;
 }
 
 .add-process {
