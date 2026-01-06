@@ -147,7 +147,8 @@ const addBusinessTab = (routePath) => {
     '/business/dynamic-stiffness-query': { name: 'dynamic-stiffness-query', title: '动刚度' },
     '/business/vehicle-mount-isolation-query': { name: 'vehicle-mount-isolation-query', title: '整车悬置隔振率' },
     '/business/suspension-isolation-query': { name: 'suspension-isolation-query', title: '整车悬架隔振率' },
-    '/business/nvh-benchmark':{name:'nvh-benchmark', title:'NVH对标分析'}
+    '/business/nvh-benchmark':{name:'nvh-benchmark', title:'NVH对标分析'},
+    '/business/task-main-list':{name:'task-main-list', title:'NVH试验任务管理'}
   }
 
   // 经验数据库：单独处理路由映射
@@ -245,6 +246,7 @@ const handleTabClick = (tabName) => {
     'vehicle-mount-isolation-query': '/business/vehicle-mount-isolation-query',
     'suspension-isolation-query': '/business/suspension-isolation-query',
     'nvh-benchmark':'/business/nvh-benchmark',
+    'task-main-list':'/business/task-main-list',
     // Vehicle Data Center
     'vehicle-data': '/vehicle-data',
     'iaq-center': '/vehicle-data/iaq',
