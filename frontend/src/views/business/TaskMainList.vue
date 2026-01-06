@@ -1,112 +1,143 @@
 <template>
-  <div class="task-main-list">
-    <!-- 页面标题 -->
-    <div class="header">
-      <div class="title">试验任务管理</div>
-      <div class="actions">
-        <el-button v-if="store.isScheduler" type="primary" @click="handleCreate">
+  <div class="task-main-list page-container">
+    <!-- 页面标题区 -->
+    <div class="page-header">
+      <div class="header-left">
+        <div class="title">试验任务管理</div>
+        <div class="subtitle">共 {{ store.list.total }} 条记录</div>
+      </div>
+      <div class="header-actions">
+        <el-button v-if="store.isScheduler" type="primary" icon="Plus" class="add-btn" @click="handleCreate">
           新增主记录
         </el-button>
       </div>
     </div>
 
-    <!-- 筛选区 -->
-    <div class="filter-section">
-      <div class="filter-row">
-        <el-input v-model="store.filters.model" placeholder="车型" clearable style="width: 140px" />
-        <el-input v-model="store.filters.vin_or_part_no" placeholder="VIN/零件编号" clearable style="width: 160px" />
-        <el-input v-model="store.filters.test_name" placeholder="试验名称" clearable style="width: 160px" />
-        <el-input v-model="store.filters.tester_name" placeholder="测试人员" clearable style="width: 120px" />
-        <el-select v-model="store.filters.warning_system_status" placeholder="预警状态" clearable style="width: 120px">
+    <!-- 筛选卡片 -->
+    <div class="filter-card">
+      <div class="filter-grid">
+        <el-input v-model="store.filters.model" placeholder="车型" clearable class="filter-item" />
+        <el-input v-model="store.filters.vin_or_part_no" placeholder="VIN/零件编号" clearable class="filter-item" />
+        <el-input v-model="store.filters.test_name" placeholder="试验名称" clearable class="filter-item" />
+        <el-input v-model="store.filters.tester_name" placeholder="测试人员" clearable class="filter-item" />
+
+        <el-select v-model="store.filters.warning_system_status" placeholder="预警状态" clearable class="filter-item">
           <el-option label="是" value="是" />
           <el-option label="无需" value="无需" />
           <el-option label="已申请" value="已申请" />
           <el-option label="未申请" value="未申请" />
           <el-option label="待申请" value="待申请" />
         </el-select>
-        <el-select v-model="store.filters.is_closed" placeholder="闭环状态" clearable style="width: 120px">
+
+        <el-select v-model="store.filters.is_closed" placeholder="闭环状态" clearable class="filter-item">
           <el-option label="已闭环" value="true" />
           <el-option label="未闭环" value="false" />
         </el-select>
-      </div>
-      <div class="filter-row">
+
         <el-date-picker
           v-model="dateRange"
           type="daterange"
-          range-separator="至"
+          range-separator="-"
           start-placeholder="排期开始"
           end-placeholder="排期结束"
           value-format="YYYY-MM-DD"
-          style="width: 260px"
+          class="filter-item date-item"
           @change="handleDateChange"
         />
-        <el-input v-model="store.filters.requester_name" placeholder="任务提出人" clearable style="width: 120px" />
-        <el-input v-model="store.filters.contract_no" placeholder="合同编号" clearable style="width: 140px" />
-        <el-button type="primary" @click="handleSearch">查询</el-button>
-        <el-button @click="handleReset">重置</el-button>
+
+        <el-input v-model="store.filters.requester_name" placeholder="任务提出人" clearable class="filter-item" />
+        <el-input v-model="store.filters.contract_no" placeholder="合同编号" clearable class="filter-item" />
+
+        <div class="filter-actions">
+          <el-button type="primary" @click="handleSearch">查询</el-button>
+          <el-button @click="handleReset">重置</el-button>
+        </div>
       </div>
     </div>
 
-    <!-- 列表表格 -->
-    <el-table
-      v-loading="store.list.loading"
-      :data="store.list.items"
-      border
-      stripe
-      class="main-table"
-      @row-dblclick="handleRowDblClick"
-    >
-      <el-table-column label="闭环" width="80" align="center">
-        <template #default="{ row }">
-          <el-tag :type="row.is_closed ? 'success' : 'warning'" size="small">
-            {{ row.is_closed ? '已闭环' : '未闭环' }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="warning_system_status" label="预警" width="80" />
-      <el-table-column prop="model" label="车型" width="100" show-overflow-tooltip />
-      <el-table-column prop="vin_or_part_no" label="VIN/零件编号" width="160" show-overflow-tooltip>
-        <template #default="{ row }">
-          <span class="copyable" @click="copyText(row.vin_or_part_no)">{{ row.vin_or_part_no }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column prop="test_name" label="试验名称" min-width="180" show-overflow-tooltip />
-      <el-table-column prop="tester_name" label="测试人员" width="100" />
-      <el-table-column prop="requester_name" label="任务提出人" width="100" />
-      <el-table-column label="排期" width="200">
-        <template #default="{ row }">
-          {{ formatDate(row.schedule_start) }} ~ {{ formatDate(row.schedule_end) }}
-        </template>
-      </el-table-column>
-      <el-table-column prop="test_location" label="地点" width="100" show-overflow-tooltip />
-      <el-table-column label="操作" width="180" fixed="right">
-        <template #default="{ row }">
-          <el-button type="primary" link @click="openDrawer(row)">填写/查看表单</el-button>
-          <el-button v-if="store.isScheduler" type="danger" link @click="handleDelete(row)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <!-- 表格卡片 -->
+    <div class="table-card">
+      <el-table
+        v-loading="store.list.loading"
+        :data="store.list.items"
+        stripe
+        class="modern-table"
+        header-row-class-name="table-header-row"
+        row-class-name="table-body-row"
+        @row-dblclick="handleRowDblClick"
+      >
+        <el-table-column label="闭环" width="90" align="center">
+          <template #default="{ row }">
+            <el-tag
+              :type="row.is_closed ? 'success' : 'warning'"
+              effect="plain"
+              round
+              size="small"
+              class="status-tag"
+            >
+              {{ row.is_closed ? '已闭环' : '未闭环' }}
+            </el-tag>
+          </template>
+        </el-table-column>
 
-    <!-- 分页 -->
-    <div class="pager">
-      <el-pagination
-        background
-        layout="prev, pager, next, jumper, sizes, total"
-        :page-size="store.list.pageSize"
-        :page-sizes="[10, 20, 50, 100]"
-        :total="store.list.total"
-        :current-page="store.list.page"
-        @current-change="handlePageChange"
-        @size-change="handleSizeChange"
-      />
+        <el-table-column prop="warning_system_status" label="预警" width="90" align="center" />
+        <el-table-column prop="model" label="车型" width="110" show-overflow-tooltip align="center" />
+
+        <el-table-column prop="vin_or_part_no" label="VIN/零件编号" width="180" show-overflow-tooltip align="center">
+          <template #default="{ row }">
+            <div class="copy-wrapper" @click="copyText(row.vin_or_part_no)">
+              <span class="copy-text">{{ row.vin_or_part_no }}</span>
+              <el-icon class="copy-icon"><DocumentCopy /></el-icon>
+            </div>
+          </template>
+        </el-table-column>
+
+        <el-table-column prop="test_name" label="试验名称" min-width="200" show-overflow-tooltip align="center" />
+        <el-table-column prop="tester_name" label="测试人员" width="110" align="center" />
+        <el-table-column prop="requester_name" label="提出人" width="110" align="center" />
+
+        <el-table-column label="排期时间" width="220" align="center">
+          <template #default="{ row }">
+            <span class="date-text">{{ formatDate(row.schedule_start) }}</span>
+            <span class="date-separator">~</span>
+            <span class="date-text">{{ formatDate(row.schedule_end) }}</span>
+          </template>
+        </el-table-column>
+
+        <el-table-column prop="test_location" label="地点" width="120" show-overflow-tooltip align="center" />
+
+        <el-table-column label="操作" width="160" fixed="right" align="center">
+          <template #default="{ row }">
+            <div class="action-group">
+              <el-button type="primary" link class="action-btn" @click="openDrawer(row)">查看</el-button>
+              <el-divider direction="vertical" />
+              <el-button v-if="store.isScheduler" type="danger" link class="action-btn" @click="handleDelete(row)">删除</el-button>
+            </div>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <!-- 分页区 -->
+      <div class="pager-section">
+        <el-pagination
+          background
+          layout="total, sizes, prev, pager, next, jumper"
+          :page-size="store.list.pageSize"
+          :page-sizes="[10, 20, 50, 100]"
+          :total="store.list.total"
+          :current-page="store.list.page"
+          @current-change="handlePageChange"
+          @size-change="handleSizeChange"
+        />
+      </div>
     </div>
 
     <!-- 详情抽屉 -->
     <TaskDetailDrawer />
 
     <!-- 新增主记录对话框 -->
-    <el-dialog v-model="createDialogVisible" title="新增主记录" width="600px">
-      <el-form :model="createForm" label-width="120px">
+    <el-dialog v-model="createDialogVisible" title="新增主记录" width="600px" class="custom-dialog">
+      <el-form :model="createForm" label-width="120px" class="custom-form">
         <el-form-item label="车型" required>
           <el-input v-model="createForm.model" />
         </el-form-item>
@@ -158,6 +189,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { DocumentCopy, Plus } from '@element-plus/icons-vue' // 引入图标
 import { useTaskStore } from '@/store/NVHtask'
 import TaskDetailDrawer from './components/TaskDetailDrawer.vue'
 
@@ -295,58 +327,215 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.task-main-list {
-  padding: 16px;
-  max-width: 1600px;
-  margin: 0 auto;
+/* 变量定义 */
+.page-container {
+  --primary-color: #409eff;
+  --header-bg: #409eff; /* 企业蓝 */
+  --header-text: #ffffff;
+  --row-hover-bg: #f0f7ff; /* 极浅的蓝色 */
+  --stripe-bg: #fafafa; /* 干净的浅灰 */
+  --border-color: #ebeef5;
+  --text-main: #303133;
+  --text-secondary: #606266;
+
+  padding: 20px;
+  max-width: 100%;
+  min-height: 100vh;
+  background-color: #f5f7fa; /* 页面整体底色 */
+  box-sizing: border-box;
 }
 
-.header {
+/* 1. 头部区域 */
+.page-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
-.title {
-  font-size: 18px;
+.header-left .title {
+  font-size: 20px;
   font-weight: 600;
+  color: var(--text-main);
+  line-height: 1.2;
 }
 
-.filter-section {
-  background: #f5f7fa;
-  padding: 16px;
-  border-radius: 8px;
-  margin-bottom: 16px;
+.header-left .subtitle {
+  font-size: 13px;
+  color: #909399;
+  margin-top: 4px;
 }
 
-.filter-row {
+.add-btn {
+  padding: 8px 20px;
+  font-weight: 500;
+}
+
+/* 2. 筛选卡片 */
+.filter-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.04);
+  border: 1px solid var(--border-color);
+}
+
+.filter-grid {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  margin-bottom: 12px;
+  align-items: center;
 }
 
-.filter-row:last-child {
-  margin-bottom: 0;
+.filter-item {
+  width: 140px; /* 默认宽度 */
 }
 
-.main-table {
+.date-item {
+  width: 240px !important;
+}
+
+.filter-actions {
+  margin-left: auto; /* 按钮靠右或紧随其后 */
+  display: flex;
+  gap: 12px;
+}
+
+/* 3. 表格卡片 */
+.table-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 0; /* 表格贴边，分页有padding */
+  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.04);
+  border: 1px solid var(--border-color);
+  overflow: hidden; /* 保证圆角 */
+  display: flex;
+  flex-direction: column;
+}
+
+/* 表格样式深度定制 */
+.modern-table {
   width: 100%;
+  --el-table-border-color: var(--border-color);
+  --el-table-header-bg-color: var(--header-bg);
+  --el-table-header-text-color: var(--header-text);
 }
 
-.copyable {
+/* 表头样式 */
+:deep(.el-table__header-wrapper th) {
+  background-color: var(--header-bg) !important;
+  color: var(--header-text) !important;
+  font-weight: 600;
+  height: 48px;
+  font-size: 14px;
+  border-bottom: none; /* 去除表头下边框，用颜色区分 */
+  border-right: 1px solid rgba(255, 255, 255, 0.2) !important; /* 表头间轻微分割 */
+}
+
+:deep(.el-table__header-wrapper th:last-child) {
+  border-right: none !important;
+}
+
+/* 去除单元格竖线，保留横线 */
+:deep(.el-table td.el-table__cell) {
+  border-right: none !important;
+  border-bottom: 1px solid var(--border-color);
+  padding: 12px 0;
+  color: var(--text-main);
+}
+
+/* 斑马纹背景 */
+:deep(.el-table--striped .el-table__body tr.el-table__row--striped td) {
+  background: var(--stripe-bg);
+}
+
+/* Hover 效果 */
+:deep(.el-table__body tr:hover > td) {
+  background-color: var(--row-hover-bg) !important;
+}
+
+/* 修复固定列背景色问题 (确保斑马纹和hover在固定列也生效) */
+:deep(.el-table__fixed-right) {
+  height: 100% !important;
+}
+
+/* 4. 单元格内部细节 */
+.status-tag {
+  border: none;
+  font-weight: 500;
+}
+
+.copy-wrapper {
+  display: inline-flex;
+  align-items: center;
   cursor: pointer;
-  color: #409eff;
+  color: var(--text-main);
+  transition: color 0.2s;
+  max-width: 100%;
 }
 
-.copyable:hover {
-  text-decoration: underline;
+.copy-text {
+  font-family: 'Roboto Mono', monospace; /* 等宽字体适合编号 */
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.pager {
+.copy-icon {
+  margin-left: 4px;
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  color: var(--primary-color);
+}
+
+.copy-wrapper:hover {
+  color: var(--primary-color);
+}
+
+.copy-wrapper:hover .copy-icon {
+  opacity: 1;
+}
+
+.date-text {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.date-separator {
+  margin: 0 4px;
+  color: #c0c4cc;
+}
+
+.action-group {
   display: flex;
   justify-content: center;
-  margin-top: 16px;
+  align-items: center;
+}
+
+.action-btn {
+  font-size: 13px;
+  padding: 4px 8px;
+}
+
+/* 5. 分页区 */
+.pager-section {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end; /* 靠右或居中 */
+  background: #fff;
+}
+
+/* 响应式调整 */
+@media (max-width: 1400px) {
+  .filter-item {
+    width: 120px;
+  }
+  .date-item {
+    width: 220px !important;
+  }
 }
 </style>
