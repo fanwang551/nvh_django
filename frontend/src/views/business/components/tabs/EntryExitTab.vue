@@ -75,6 +75,7 @@
           <el-select v-model="formData.dispose_type" placeholder="选择处置类型" clearable style="width: 100%" @change="markDirty">
             <el-option label="报废" value="报废" />
             <el-option label="归还" value="归还" />
+            <el-option label="使用中" value="使用中" />
           </el-select>
         </el-form-item>
         <el-form-item label="处置人">

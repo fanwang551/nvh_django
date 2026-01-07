@@ -113,6 +113,7 @@ class DocApprovalSerializer(serializers.ModelSerializer):
 
 class MainRecordListSerializer(serializers.ModelSerializer):
     """主记录列表序列化器（含关联状态摘要）"""
+    entry_exit_dispose_type = serializers.CharField(source='entry_exit.dispose_type', read_only=True)
     entry_exit_status = serializers.SerializerMethodField()
     test_info_status = serializers.SerializerMethodField()
     doc_approval_status = serializers.SerializerMethodField()
@@ -126,7 +127,7 @@ class MainRecordListSerializer(serializers.ModelSerializer):
             'warning_system_status', 'requester_name',
             'schedule_start', 'schedule_end', 'schedule_remark', 'test_location',
             'tester_name', 'contract_no', 'remark',
-            'entry_exit', 'is_closed', 'closure_checked_at',
+            'entry_exit', 'entry_exit_dispose_type', 'is_closed', 'closure_checked_at',
             'created_at', 'updated_at',
             'entry_exit_status', 'test_info_status', 'doc_approval_status',
             'include_teardown_record', 'include_process_record'

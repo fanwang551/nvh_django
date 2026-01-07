@@ -80,6 +80,12 @@
           </template>
         </el-table-column>
 
+        <el-table-column label="样品状态" width="110" align="center">
+          <template #default="{ row }">
+            {{ row.entry_exit_dispose_type || row.entry_exit?.dispose_type || '--' }}
+          </template>
+        </el-table-column>
+
         <el-table-column prop="warning_system_status" label="预警" width="90" align="center" />
         <el-table-column prop="model" label="车型" width="110" show-overflow-tooltip align="center" />
 
@@ -101,6 +107,12 @@
             <span class="date-text">{{ formatDate(row.schedule_start) }}</span>
             <span class="date-separator">~</span>
             <span class="date-text">{{ formatDate(row.schedule_end) }}</span>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="排期备注" width="200" align="center">
+          <template #default="{ row }">
+            <div class="schedule-remark-cell">{{ row.schedule_remark || '--' }}</div>
           </template>
         </el-table-column>
 
@@ -168,6 +180,9 @@
         <el-form-item label="排期结束">
           <el-date-picker v-model="createForm.schedule_end" type="datetime" style="width: 100%" />
         </el-form-item>
+        <el-form-item label="排期备注">
+          <el-input v-model="createForm.schedule_remark" />
+        </el-form-item>
         <el-form-item label="试验地点">
           <el-input v-model="createForm.test_location" />
         </el-form-item>
@@ -209,6 +224,7 @@ const createForm = ref({
   tester_name: '',
   schedule_start: null,
   schedule_end: null,
+  schedule_remark: '',
   test_location: '',
   contract_no: '',
   remark: ''
@@ -290,6 +306,7 @@ const handleCreate = () => {
     tester_name: '',
     schedule_start: null,
     schedule_end: null,
+    schedule_remark: '',
     test_location: '',
     contract_no: '',
     remark: ''
@@ -507,6 +524,13 @@ onMounted(() => {
 .date-separator {
   margin: 0 4px;
   color: #c0c4cc;
+}
+
+.schedule-remark-cell {
+  white-space: normal;
+  word-break: break-all;
+  line-height: 1.4;
+  padding: 0 8px;
 }
 
 .action-group {
