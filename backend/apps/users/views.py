@@ -185,3 +185,84 @@ def auth_test(request):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
+
+@api_view(['GET'])
+@authentication_classes([OIDCAuthentication])
+@permission_classes([IsAuthenticated])
+def user_groups(request):
+    """获取当前登录用户的分组信息（group names）及相关权限标记"""
+    try:
+        oidc_user_info = getattr(request, 'oidc_user_info', {}) or {}
+
+        username = getattr(request.user, 'username', '') or oidc_user_info.get('preferred_username', '')
+        email = getattr(request.user, 'email', '') or oidc_user_info.get('email', '')
+        first_name = getattr(request.user, 'first_name', '') or oidc_user_info.get('given_name', '')
+        last_name = getattr(request.user, 'last_name', '') or oidc_user_info.get('family_name', '')
+
+        if not username:
+            return Response(
+                {
+                    'user': {
+                        'id': '',
+                        'username': '',
+                        'email': '',
+                        'first_name': '',
+                        'last_name': '',
+                    },
+                    'group_names': [],
+                    'permissions': {
+                        'is_nvh_group_leader': False,
+                        'has_scheduler_whitelist': False,
+                    },
+                }
+            )
+
+        try:
+            with transaction.atomic():
+                user_obj, created = User.objects.get_or_create(
+                    username=username,
+                    defaults={
+                        'email': email or '',
+                        'first_name': first_name or '',
+                        'last_name': last_name or '',
+                        'is_active': True,
+                    },
+                )
+                if created:
+                    user_obj.set_password('sgmw5050')
+                    user_obj.save(update_fields=['password'])
+        except IntegrityError:
+            user_obj = User.objects.filter(username=username).first()
+
+        if not user_obj:
+            return Response(
+                {'error': '用户不存在且创建失败'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        group_names = list(user_obj.groups.values_list('name', flat=True))
+        is_nvh_group_leader = 'NVH组组长' in group_names
+
+        return Response(
+            {
+                'user': {
+                    'id': user_obj.id,
+                    'username': username,
+                    'email': email,
+                    'first_name': first_name,
+                    'last_name': last_name,
+                },
+                'group_names': group_names,
+                'permissions': {
+                    'is_nvh_group_leader': is_nvh_group_leader,
+                    'has_scheduler_whitelist': is_nvh_group_leader,
+                },
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"User groups error: {e}")
+        return Response(
+            {'error': f'获取用户分组失败: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )

@@ -4,10 +4,8 @@
  */
 import { defineStore } from 'pinia'
 import { nvhTaskApi } from '@/api/nvhTask'
+import { userApi } from '@/api/user'
 import { useUserStore } from '@/store/index'
-
-// 安排人员白名单
-const SCHEDULER_WHITELIST = ['test']
 
 export const useTaskStore = defineStore('nvhTask', {
   state: () => ({
@@ -73,13 +71,16 @@ export const useTaskStore = defineStore('nvhTask', {
 
     // ==================== 用户信息 ====================
     currentUsername: '',
-    currentFullname: ''
+    currentFullname: '',
+    currentGroupNames: [],
+    hasSchedulerWhitelist: false,
+    schedulerPermissionLoading: false
   }),
 
   getters: {
     // 是否为安排人员（可编辑）
     isScheduler: (state) => {
-      return SCHEDULER_WHITELIST.includes(state.currentUsername)
+      return !!state.hasSchedulerWhitelist
     },
 
     // 闭环提示条数据
@@ -159,6 +160,24 @@ export const useTaskStore = defineStore('nvhTask', {
       const userStore = useUserStore()
       this.currentUsername = userStore.username || ''
       this.currentFullname = userStore.fullName || ''
+      this.loadSchedulerPermission()
+    },
+
+    async loadSchedulerPermission() {
+      if (this.schedulerPermissionLoading) return
+      this.schedulerPermissionLoading = true
+      try {
+        const res = await userApi.getUserGroups()
+        const groupNames = res?.group_names || []
+        const hasFlag = res?.permissions?.has_scheduler_whitelist
+        this.currentGroupNames = groupNames
+        this.hasSchedulerWhitelist = typeof hasFlag === 'boolean' ? hasFlag : groupNames.includes('NVH组组长')
+      } catch (e) {
+        this.currentGroupNames = []
+        this.hasSchedulerWhitelist = false
+      } finally {
+        this.schedulerPermissionLoading = false
+      }
     },
 
     // ==================== 列表操作 ====================

@@ -7,6 +7,11 @@ export const userApi = {
     return request.get('/users/info/')
   },
 
+  // Get current user groups & permission flags
+  getUserGroups() {
+    return request.get('/users/groups/')
+  },
+
   // Get user profile
   getUserProfile() {
     return request.get('/users/profile/')
