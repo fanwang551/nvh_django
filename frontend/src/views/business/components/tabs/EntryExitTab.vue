@@ -41,7 +41,7 @@
           <el-option
             v-for="item in store.entryExitList.items"
             :key="item.id"
-            :label="`#${item.id} ${item.receiver_name || ''} ${formatDate(item.enter_time)}`"
+            :label="`#${item.id} ${item.vin_or_part_no || ''} ${item.receiver_name || ''} ${formatDate(item.enter_time)}`"
             :value="item.id"
           />
         </el-select>

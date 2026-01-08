@@ -298,7 +298,7 @@ export const useTaskStore = defineStore('nvhTask', {
     async loadEntryExitList() {
       this.entryExitList.loading = true
       try {
-        const res = await nvhTaskApi.listEntryExits({ page_size: 100 })
+        const res = await nvhTaskApi.listEntryExits({ page_size: 100, dispose_type: '使用中' })
         this.entryExitList.items = res?.data?.items || []
       } finally {
         this.entryExitList.loading = false
