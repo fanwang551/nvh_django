@@ -118,12 +118,16 @@
 
         <el-table-column prop="test_location" label="地点" width="120" show-overflow-tooltip align="center" />
 
-        <el-table-column label="操作" width="160" fixed="right" align="center">
+        <el-table-column label="操作" width="200" fixed="right" align="center">
           <template #default="{ row }">
             <div class="action-group">
               <el-button type="primary" link class="action-btn" @click="openDrawer(row)">查看</el-button>
-              <el-divider direction="vertical" />
-              <el-button v-if="store.isScheduler" type="danger" link class="action-btn" @click="handleDelete(row)">删除</el-button>
+              <template v-if="store.isScheduler">
+                <el-divider direction="vertical" />
+                <el-button type="primary" link class="action-btn" @click="handleEdit(row)">修改</el-button>
+                <el-divider direction="vertical" />
+                <el-button type="danger" link class="action-btn" @click="handleDelete(row)">删除</el-button>
+              </template>
             </div>
           </template>
         </el-table-column>
@@ -148,7 +152,7 @@
     <TaskDetailDrawer />
 
     <!-- 新增主记录对话框 -->
-    <el-dialog v-model="createDialogVisible" title="新增主记录" width="600px" class="custom-dialog">
+    <el-dialog v-model="createDialogVisible" :title="isEdit ? '修改主记录' : '新增主记录'" width="600px" class="custom-dialog">
       <el-form :model="createForm" label-width="120px" class="custom-form">
         <el-form-item label="车型" required>
           <el-input v-model="createForm.model" />
@@ -195,7 +199,7 @@
       </el-form>
       <template #footer>
         <el-button @click="createDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitCreate">确定</el-button>
+        <el-button type="primary" @click="submitMainRecord">确定</el-button>
       </template>
     </el-dialog>
   </div>
@@ -215,6 +219,8 @@ const dateRange = ref([])
 
 // 新增对话框
 const createDialogVisible = ref(false)
+const isEdit = ref(false)
+const editingId = ref(null)
 const createForm = ref({
   model: '',
   vin_or_part_no: '',
@@ -297,6 +303,8 @@ const handleRowDblClick = (row) => {
 
 // 新增
 const handleCreate = () => {
+  isEdit.value = false
+  editingId.value = null
   createForm.value = {
     model: '',
     vin_or_part_no: '',
@@ -314,13 +322,39 @@ const handleCreate = () => {
   createDialogVisible.value = true
 }
 
-const submitCreate = async () => {
+// 修改
+const handleEdit = (row) => {
+  isEdit.value = true
+  editingId.value = row.id
+  createForm.value = {
+    model: row.model || '',
+    vin_or_part_no: row.vin_or_part_no || '',
+    test_name: row.test_name || '',
+    warning_system_status: row.warning_system_status || '',
+    requester_name: row.requester_name || '',
+    tester_name: row.tester_name || '',
+    schedule_start: row.schedule_start ? new Date(row.schedule_start) : null,
+    schedule_end: row.schedule_end ? new Date(row.schedule_end) : null,
+    schedule_remark: row.schedule_remark || '',
+    test_location: row.test_location || '',
+    contract_no: row.contract_no || '',
+    remark: row.remark || ''
+  }
+  createDialogVisible.value = true
+}
+
+const submitMainRecord = async () => {
   try {
-    await store.createMainRecord(createForm.value)
-    ElMessage.success('创建成功')
+    if (isEdit.value) {
+      await store.updateMainRecord(editingId.value, createForm.value)
+      ElMessage.success('更新成功')
+    } else {
+      await store.createMainRecord(createForm.value)
+      ElMessage.success('创建成功')
+    }
     createDialogVisible.value = false
   } catch (e) {
-    ElMessage.error('创建失败')
+    ElMessage.error(isEdit.value ? '更新失败' : '创建失败')
   }
 }
 
