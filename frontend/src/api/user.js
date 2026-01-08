@@ -12,6 +12,14 @@ export const userApi = {
     return request.get('/users/groups/')
   },
 
+  // List users by Django auth Group name
+  listUsersByGroup(groupName, keyword = '') {
+    return request.get('/users/group-users/', {
+      group_name: groupName,
+      keyword: keyword || undefined
+    })
+  },
+
   // Get user profile
   getUserProfile() {
     return request.get('/users/profile/')

@@ -6,6 +6,7 @@ import logging
 
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
@@ -188,7 +189,7 @@ def auth_test(request):
 
 @api_view(['GET'])
 @authentication_classes([OIDCAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([])
 def user_groups(request):
     """获取当前登录用户的分组信息（group names）及相关权限标记"""
     try:
@@ -264,5 +265,59 @@ def user_groups(request):
         logger.error(f"User groups error: {e}")
         return Response(
             {'error': f'获取用户分组失败: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+@api_view(['GET'])
+@authentication_classes([])
+@permission_classes([])
+def users_by_group(request):
+    """
+    按 Django auth Group 查询用户列表（用于前端下拉选择）
+
+    请求：
+      - method: GET
+      - query params:
+          - group_name: 分组名称（默认：NVH组组员）
+          - keyword: 可选，模糊匹配 username/first_name/last_name
+
+    返回：
+      {
+        "group_name": "NVH组组员",
+        "items": [
+          {"id": 1, "username": "user1", "full_name": "张三", "group_names": ["NVH组组员"]}
+        ]
+      }
+    """
+    try:
+        group_name = request.GET.get('group_name') or 'NVH组组员'
+        keyword = (request.GET.get('keyword') or '').strip()
+
+        queryset = User.objects.filter(groups__name=group_name, is_active=True).prefetch_related('groups').distinct()
+        if keyword:
+            queryset = queryset.filter(
+                Q(username__icontains=keyword) | Q(first_name__icontains=keyword) | Q(last_name__icontains=keyword)
+            )
+        queryset = queryset.order_by('username', 'id')
+
+        items = []
+        for u in queryset:
+            group_names = list(u.groups.values_list('name', flat=True))
+            full_name = f"{u.last_name or ''}{u.first_name or ''}".strip() or u.username
+            items.append(
+                {
+                    'id': u.id,
+                    'username': u.username,
+                    'full_name': full_name,
+                    'group_names': group_names,
+                }
+            )
+
+        return Response({'group_name': group_name, 'items': items})
+    except Exception as e:
+        logger.error(f"Users by group error: {e}")
+        return Response(
+            {'error': f'获取分组用户失败: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )

@@ -176,7 +176,20 @@
           <el-input v-model="createForm.requester_name" />
         </el-form-item>
         <el-form-item label="测试人员" required>
-          <el-input v-model="createForm.tester_name" />
+          <el-select
+            v-model="testerSelection"
+            multiple
+            filterable
+            allow-create
+            default-first-option
+            :loading="testerOptionsLoading"
+            :no-data-text="testerOptionsLoading ? '加载中...' : '暂无可选人员'"
+            placeholder="请选择测试人员（可多选）"
+            style="width: 100%"
+          >
+            <el-option v-for="u in testerOptions" :key="u.id" :label="u.display_name" :value="u.full_name" />
+          </el-select>
+          <div v-if="testerOptionsLoadError" class="form-tip">{{ testerOptionsLoadError }}</div>
         </el-form-item>
         <el-form-item label="排期开始" required>
           <el-date-picker v-model="createForm.schedule_start" type="datetime" style="width: 100%" />
@@ -210,6 +223,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { DocumentCopy, Plus } from '@element-plus/icons-vue' // 引入图标
 import { useTaskStore } from '@/store/NVHtask'
+import { userApi } from '@/api/user'
 import TaskDetailDrawer from './components/TaskDetailDrawer.vue'
 
 const store = useTaskStore()
@@ -235,6 +249,47 @@ const createForm = ref({
   contract_no: '',
   remark: ''
 })
+
+// 测试人员下拉选项（仅 NVH组组员）
+const testerOptions = ref([])
+const testerOptionsLoading = ref(false)
+const testerOptionsLoadError = ref('')
+const testerSelection = ref([])
+
+const splitTesterNames = (value) => {
+  if (!value) return []
+  if (Array.isArray(value)) return value.filter(Boolean).map(v => String(v).trim()).filter(Boolean)
+  return String(value)
+    .split(/[，,、]+/)
+    .map(s => s.trim())
+    .filter(Boolean)
+}
+
+const joinTesterNames = (names) => {
+  const clean = (names || []).map(s => String(s).trim()).filter(Boolean)
+  return clean.join(',')
+}
+
+const loadTesterOptions = async () => {
+  if (testerOptionsLoading.value) return
+  testerOptionsLoading.value = true
+  testerOptionsLoadError.value = ''
+  try {
+    const res = await userApi.listUsersByGroup('NVH组组员')
+    const items = res?.items || []
+    testerOptions.value = items.map(u => ({
+      id: u.id,
+      username: u.username,
+      full_name: u.full_name,
+      display_name: u.full_name && u.username && u.full_name !== u.username ? `${u.full_name}（${u.username}）` : (u.full_name || u.username)
+    }))
+  } catch (e) {
+    testerOptions.value = []
+    testerOptionsLoadError.value = '测试人员列表加载失败，可直接输入姓名后回车添加'
+  } finally {
+    testerOptionsLoading.value = false
+  }
+}
 
 // 格式化日期
 const formatDate = (dateStr) => {
@@ -305,6 +360,7 @@ const handleRowDblClick = (row) => {
 const handleCreate = () => {
   isEdit.value = false
   editingId.value = null
+  testerSelection.value = []
   createForm.value = {
     model: '',
     vin_or_part_no: '',
@@ -319,6 +375,7 @@ const handleCreate = () => {
     contract_no: '',
     remark: ''
   }
+  loadTesterOptions()
   createDialogVisible.value = true
 }
 
@@ -326,6 +383,7 @@ const handleCreate = () => {
 const handleEdit = (row) => {
   isEdit.value = true
   editingId.value = row.id
+  testerSelection.value = splitTesterNames(row.tester_name)
   createForm.value = {
     model: row.model || '',
     vin_or_part_no: row.vin_or_part_no || '',
@@ -340,16 +398,21 @@ const handleEdit = (row) => {
     contract_no: row.contract_no || '',
     remark: row.remark || ''
   }
+  loadTesterOptions()
   createDialogVisible.value = true
 }
 
 const submitMainRecord = async () => {
   try {
+    const payload = {
+      ...createForm.value,
+      tester_name: joinTesterNames(testerSelection.value)
+    }
     if (isEdit.value) {
-      await store.updateMainRecord(editingId.value, createForm.value)
+      await store.updateMainRecord(editingId.value, payload)
       ElMessage.success('更新成功')
     } else {
-      await store.createMainRecord(createForm.value)
+      await store.createMainRecord(payload)
       ElMessage.success('创建成功')
     }
     createDialogVisible.value = false
@@ -374,6 +437,7 @@ const handleDelete = async (row) => {
 onMounted(() => {
   store.initUserInfo()
   store.loadList()
+  loadTesterOptions()
 })
 </script>
 
@@ -576,6 +640,13 @@ onMounted(() => {
 .action-btn {
   font-size: 13px;
   padding: 4px 8px;
+}
+
+.form-tip {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #909399;
+  line-height: 1.2;
 }
 
 /* 5. 分页区 */
