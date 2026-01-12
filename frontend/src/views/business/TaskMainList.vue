@@ -304,9 +304,35 @@ const formatDate = (dateStr) => {
 // 复制文本
 const copyText = async (text) => {
   try {
-    await navigator.clipboard.writeText(text)
-    ElMessage.success('已复制')
-  } catch {
+    // 优先使用 Clipboard API（仅在安全上下文中可用）
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text)
+      ElMessage.success('已复制')
+    } else {
+      // 降级方案：使用传统的 execCommand 方法
+      const textarea = document.createElement('textarea')
+      textarea.value = text
+      textarea.style.position = 'fixed'
+      textarea.style.opacity = '0'
+      textarea.style.left = '-999999px'
+      document.body.appendChild(textarea)
+      textarea.select()
+      
+      try {
+        const successful = document.execCommand('copy')
+        document.body.removeChild(textarea)
+        
+        if (successful) {
+          ElMessage.success('已复制')
+        } else {
+          ElMessage.error('复制失败')
+        }
+      } catch (err) {
+        document.body.removeChild(textarea)
+        ElMessage.error('复制失败')
+      }
+    }
+  } catch (err) {
     ElMessage.error('复制失败')
   }
 }
