@@ -8,6 +8,7 @@ from .models import (
 class EntryExitSerializer(serializers.ModelSerializer):
     """进出登记序列化器"""
     active_mainrecord_count = serializers.SerializerMethodField()
+    vin_or_part_no = serializers.SerializerMethodField()
 
     class Meta:
         model = EntryExit
@@ -15,12 +16,17 @@ class EntryExitSerializer(serializers.ModelSerializer):
             'id', 'receiver_name', 'enter_time', 'purpose',
             'dispose_type', 'disposer_name', 'dispose_time', 'return_receiver',
             'remark', 'status', 'created_at', 'updated_at',
-            'active_mainrecord_count'
+            'active_mainrecord_count', 'vin_or_part_no'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at', 'active_mainrecord_count']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'active_mainrecord_count', 'vin_or_part_no']
 
     def get_active_mainrecord_count(self, obj):
         return obj.active_mainrecord_count()
+
+    def get_vin_or_part_no(self, obj):
+        """返回关联的第一个主记录的 vin_or_part_no"""
+        main_record = obj.main_records.first()
+        return main_record.vin_or_part_no if main_record else None
 
 
 class TestProcessAttachmentSerializer(serializers.ModelSerializer):
