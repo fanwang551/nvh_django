@@ -152,7 +152,14 @@
     <TaskDetailDrawer />
 
     <!-- 新增主记录对话框 -->
-    <el-dialog v-model="createDialogVisible" :title="isEdit ? '修改主记录' : '新增主记录'" width="600px" class="custom-dialog">
+    <el-dialog
+      v-model="createDialogVisible"
+      :title="isEdit ? '修改主记录' : '新增主记录'"
+      width="600px"
+      class="custom-dialog"
+      :close-on-click-modal="false"
+      :before-close="handleDialogBeforeClose"
+    >
       <el-form :model="createForm" label-width="120px" class="custom-form">
         <el-form-item label="车型" required>
           <el-input v-model="createForm.model" />
@@ -211,7 +218,7 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="createDialogVisible = false">取消</el-button>
+        <el-button @click="handleDialogCancel">取消</el-button>
         <el-button type="primary" @click="submitMainRecord">确定</el-button>
       </template>
     </el-dialog>
@@ -249,6 +256,10 @@ const createForm = ref({
   contract_no: '',
   remark: ''
 })
+
+// 表单初始快照（用于 dirty 检测）
+const originForm = ref(null)
+const originTesterSelection = ref([])
 
 // 测试人员下拉选项（仅 NVH组组员）
 const testerOptions = ref([])
@@ -401,6 +412,9 @@ const handleCreate = () => {
     contract_no: '',
     remark: ''
   }
+  // 保存初始快照
+  originForm.value = JSON.parse(JSON.stringify(createForm.value))
+  originTesterSelection.value = []
   loadTesterOptions()
   createDialogVisible.value = true
 }
@@ -424,8 +438,93 @@ const handleEdit = (row) => {
     contract_no: row.contract_no || '',
     remark: row.remark || ''
   }
+  // 保存初始快照
+  originForm.value = JSON.parse(JSON.stringify(createForm.value))
+  originTesterSelection.value = [...testerSelection.value]
   loadTesterOptions()
   createDialogVisible.value = true
+}
+
+// 检测表单是否被修改（dirty 状态）
+const isFormDirty = () => {
+  if (!originForm.value) return false
+  // 比较 testerSelection
+  const currentTesters = [...testerSelection.value].sort().join(',')
+  const originTesters = [...originTesterSelection.value].sort().join(',')
+  if (currentTesters !== originTesters) return true
+  // 比较表单字段
+  const current = createForm.value
+  const origin = originForm.value
+  for (const key of Object.keys(origin)) {
+    const originVal = origin[key]
+    const currentVal = current[key]
+    // 日期特殊处理
+    if (originVal instanceof Date || currentVal instanceof Date) {
+      const originTime = originVal ? new Date(originVal).getTime() : null
+      const currentTime = currentVal ? new Date(currentVal).getTime() : null
+      if (originTime !== currentTime) return true
+    } else if (originVal !== currentVal) {
+      return true
+    }
+  }
+  return false
+}
+
+// 弹窗关闭前钩子（点击×或ESC触发）
+const handleDialogBeforeClose = (done) => {
+  if (isFormDirty()) {
+    ElMessageBox.confirm('内容未保存，确定要关闭吗？', '提示', {
+      confirmButtonText: '放弃修改',
+      cancelButtonText: '继续编辑',
+      type: 'warning'
+    }).then(() => {
+      resetFormAndClose()
+      done()
+    }).catch(() => {
+      // 用户选择继续编辑，不关闭
+    })
+  } else {
+    done()
+  }
+}
+
+// 取消按钮点击
+const handleDialogCancel = () => {
+  if (isFormDirty()) {
+    ElMessageBox.confirm('内容未保存，确定要关闭吗？', '提示', {
+      confirmButtonText: '放弃修改',
+      cancelButtonText: '继续编辑',
+      type: 'warning'
+    }).then(() => {
+      resetFormAndClose()
+    }).catch(() => {
+      // 用户选择继续编辑，不关闭
+    })
+  } else {
+    createDialogVisible.value = false
+  }
+}
+
+// 重置表单并关闭弹窗
+const resetFormAndClose = () => {
+  createForm.value = {
+    model: '',
+    vin_or_part_no: '',
+    test_name: '',
+    warning_system_status: '',
+    requester_name: '',
+    tester_name: '',
+    schedule_start: null,
+    schedule_end: null,
+    schedule_remark: '',
+    test_location: '',
+    contract_no: '',
+    remark: ''
+  }
+  testerSelection.value = []
+  originForm.value = null
+  originTesterSelection.value = []
+  createDialogVisible.value = false
 }
 
 const submitMainRecord = async () => {
@@ -441,7 +540,8 @@ const submitMainRecord = async () => {
       await store.createMainRecord(payload)
       ElMessage.success('创建成功')
     }
-    createDialogVisible.value = false
+    // 提交成功后重置并关闭
+    resetFormAndClose()
   } catch (e) {
     ElMessage.error(isEdit.value ? '更新失败' : '创建失败')
   }
