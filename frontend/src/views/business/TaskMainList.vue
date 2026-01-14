@@ -110,13 +110,15 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="排期备注" width="200" align="center">
+        <el-table-column label="排期备注" width="130" align="center">
           <template #default="{ row }">
             <div class="schedule-remark-cell">{{ row.schedule_remark || '--' }}</div>
           </template>
         </el-table-column>
 
         <el-table-column prop="test_location" label="地点" width="120" show-overflow-tooltip align="center" />
+
+        <el-table-column prop="report_required" label="报告" width="70" align="center" />
 
         <el-table-column label="操作" width="200" fixed="right" align="center">
           <template #default="{ row }">
@@ -213,6 +215,12 @@
         <el-form-item label="合同编号" prop="contract_no" required>
           <el-input v-model="createForm.contract_no" />
         </el-form-item>
+        <el-form-item label="是否出报告" prop="report_required" required>
+          <el-select v-model="createForm.report_required" style="width: 100%">
+            <el-option label="是" value="是" />
+            <el-option label="否" value="否" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="备注">
           <el-input v-model="createForm.remark" type="textarea" :rows="2" />
         </el-form-item>
@@ -255,6 +263,7 @@ const createForm = ref({
   schedule_remark: '',
   test_location: '',
   contract_no: '',
+  report_required: '否',
   remark: ''
 })
 
@@ -267,7 +276,8 @@ const createFormRules = {
   requester_name: [{ required: true, message: '请输入任务提出人', trigger: 'blur' }],
   schedule_start: [{ required: true, message: '请选择排期开始时间', trigger: 'change' }],
   test_location: [{ required: true, message: '请输入试验地点', trigger: 'blur' }],
-  contract_no: [{ required: true, message: '请输入合同编号', trigger: 'blur' }]
+  contract_no: [{ required: true, message: '请输入合同编号', trigger: 'blur' }],
+  report_required: [{ required: true, message: '请选择是否出报告', trigger: 'change' }]
 }
 
 // 表单初始快照（用于 dirty 检测）
@@ -423,6 +433,7 @@ const handleCreate = () => {
     schedule_remark: '',
     test_location: '',
     contract_no: '',
+    report_required: '否',
     remark: ''
   }
   // 保存初始快照
@@ -449,6 +460,7 @@ const handleEdit = (row) => {
     schedule_remark: row.schedule_remark || '',
     test_location: row.test_location || '',
     contract_no: row.contract_no || '',
+    report_required: row.report_required || '否',
     remark: row.remark || ''
   }
   // 保存初始快照
@@ -536,6 +548,7 @@ const resetFormAndClose = () => {
     schedule_remark: '',
     test_location: '',
     contract_no: '',
+    report_required: '否',
     remark: ''
   }
   testerSelection.value = []

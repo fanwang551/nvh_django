@@ -123,10 +123,6 @@ def validate_test_info_for_submit(test_info: TestInfo):
         if attachment_count < 1:
             errors.append("已勾选包含试验过程记录表，至少需要上传1张过程记录表图片")
 
-    # 校验3：报告编号
-    if test_info.report_required == "否":
-        if test_info.report_no != "/":
-            errors.append("不出具报告时，报告编号必须为 /")
 
     if errors:
         raise ValidationError(errors)

@@ -68,9 +68,8 @@ class TestInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = TestInfo
         fields = [
-            'id', 'main', 'contact_phone', 'nvh_lab_mgmt_no',
+            'id', 'main', 'contact_phone',
             'sample_type', 'rd_stage', 'delivery_dept',
-            'report_required', 'report_no',
             'include_teardown_record', 'include_process_record',
             'teardown_attachment_url',
             'status', 'submitted_at', 'created_at', 'updated_at',
@@ -132,7 +131,7 @@ class MainRecordListSerializer(serializers.ModelSerializer):
             'id', 'model', 'vin_or_part_no', 'test_name',
             'warning_system_status', 'requester_name',
             'schedule_start', 'schedule_end', 'schedule_remark', 'test_location',
-            'tester_name', 'contract_no', 'remark',
+            'tester_name', 'contract_no', 'report_required', 'remark',
             'entry_exit', 'entry_exit_dispose_type', 'is_closed', 'closure_checked_at',
             'created_at', 'updated_at',
             'entry_exit_status', 'test_info_status', 'doc_approval_status',
@@ -190,7 +189,7 @@ class MainRecordDetailSerializer(serializers.ModelSerializer):
             'id', 'model', 'vin_or_part_no', 'test_name',
             'warning_system_status', 'requester_name',
             'schedule_start', 'schedule_end', 'schedule_remark', 'test_location',
-            'tester_name', 'contract_no', 'remark',
+            'tester_name', 'contract_no', 'report_required', 'remark',
             'entry_exit', 'is_closed', 'closure_checked_at',
             'created_at', 'updated_at',
             'test_info', 'doc_approval'
@@ -212,6 +211,12 @@ class MainRecordCreateUpdateSerializer(serializers.ModelSerializer):
         'blank': '合同编号不能为空',
         'null': '合同编号不能为空',
     })
+    # 是否出报告设为必填
+    report_required = serializers.CharField(required=True, allow_blank=False, allow_null=False, error_messages={
+        'required': '是否出报告为必填项',
+        'blank': '是否出报告不能为空',
+        'null': '是否出报告不能为空',
+    })
 
     class Meta:
         model = MainRecord
@@ -219,7 +224,7 @@ class MainRecordCreateUpdateSerializer(serializers.ModelSerializer):
             'id', 'model', 'vin_or_part_no', 'test_name',
             'warning_system_status', 'requester_name',
             'schedule_start', 'schedule_end', 'schedule_remark', 'test_location',
-            'tester_name', 'contract_no', 'remark',
+            'tester_name', 'contract_no', 'report_required', 'remark',
             'entry_exit_id'
         ]
         read_only_fields = ['id']

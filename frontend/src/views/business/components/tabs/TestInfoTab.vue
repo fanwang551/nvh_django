@@ -24,9 +24,6 @@
         <el-form-item label="联系方式">
           <el-input v-model="formData.contact_phone" @change="markDirty" />
         </el-form-item>
-        <el-form-item label="NVH试验室管理号">
-          <el-input v-model="formData.nvh_lab_mgmt_no" @change="markDirty" />
-        </el-form-item>
         <el-form-item label="样品名称">
           <el-select v-model="formData.sample_type" placeholder="选择样品类型" clearable style="width: 100%" @change="markDirty">
             <el-option label="零件" value="零件" />
@@ -45,17 +42,6 @@
         </el-form-item>
         <el-form-item label="送件部门">
           <el-input v-model="formData.delivery_dept" @change="markDirty" />
-        </el-form-item>
-
-        <!-- 报告区 -->
-        <el-form-item label="是否出具报告">
-          <el-select v-model="formData.report_required" placeholder="选择" style="width: 100%" @change="handleReportChange">
-            <el-option label="是" value="是" />
-            <el-option label="否" value="否" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="报告编号">
-          <el-input v-model="formData.report_no" :disabled="formData.report_required === '否'" @change="markDirty" />
         </el-form-item>
 
         <!-- 拆装记录 -->
@@ -156,12 +142,9 @@ const store = useTaskStore()
 
 const formData = ref({
   contact_phone: '',
-  nvh_lab_mgmt_no: '',
   sample_type: '',
   rd_stage: '',
   delivery_dept: '',
-  report_required: '',
-  report_no: '/',
   include_teardown_record: '否',
   include_process_record: '否',
   teardown_attachment_url: ''
@@ -209,13 +192,6 @@ const getImageUrl = (url) => {
 
 const markDirty = () => {
   store.testInfo.dirty = true
-}
-
-const handleReportChange = () => {
-  if (formData.value.report_required === '否') {
-    formData.value.report_no = '/'
-  }
-  markDirty()
 }
 
 const beforeUpload = (file) => {
@@ -320,12 +296,9 @@ watch(testInfoData, (val) => {
     formData.value = {
       ...formData.value,
       contact_phone: val.contact_phone ?? '',
-      nvh_lab_mgmt_no: val.nvh_lab_mgmt_no ?? '',
       sample_type: val.sample_type ?? '',
       rd_stage: val.rd_stage ?? '',
       delivery_dept: val.delivery_dept ?? '',
-      report_required: val.report_required ?? '',
-      report_no: val.report_no ?? '/',
       include_teardown_record: val.include_teardown_record ?? '否',
       include_process_record: val.include_process_record ?? '否',
       teardown_attachment_url: val.teardown_attachment_url || ''

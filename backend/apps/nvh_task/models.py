@@ -128,6 +128,7 @@ class MainRecord(SoftDeleteModel):
 
     tester_name = models.CharField(max_length=100, verbose_name="测试人员")
     contract_no = models.CharField(max_length=100, null=True, blank=True, db_index=True, verbose_name="合同编号")
+    report_required = models.CharField(max_length=10, default="否", verbose_name="是否出具报告")
     remark = models.CharField(max_length=1000, null=True, blank=True, verbose_name="备注")
 
     entry_exit = models.ForeignKey(
@@ -176,14 +177,10 @@ class TestInfo(SoftDeleteModel):
     )
 
     contact_phone = models.CharField(max_length=50, null=True, blank=True, verbose_name="联系方式")
-    nvh_lab_mgmt_no = models.CharField(max_length=100, null=True, blank=True, db_index=True, verbose_name="NVH试验室管理号")
 
     sample_type = models.CharField(max_length=20, null=True, blank=True, verbose_name="样品名称")
     rd_stage = models.CharField(max_length=20, null=True, blank=True, verbose_name="研发阶段")
     delivery_dept = models.CharField(max_length=200, null=True, blank=True, verbose_name="送件部门")
-
-    report_required = models.CharField(max_length=20, null=True, blank=True, verbose_name="是否出具试验/不确定度报告")
-    report_no = models.CharField(max_length=100, default="/", verbose_name="报告编号")
 
     include_teardown_record = models.CharField(max_length=20, default="否", verbose_name="是否包含拆装记录表")
     include_process_record = models.CharField(max_length=20, default="否", verbose_name="是否包含试验过程记录表")
