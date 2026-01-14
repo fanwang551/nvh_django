@@ -24,12 +24,14 @@ export const useTaskStore = defineStore('nvhTask', {
       vin_or_part_no: '',
       test_name: '',
       warning_system_status: '',
-      contract_no: '',
       requester_name: '',
       tester_name: '',
       is_closed: '',
       schedule_start_from: '',
-      schedule_start_to: ''
+      schedule_start_to: '',
+      entry_exit_dispose_type: '',
+      has_contract_no: '',
+      report_required: ''
     },
 
     // ==================== 抽屉相关 ====================

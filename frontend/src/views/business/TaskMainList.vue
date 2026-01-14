@@ -34,6 +34,23 @@
           <el-option label="未闭环" value="false" />
         </el-select>
 
+        <el-select v-model="store.filters.entry_exit_dispose_type" placeholder="样品状态" clearable class="filter-item">
+          <el-option label="归还" value="归还" />
+          <el-option label="报废" value="报废" />
+          <el-option label="使用中" value="使用中" />
+          <el-option label="--" value="null" />
+        </el-select>
+
+        <el-select v-model="store.filters.has_contract_no" placeholder="合同编号" clearable class="filter-item">
+          <el-option label="是" value="true" />
+          <el-option label="否" value="false" />
+        </el-select>
+
+        <el-select v-model="store.filters.report_required" placeholder="出具报告" clearable class="filter-item">
+          <el-option label="是" value="是" />
+          <el-option label="否" value="否" />
+        </el-select>
+
         <el-date-picker
           v-model="dateRange"
           type="daterange"
@@ -46,7 +63,6 @@
         />
 
         <el-input v-model="store.filters.requester_name" placeholder="任务提出人" clearable class="filter-item" />
-        <el-input v-model="store.filters.contract_no" placeholder="合同编号" clearable class="filter-item" />
 
         <div class="filter-actions">
           <el-button type="primary" @click="handleSearch">查询</el-button>
@@ -119,6 +135,12 @@
         <el-table-column prop="test_location" label="地点" width="120" show-overflow-tooltip align="center" />
 
         <el-table-column prop="report_required" label="报告" width="70" align="center" />
+
+        <el-table-column label="合同编号" width="100" align="center">
+          <template #default="{ row }">
+            {{ row.contract_no || '否' }}
+          </template>
+        </el-table-column>
 
         <el-table-column label="操作" width="200" fixed="right" align="center">
           <template #default="{ row }">

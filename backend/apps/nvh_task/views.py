@@ -135,9 +135,10 @@ def paginate_queryset(queryset, page, page_size):
 def main_record_list(request):
     """主记录列表（含筛选）/ 创建"""
     if request.method == 'GET':
+        # 排序：按测试人员聚合，组内按排期开始时间倒序，同时间按id倒序
         queryset = MainRecord.objects.select_related(
             'entry_exit', 'test_info', 'doc_approval'
-        ).order_by('-schedule_start', '-id')
+        ).order_by('tester_name', '-schedule_start', '-id')
 
         # 筛选：车型
         model_filter = request.GET.get('model')
@@ -159,10 +160,15 @@ def main_record_list(request):
         if warning_status:
             queryset = queryset.filter(warning_system_status=warning_status)
 
-        # 筛选：合同编号
-        contract_no = request.GET.get('contract_no')
-        if contract_no:
-            queryset = queryset.filter(contract_no__icontains=contract_no)
+        # 筛选：合同编号是否有内容（has_contract_no: true/false）
+        has_contract_no = request.GET.get('has_contract_no')
+        if has_contract_no is not None and has_contract_no != '':
+            if has_contract_no.lower() in ['true', '1', 'yes']:
+                # 有内容：非空且非null
+                queryset = queryset.exclude(contract_no__isnull=True).exclude(contract_no__exact='')
+            else:
+                # 无内容：null或空字符串
+                queryset = queryset.filter(Q(contract_no__isnull=True) | Q(contract_no__exact=''))
 
         # 筛选：任务提出人
         requester = request.GET.get('requester_name')
@@ -178,6 +184,22 @@ def main_record_list(request):
         is_closed = request.GET.get('is_closed')
         if is_closed is not None and is_closed != '':
             queryset = queryset.filter(is_closed=(is_closed.lower() in ['true', '1', 'yes']))
+
+        # 筛选：样品状态（entry_exit_dispose_type）
+        entry_exit_dispose_type = request.GET.get('entry_exit_dispose_type')
+        if entry_exit_dispose_type is not None and entry_exit_dispose_type != '':
+            if entry_exit_dispose_type == 'null' or entry_exit_dispose_type == '--':
+                # 筛选null（未绑定进出登记或dispose_type为空）
+                queryset = queryset.filter(
+                    Q(entry_exit__isnull=True) | Q(entry_exit__dispose_type__isnull=True) | Q(entry_exit__dispose_type__exact='')
+                )
+            else:
+                queryset = queryset.filter(entry_exit__dispose_type=entry_exit_dispose_type)
+
+        # 筛选：出具报告（report_required: 是/否）
+        report_required = request.GET.get('report_required')
+        if report_required is not None and report_required != '':
+            queryset = queryset.filter(report_required=report_required)
 
         # 筛选：时间范围（按日期维度，忽略时分秒）
         start_date = request.GET.get('schedule_start_from')
