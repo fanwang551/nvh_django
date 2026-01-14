@@ -205,7 +205,8 @@ def main_record_list(request):
         instance = serializer.save()
         output = MainRecordDetailSerializer(instance).data
         return Response.success(data=output, message='创建任务成功', status_code=201)
-    return Response.bad_request(message='创建任务失败', data=serializer.errors)
+    # 区分校验错误：返回 validation_error 标识，前端据此显示"请填写完整信息"
+    return Response.bad_request(message='请填写完整信息', data={'errors': serializer.errors, 'error_type': 'validation_error'})
 
 
 @api_view(['GET', 'PATCH', 'DELETE'])

@@ -201,6 +201,17 @@ class MainRecordDetailSerializer(serializers.ModelSerializer):
 class MainRecordCreateUpdateSerializer(serializers.ModelSerializer):
     """主记录创建/更新序列化器"""
     entry_exit_id = serializers.IntegerField(required=False, allow_null=True)
+    # 试验地点和合同编号设为必填
+    test_location = serializers.CharField(required=True, allow_blank=False, allow_null=False, error_messages={
+        'required': '试验地点为必填项',
+        'blank': '试验地点不能为空',
+        'null': '试验地点不能为空',
+    })
+    contract_no = serializers.CharField(required=True, allow_blank=False, allow_null=False, error_messages={
+        'required': '合同编号为必填项',
+        'blank': '合同编号不能为空',
+        'null': '合同编号不能为空',
+    })
 
     class Meta:
         model = MainRecord

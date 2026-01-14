@@ -160,17 +160,17 @@
       :close-on-click-modal="false"
       :before-close="handleDialogBeforeClose"
     >
-      <el-form :model="createForm" label-width="120px" class="custom-form">
-        <el-form-item label="车型" required>
+      <el-form ref="createFormRef" :model="createForm" :rules="createFormRules" label-width="120px" class="custom-form">
+        <el-form-item label="车型" prop="model" required>
           <el-input v-model="createForm.model" />
         </el-form-item>
-        <el-form-item label="VIN/零件编号" required>
+        <el-form-item label="VIN/零件编号" prop="vin_or_part_no" required>
           <el-input v-model="createForm.vin_or_part_no" />
         </el-form-item>
-        <el-form-item label="试验名称" required>
+        <el-form-item label="试验名称" prop="test_name" required>
           <el-input v-model="createForm.test_name" />
         </el-form-item>
-        <el-form-item label="预警系统状态" required>
+        <el-form-item label="预警系统状态" prop="warning_system_status" required>
           <el-select v-model="createForm.warning_system_status" style="width: 100%">
             <el-option label="是" value="是" />
             <el-option label="无需" value="无需" />
@@ -179,10 +179,10 @@
             <el-option label="待申请" value="待申请" />
           </el-select>
         </el-form-item>
-        <el-form-item label="任务提出人" required>
+        <el-form-item label="任务提出人" prop="requester_name" required>
           <el-input v-model="createForm.requester_name" />
         </el-form-item>
-        <el-form-item label="测试人员" required>
+        <el-form-item label="测试人员" prop="tester_name" required>
           <el-select
             v-model="testerSelection"
             multiple
@@ -198,7 +198,7 @@
           </el-select>
           <div v-if="testerOptionsLoadError" class="form-tip">{{ testerOptionsLoadError }}</div>
         </el-form-item>
-        <el-form-item label="排期开始" required>
+        <el-form-item label="排期开始" prop="schedule_start" required>
           <el-date-picker v-model="createForm.schedule_start" type="datetime" style="width: 100%" />
         </el-form-item>
         <el-form-item label="排期结束">
@@ -207,10 +207,10 @@
         <el-form-item label="排期备注">
           <el-input v-model="createForm.schedule_remark" />
         </el-form-item>
-        <el-form-item label="试验地点">
+        <el-form-item label="试验地点" prop="test_location" required>
           <el-input v-model="createForm.test_location" />
         </el-form-item>
-        <el-form-item label="合同编号">
+        <el-form-item label="合同编号" prop="contract_no" required>
           <el-input v-model="createForm.contract_no" />
         </el-form-item>
         <el-form-item label="备注">
@@ -242,6 +242,7 @@ const dateRange = ref([])
 const createDialogVisible = ref(false)
 const isEdit = ref(false)
 const editingId = ref(null)
+const createFormRef = ref(null)
 const createForm = ref({
   model: '',
   vin_or_part_no: '',
@@ -256,6 +257,18 @@ const createForm = ref({
   contract_no: '',
   remark: ''
 })
+
+// 表单校验规则
+const createFormRules = {
+  model: [{ required: true, message: '请输入车型', trigger: 'blur' }],
+  vin_or_part_no: [{ required: true, message: '请输入VIN/零件编号', trigger: 'blur' }],
+  test_name: [{ required: true, message: '请输入试验名称', trigger: 'blur' }],
+  warning_system_status: [{ required: true, message: '请选择预警系统状态', trigger: 'change' }],
+  requester_name: [{ required: true, message: '请输入任务提出人', trigger: 'blur' }],
+  schedule_start: [{ required: true, message: '请选择排期开始时间', trigger: 'change' }],
+  test_location: [{ required: true, message: '请输入试验地点', trigger: 'blur' }],
+  contract_no: [{ required: true, message: '请输入合同编号', trigger: 'blur' }]
+}
 
 // 表单初始快照（用于 dirty 检测）
 const originForm = ref(null)
@@ -507,6 +520,10 @@ const handleDialogCancel = () => {
 
 // 重置表单并关闭弹窗
 const resetFormAndClose = () => {
+  // 重置表单校验状态
+  if (createFormRef.value) {
+    createFormRef.value.resetFields()
+  }
   createForm.value = {
     model: '',
     vin_or_part_no: '',
@@ -528,6 +545,21 @@ const resetFormAndClose = () => {
 }
 
 const submitMainRecord = async () => {
+  // 前端表单校验
+  if (createFormRef.value) {
+    try {
+      await createFormRef.value.validate()
+    } catch {
+      ElMessage.warning('请填写完整信息')
+      return
+    }
+  }
+  // 测试人员校验（多选框不在 el-form 校验规则中）
+  if (!testerSelection.value || testerSelection.value.length === 0) {
+    ElMessage.warning('请填写完整信息')
+    return
+  }
+
   try {
     const payload = {
       ...createForm.value,
@@ -543,7 +575,13 @@ const submitMainRecord = async () => {
     // 提交成功后重置并关闭
     resetFormAndClose()
   } catch (e) {
-    ElMessage.error(isEdit.value ? '更新失败' : '创建失败')
+    // 区分后端校验错误和其他异常
+    const errorType = e?.response?.data?.data?.error_type
+    if (errorType === 'validation_error') {
+      ElMessage.warning('请填写完整信息')
+    } else {
+      ElMessage.error(isEdit.value ? '更新失败' : '创建任务失败')
+    }
   }
 }
 
