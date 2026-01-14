@@ -234,7 +234,7 @@
         <el-form-item label="试验地点" prop="test_location" required>
           <el-input v-model="createForm.test_location" />
         </el-form-item>
-        <el-form-item label="合同编号" prop="contract_no" required>
+        <el-form-item label="合同编号" prop="contract_no">
           <el-input v-model="createForm.contract_no" />
         </el-form-item>
         <el-form-item label="是否出报告" prop="report_required" required>
@@ -299,7 +299,6 @@ const createFormRules = {
   tester_name: [{ required: true, message: '请选择测试人员', trigger: 'change' }],
   schedule_start: [{ required: true, message: '请选择排期开始时间', trigger: 'change' }],
   test_location: [{ required: true, message: '请输入试验地点', trigger: 'blur' }],
-  contract_no: [{ required: true, message: '请输入合同编号', trigger: 'blur' }],
   report_required: [{ required: true, message: '请选择是否出报告', trigger: 'change' }]
 }
 

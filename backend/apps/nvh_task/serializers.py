@@ -206,11 +206,7 @@ class MainRecordCreateUpdateSerializer(serializers.ModelSerializer):
         'blank': '试验地点不能为空',
         'null': '试验地点不能为空',
     })
-    contract_no = serializers.CharField(required=True, allow_blank=False, allow_null=False, error_messages={
-        'required': '合同编号为必填项',
-        'blank': '合同编号不能为空',
-        'null': '合同编号不能为空',
-    })
+    contract_no = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     # 是否出报告设为必填
     report_required = serializers.CharField(required=True, allow_blank=False, allow_null=False, error_messages={
         'required': '是否出报告为必填项',
