@@ -315,7 +315,7 @@ const loadTesterOptions = async () => {
       id: u.id,
       username: u.username,
       full_name: u.full_name,
-      display_name: u.full_name && u.username && u.full_name !== u.username ? `${u.full_name}（${u.username}）` : (u.full_name || u.username)
+      display_name: u.full_name || u.username
     }))
   } catch (e) {
     testerOptions.value = []

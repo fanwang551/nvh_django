@@ -61,30 +61,30 @@
         该进出登记已被 {{ entryExitData.active_mainrecord_count }} 个任务共用，编辑会影响所有绑定任务
       </el-alert>
 
-      <el-form :model="formData" label-width="120px" :disabled="isSubmitted && !store.isScheduler">
-        <el-form-item label="接收人">
+      <el-form ref="formRef" :model="formData" :rules="formRules" label-width="120px" :disabled="isSubmitted && !store.isScheduler">
+        <el-form-item label="接收人" prop="receiver_name">
           <el-input v-model="formData.receiver_name" @change="markDirty" />
         </el-form-item>
-        <el-form-item label="进入时间">
+        <el-form-item label="进入时间" prop="enter_time">
           <el-date-picker v-model="formData.enter_time" type="datetime" style="width: 100%" @change="markDirty" />
         </el-form-item>
-        <el-form-item label="用途">
+        <el-form-item label="用途" prop="purpose">
           <el-input v-model="formData.purpose" @change="markDirty" />
         </el-form-item>
-        <el-form-item label="处置类型">
+        <el-form-item label="处置类型" prop="dispose_type">
           <el-select v-model="formData.dispose_type" placeholder="选择处置类型" clearable style="width: 100%" @change="markDirty">
             <el-option label="报废" value="报废" />
             <el-option label="归还" value="归还" />
             <el-option label="使用中" value="使用中" />
           </el-select>
         </el-form-item>
-        <el-form-item label="处置人">
+        <el-form-item label="处置人" prop="disposer_name">
           <el-input v-model="formData.disposer_name" @change="markDirty" />
         </el-form-item>
-        <el-form-item label="处置时间">
+        <el-form-item label="处置时间" prop="dispose_time">
           <el-date-picker v-model="formData.dispose_time" type="datetime" style="width: 100%" @change="markDirty" />
         </el-form-item>
-        <el-form-item v-if="formData.dispose_type === '归还'" label="归还接受人">
+        <el-form-item v-if="formData.dispose_type === '归还'" label="归还接受人" :rules="[{ required: true, message: '请输入归还接受人', trigger: 'blur' }]">
           <el-input v-model="formData.return_receiver" @change="markDirty" />
         </el-form-item>
         <el-form-item label="备注">
@@ -110,6 +110,7 @@ import { useTaskStore } from '@/store/NVHtask'
 
 const store = useTaskStore()
 
+const formRef = ref(null)
 const bindMode = ref('new')
 const selectedEntryExitId = ref(null)
 
@@ -130,6 +131,16 @@ const formData = ref({
   return_receiver: '',
   remark: ''
 })
+
+// 表单校验规则 - 所有字段必填
+const formRules = {
+  receiver_name: [{ required: true, message: '请输入接收人', trigger: 'blur' }],
+  enter_time: [{ required: true, message: '请选择进入时间', trigger: 'change' }],
+  purpose: [{ required: true, message: '请输入用途', trigger: 'blur' }],
+  dispose_type: [{ required: true, message: '请选择处置类型', trigger: 'change' }],
+  disposer_name: [{ required: true, message: '请输入处置人', trigger: 'blur' }],
+  dispose_time: [{ required: true, message: '请选择处置时间', trigger: 'change' }]
+}
 
 const entryExitData = computed(() => store.entryExit.data)
 const hasBound = computed(() => !!store.drawer.currentMain?.entry_exit)
@@ -209,6 +220,22 @@ const handleSave = async () => {
 
 // 提交（先保存再提交，确保所有字段完整保存）
 const handleSubmit = async () => {
+  // 前端表单校验
+  if (formRef.value) {
+    try {
+      await formRef.value.validate()
+    } catch {
+      ElMessage.warning('请填写完整信息')
+      return
+    }
+  }
+
+  // 归还类型时校验归还接受人
+  if (formData.value.dispose_type === '归还' && !formData.value.return_receiver) {
+    ElMessage.warning('请输入归还接受人')
+    return
+  }
+
   // 提交等价于：保存草稿 + 提交（避免只保存部分字段）
   try {
     await store.updateEntryExit(entryExitData.value.id, formData.value)

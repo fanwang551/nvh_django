@@ -20,17 +20,17 @@
     <!-- 编辑区域 -->
     <div class="edit-section">
       <div class="section-title">试验信息</div>
-      <el-form :model="formData" label-width="160px" :disabled="isSubmitted && !store.isScheduler">
-        <el-form-item label="联系方式">
+      <el-form ref="formRef" :model="formData" :rules="formRules" label-width="160px" :disabled="isSubmitted && !store.isScheduler">
+        <el-form-item label="联系方式" prop="contact_phone">
           <el-input v-model="formData.contact_phone" @change="markDirty" />
         </el-form-item>
-        <el-form-item label="样品名称">
+        <el-form-item label="样品名称" prop="sample_type">
           <el-select v-model="formData.sample_type" placeholder="选择样品类型" clearable style="width: 100%" @change="markDirty">
             <el-option label="零件" value="零件" />
             <el-option label="整车" value="整车" />
           </el-select>
         </el-form-item>
-        <el-form-item label="研发阶段">
+        <el-form-item label="研发阶段" prop="rd_stage">
           <el-select v-model="formData.rd_stage" placeholder="选择研发阶段" clearable style="width: 100%" @change="markDirty">
             <el-option label="MULE" value="MULE" />
             <el-option label="PRO" value="PRO" />
@@ -40,13 +40,13 @@
             <el-option label="不涉及" value="不涉及" />
           </el-select>
         </el-form-item>
-        <el-form-item label="送件部门">
+        <el-form-item label="送件部门" prop="delivery_dept">
           <el-input v-model="formData.delivery_dept" @change="markDirty" />
         </el-form-item>
 
         <!-- 拆装记录 -->
-        <el-form-item label="是否包含拆装记录表">
-          <el-select v-model="formData.include_teardown_record" style="width: 100%" @change="markDirty">
+        <el-form-item label="是否包含拆装记录表" prop="include_teardown_record">
+          <el-select v-model="formData.include_teardown_record" style="width: 100%" @change="handleTeardownRecordChange">
             <el-option label="是" value="是" />
             <el-option label="否" value="否" />
           </el-select>
@@ -68,12 +68,13 @@
             >
               <el-button size="small">{{ formData.teardown_attachment_url ? '更换图片' : '上传图片' }}</el-button>
             </el-upload>
+            <el-button v-if="formData.teardown_attachment_url" size="small" type="danger" plain @click="removeTeardownImage">移除</el-button>
             <span v-if="isTeardownTemp" class="upload-hint pending">图片已上传，请点击保存草稿</span>
           </div>
         </el-form-item>
 
         <!-- 过程记录 -->
-        <el-form-item label="是否包含过程记录表">
+        <el-form-item label="是否包含过程记录表" prop="include_process_record">
           <el-select v-model="formData.include_process_record" style="width: 100%" @change="markDirty">
             <el-option label="是" value="是" />
             <el-option label="否" value="否" />
@@ -140,6 +141,7 @@ import { nvhTaskApi } from '@/api/nvhTask'
 
 const store = useTaskStore()
 
+const formRef = ref(null)
 const formData = ref({
   contact_phone: '',
   sample_type: '',
@@ -150,11 +152,21 @@ const formData = ref({
   teardown_attachment_url: ''
 })
 
+// 表单校验规则 - 所有字段必填
+const formRules = {
+  contact_phone: [{ required: true, message: '请输入联系方式', trigger: 'blur' }],
+  sample_type: [{ required: true, message: '请选择样品名称', trigger: 'change' }],
+  rd_stage: [{ required: true, message: '请选择研发阶段', trigger: 'change' }],
+  delivery_dept: [{ required: true, message: '请输入送件部门', trigger: 'blur' }],
+  include_teardown_record: [{ required: true, message: '请选择是否包含拆装记录表', trigger: 'change' }],
+  include_process_record: [{ required: true, message: '请选择是否包含过程记录表', trigger: 'change' }]
+}
+
 const processAttachments = ref([])
 const newAttachment = ref({ record_name: '' })
 const uploading = ref(false)
 const saving = ref(false)
-const pendingProcessUploads = ref([]) // [{ client_id, record_name, file_url(temp) }]
+const pendingProcessUploads = ref([])
 
 const currentMain = computed(() => store.drawer.currentMain)
 const testInfoData = computed(() => store.testInfo.data)
@@ -184,7 +196,6 @@ const formatDateTime = (dateStr) => {
 const getImageUrl = (url) => {
   if (!url) return ''
   if (url.startsWith('http')) return url
-  // 处理相对路径，确保正确拼接
   if (url.startsWith('/media/')) return url
   if (url.startsWith('nvh_task/')) return `/media/${url}`
   return `/media/${url}`
@@ -192,6 +203,13 @@ const getImageUrl = (url) => {
 
 const markDirty = () => {
   store.testInfo.dirty = true
+}
+
+const handleTeardownRecordChange = (val) => {
+  markDirty()
+  if (val === '否') {
+    formData.value.teardown_attachment_url = ''
+  }
 }
 
 const beforeUpload = (file) => {
@@ -208,11 +226,6 @@ const beforeUpload = (file) => {
   return true
 }
 
-/**
- * 上传拆装记录图片
- * 上传成功后将返回的相对路径写入 formData.teardown_attachment_url
- * 不立即保存到后端，等用户点击保存/提交时一起保存
- */
 const uploadTeardownImage = async ({ file }) => {
   uploading.value = true
   try {
@@ -230,10 +243,11 @@ const uploadTeardownImage = async ({ file }) => {
   }
 }
 
-/**
- * 上传过程记录图片
- * 上传成功后创建 TestProcessAttachment 记录
- */
+const removeTeardownImage = () => {
+  formData.value.teardown_attachment_url = ''
+  markDirty()
+}
+
 const uploadProcessImage = async ({ file }) => {
   if (!newAttachment.value.record_name) {
     ElMessage.warning('请先选择或输入过程记录表名')
@@ -242,13 +256,11 @@ const uploadProcessImage = async ({ file }) => {
 
   uploading.value = true
   try {
-    // 1) 上传图片到服务器（临时）
     const uploadRes = await nvhTaskApi.uploadImage(file, 'nvh_test_process')
     if (!uploadRes?.data?.relative_path) {
       throw new Error('上传失败，未获取到文件路径')
     }
 
-    // 2) 暂存到本地，等“保存草稿/提交”时一起落库
     pendingProcessUploads.value.push({
       client_id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
       record_name: newAttachment.value.record_name,
@@ -256,10 +268,7 @@ const uploadProcessImage = async ({ file }) => {
     })
     formData.value.include_process_record = '是'
     markDirty()
-
-    // 3) 清空输入
     newAttachment.value.record_name = ''
-
     ElMessage.success('过程记录图片已上传，请点击保存草稿')
   } catch (e) {
     ElMessage.error(e?.message || '上传失败')
@@ -272,7 +281,6 @@ const removePendingProcess = (clientId) => {
   pendingProcessUploads.value = pendingProcessUploads.value.filter(p => p.client_id !== clientId)
 }
 
-// 删除附件
 const deleteAttachment = async (id) => {
   try {
     await store.deleteProcessAttachment(id)
@@ -283,14 +291,12 @@ const deleteAttachment = async (id) => {
   }
 }
 
-// 加载附件列表
 const loadAttachments = async () => {
   if (testInfoData.value?.id) {
     processAttachments.value = await store.loadProcessAttachments()
   }
 }
 
-// 监听数据变化
 watch(testInfoData, (val) => {
   if (val) {
     formData.value = {
@@ -304,7 +310,6 @@ watch(testInfoData, (val) => {
       teardown_attachment_url: val.teardown_attachment_url || ''
     }
 
-    // 有附件时，自动将对应“是否包含...”显示为“是”
     if (formData.value.teardown_attachment_url) {
       formData.value.include_teardown_record = '是'
     }
@@ -315,22 +320,19 @@ watch(testInfoData, (val) => {
   }
 }, { immediate: true })
 
-// 根据附件/上传状态自动设置"是否包含..."字段（只“拉到是”，不强行改回否）
 watch([processAttachments, pendingProcessUploads], () => {
   if ((processAttachments.value?.length || 0) + (pendingProcessUploads.value?.length || 0) > 0) {
     formData.value.include_process_record = '是'
   }
 }, { immediate: true })
+
 watch(() => formData.value.teardown_attachment_url, (url) => {
   if (url) formData.value.include_teardown_record = '是'
 }, { immediate: true })
 
-// 保存
 const persistAll = async () => {
-  // 先保存 TestInfo 全量字段（包括拆装图片临时路径确认）
   await store.updateTestInfo(formData.value)
 
-  // 再把“待保存”的过程记录图片落库（此时不会重置表单）
   const testInfoId = store.testInfo.data?.id || testInfoData.value?.id
   if (!testInfoId) {
     throw new Error('试验信息未初始化，无法保存过程记录附件')
@@ -368,8 +370,27 @@ const handleSave = async () => {
   }
 }
 
-// 提交（等价于“保存草稿 + 提交”，避免只保存部分字段）
 const handleSubmit = async () => {
+  if (formRef.value) {
+    try {
+      await formRef.value.validate()
+    } catch {
+      ElMessage.warning('请填写完整信息')
+      return
+    }
+  }
+
+  if (formData.value.include_teardown_record === '是' && !formData.value.teardown_attachment_url) {
+    ElMessage.warning('请上传拆装记录表图片')
+    return
+  }
+
+  if (formData.value.include_process_record === '是' && 
+      (processAttachments.value?.length || 0) + (pendingProcessUploads.value?.length || 0) === 0) {
+    ElMessage.warning('请上传至少一张过程记录表图片')
+    return
+  }
+
   saving.value = true
   try {
     await persistAll()
@@ -388,7 +409,6 @@ const handleSubmit = async () => {
   }
 }
 
-// 撤回
 const handleUnsubmit = async () => {
   try {
     await store.unsubmitTestInfo()

@@ -2,29 +2,29 @@
   <div class="doc-approval-tab" v-loading="store.docApproval.loading">
     <div class="section-title">技术资料发放批准单</div>
 
-    <el-form :model="formData" label-width="120px" :disabled="isSubmitted && !store.isScheduler">
-      <el-form-item label="名称">
+    <el-form ref="formRef" :model="formData" :rules="formRules" label-width="120px" :disabled="isSubmitted && !store.isScheduler">
+      <el-form-item label="名称" prop="doc_name">
         <el-input v-model="formData.doc_name" @change="markDirty" />
       </el-form-item>
-      <el-form-item label="编号">
+      <el-form-item label="编号" prop="doc_no">
         <el-input v-model="formData.doc_no" @change="markDirty" />
       </el-form-item>
-      <el-form-item label="数量">
+      <el-form-item label="数量" prop="quantity">
         <el-input-number v-model="formData.quantity" :min="0" style="width: 100%" @change="markDirty" />
       </el-form-item>
-      <el-form-item label="接收人">
+      <el-form-item label="接收人" prop="receiver_name">
         <el-input v-model="formData.receiver_name" @change="markDirty" />
       </el-form-item>
-      <el-form-item label="发放人">
+      <el-form-item label="发放人" prop="issuer_name">
         <el-input v-model="formData.issuer_name" @change="markDirty" />
       </el-form-item>
-      <el-form-item label="批准人">
+      <el-form-item label="批准人" prop="approver_name">
         <el-input v-model="formData.approver_name" @change="markDirty" />
       </el-form-item>
-      <el-form-item label="发放日期">
+      <el-form-item label="发放日期" prop="issue_date">
         <el-date-picker v-model="formData.issue_date" type="date" value-format="YYYY-MM-DD" style="width: 100%" @change="markDirty" />
       </el-form-item>
-      <el-form-item label="文件(图片)">
+      <el-form-item label="文件(图片)" prop="file_url">
         <div class="upload-area">
           <el-image
             v-if="previewUrl"
@@ -42,6 +42,7 @@
           >
             <el-button size="small" :loading="uploading">{{ formData.file_url ? '更换文件' : '上传文件' }}</el-button>
           </el-upload>
+          <el-button v-if="formData.file_url" size="small" type="danger" plain @click="handleDeleteFile">删除</el-button>
           <span v-if="!formData.file_url" class="upload-hint">* 提交前必须上传文件</span>
           <span v-if="pendingUpload" class="upload-hint pending">文件已选择，请点击保存</span>
         </div>
@@ -65,6 +66,7 @@ import { nvhTaskApi } from '@/api/nvhTask'
 
 const store = useTaskStore()
 
+const formRef = ref(null)
 const formData = ref({
   doc_name: '',
   doc_no: '',
@@ -75,6 +77,18 @@ const formData = ref({
   issue_date: null,
   file_url: ''
 })
+
+// 表单校验规则 - 所有字段必填
+const formRules = {
+  doc_name: [{ required: true, message: '请输入名称', trigger: 'blur' }],
+  doc_no: [{ required: true, message: '请输入编号', trigger: 'blur' }],
+  quantity: [{ required: true, message: '请输入数量', trigger: 'blur' }],
+  receiver_name: [{ required: true, message: '请输入接收人', trigger: 'blur' }],
+  issuer_name: [{ required: true, message: '请输入发放人', trigger: 'blur' }],
+  approver_name: [{ required: true, message: '请输入批准人', trigger: 'blur' }],
+  issue_date: [{ required: true, message: '请选择发放日期', trigger: 'change' }],
+  file_url: [{ required: true, message: '请上传文件(图片)', trigger: 'change' }]
+}
 
 const uploading = ref(false)
 const saving = ref(false)
@@ -130,6 +144,8 @@ const uploadFile = async ({ file }) => {
       formData.value.file_url = res.data.relative_path
       pendingUpload.value = true  // 标记有待保存的文件
       markDirty()
+      // 触发校验清除错误提示
+      formRef.value?.validateField('file_url')
       ElMessage.success('文件已上传，请点击保存草稿')
     }
   } catch (e) {
@@ -137,6 +153,17 @@ const uploadFile = async ({ file }) => {
   } finally {
     uploading.value = false
   }
+}
+
+/**
+ * 删除已选文件
+ */
+const handleDeleteFile = () => {
+  formData.value.file_url = ''
+  pendingUpload.value = false
+  markDirty()
+  // 触发校验显示必填提示
+  formRef.value?.validateField('file_url')
 }
 
 // 监听数据变化
@@ -172,6 +199,16 @@ const handleSave = async () => {
 
 // 提交
 const handleSubmit = async () => {
+  // 前端表单校验
+  if (formRef.value) {
+    try {
+      await formRef.value.validate()
+    } catch {
+      ElMessage.warning('请填写完整信息')
+      return
+    }
+  }
+
   // 提交等价于：保存草稿 + 提交（避免只保存部分字段）
   saving.value = true
   try {
