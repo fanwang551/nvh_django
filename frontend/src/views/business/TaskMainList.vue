@@ -234,7 +234,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { DocumentCopy, Plus } from '@element-plus/icons-vue' // 引入图标
 import { useTaskStore } from '@/store/NVHtask'
@@ -274,6 +274,7 @@ const createFormRules = {
   test_name: [{ required: true, message: '请输入试验名称', trigger: 'blur' }],
   warning_system_status: [{ required: true, message: '请选择预警系统状态', trigger: 'change' }],
   requester_name: [{ required: true, message: '请输入任务提出人', trigger: 'blur' }],
+  tester_name: [{ required: true, message: '请选择测试人员', trigger: 'change' }],
   schedule_start: [{ required: true, message: '请选择排期开始时间', trigger: 'change' }],
   test_location: [{ required: true, message: '请输入试验地点', trigger: 'blur' }],
   contract_no: [{ required: true, message: '请输入合同编号', trigger: 'blur' }],
@@ -289,6 +290,15 @@ const testerOptions = ref([])
 const testerOptionsLoading = ref(false)
 const testerOptionsLoadError = ref('')
 const testerSelection = ref([])
+
+// 监听 testerSelection 变化，同步更新 createForm.tester_name
+watch(testerSelection, (newVal) => {
+  createForm.value.tester_name = joinTesterNames(newVal)
+  // 手动触发表单校验以清除错误提示
+  if (createFormRef.value) {
+    createFormRef.value.validateField('tester_name')
+  }
+}, { deep: true })
 
 const splitTesterNames = (value) => {
   if (!value) return []
@@ -566,11 +576,6 @@ const submitMainRecord = async () => {
       ElMessage.warning('请填写完整信息')
       return
     }
-  }
-  // 测试人员校验（多选框不在 el-form 校验规则中）
-  if (!testerSelection.value || testerSelection.value.length === 0) {
-    ElMessage.warning('请填写完整信息')
-    return
   }
 
   try {
