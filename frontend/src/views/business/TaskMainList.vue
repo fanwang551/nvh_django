@@ -201,10 +201,10 @@
           <div v-if="testerOptionsLoadError" class="form-tip">{{ testerOptionsLoadError }}</div>
         </el-form-item>
         <el-form-item label="排期开始" prop="schedule_start" required>
-          <el-date-picker v-model="createForm.schedule_start" type="datetime" style="width: 100%" />
+          <el-date-picker v-model="createForm.schedule_start" type="date" value-format="YYYY-MM-DD" style="width: 100%" />
         </el-form-item>
         <el-form-item label="排期结束">
-          <el-date-picker v-model="createForm.schedule_end" type="datetime" style="width: 100%" />
+          <el-date-picker v-model="createForm.schedule_end" type="date" value-format="YYYY-MM-DD" style="width: 100%" />
         </el-form-item>
         <el-form-item label="排期备注">
           <el-input v-model="createForm.schedule_remark" />
@@ -455,8 +455,8 @@ const handleEdit = (row) => {
     warning_system_status: row.warning_system_status || '',
     requester_name: row.requester_name || '',
     tester_name: row.tester_name || '',
-    schedule_start: row.schedule_start ? new Date(row.schedule_start) : null,
-    schedule_end: row.schedule_end ? new Date(row.schedule_end) : null,
+    schedule_start: row.schedule_start ? row.schedule_start.split('T')[0] : null,
+    schedule_end: row.schedule_end ? row.schedule_end.split('T')[0] : null,
     schedule_remark: row.schedule_remark || '',
     test_location: row.test_location || '',
     contract_no: row.contract_no || '',

@@ -4,10 +4,13 @@ NVH Task Views
 import os
 import uuid
 import shutil
+from datetime import datetime, timedelta
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
+from django.db.models.functions import TruncDate
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 
@@ -176,13 +179,27 @@ def main_record_list(request):
         if is_closed is not None and is_closed != '':
             queryset = queryset.filter(is_closed=(is_closed.lower() in ['true', '1', 'yes']))
 
-        # 筛选：时间范围
+        # 筛选：时间范围（按日期维度，忽略时分秒）
         start_date = request.GET.get('schedule_start_from')
         end_date = request.GET.get('schedule_start_to')
         if start_date:
-            queryset = queryset.filter(schedule_start__gte=start_date)
+            # 解析日期字符串并转换为时区感知的 datetime
+            try:
+                start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+                if settings.USE_TZ:
+                    start_dt = timezone.make_aware(start_dt, timezone.get_current_timezone())
+                queryset = queryset.filter(schedule_start__gte=start_dt)
+            except ValueError:
+                pass  # 日期格式错误时忽略该筛选条件
         if end_date:
-            queryset = queryset.filter(schedule_start__lte=end_date)
+            # 结束日期需要包含当天整天，所以用次日 00:00:00 作为上界（小于）
+            try:
+                end_dt = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+                if settings.USE_TZ:
+                    end_dt = timezone.make_aware(end_dt, timezone.get_current_timezone())
+                queryset = queryset.filter(schedule_start__lt=end_dt)
+            except ValueError:
+                pass  # 日期格式错误时忽略该筛选条件
 
         # 分页
         page, page_size = get_pagination_params(request)
