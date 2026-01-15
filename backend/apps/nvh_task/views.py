@@ -291,10 +291,10 @@ def entry_exit_list(request):
     if request.method == 'GET':
         queryset = EntryExit.objects.order_by('-created_at', '-id')
 
-        # 筛选：状态
-        status_filter = request.GET.get('status')
-        if status_filter:
-            queryset = queryset.filter(status=status_filter)
+        # 筛选：处置类型 dispose_type
+        dispose_type = request.GET.get('dispose_type')
+        if dispose_type:
+            queryset = queryset.filter(dispose_type=dispose_type)
 
         # 筛选：接收人
         receiver = request.GET.get('receiver_name')
