@@ -6,9 +6,6 @@
       <el-form-item label="名称" prop="doc_name">
         <el-input v-model="formData.doc_name" @change="markDirty" />
       </el-form-item>
-      <el-form-item label="编号" prop="doc_no">
-        <el-input v-model="formData.doc_no" @change="markDirty" />
-      </el-form-item>
       <el-form-item label="数量" prop="quantity">
         <el-input-number v-model="formData.quantity" :min="0" style="width: 100%" @change="markDirty" />
       </el-form-item>
@@ -69,11 +66,10 @@ const store = useTaskStore()
 const formRef = ref(null)
 const formData = ref({
   doc_name: '',
-  doc_no: '',
   quantity: null,
   receiver_name: '',
   issuer_name: '',
-  approver_name: 'admin',
+  approver_name: '秦军旭',
   issue_date: null,
   file_url: ''
 })
@@ -81,7 +77,6 @@ const formData = ref({
 // 表单校验规则 - 所有字段必填
 const formRules = {
   doc_name: [{ required: true, message: '请输入名称', trigger: 'blur' }],
-  doc_no: [{ required: true, message: '请输入编号', trigger: 'blur' }],
   quantity: [{ required: true, message: '请输入数量', trigger: 'blur' }],
   receiver_name: [{ required: true, message: '请输入接收人', trigger: 'blur' }],
   issuer_name: [{ required: true, message: '请输入发放人', trigger: 'blur' }],
@@ -176,8 +171,7 @@ watch(docApprovalData, (val) => {
 
 // 初始化默认值
 watch(currentMain, (main) => {
-  if (main && !docApprovalData.value?.doc_no) {
-    formData.value.doc_no = main.contract_no || ''
+  if (main) {
     formData.value.receiver_name = main.requester_name || ''
     formData.value.issuer_name = store.currentFullname || ''
   }

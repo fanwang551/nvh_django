@@ -99,7 +99,7 @@ class DocApprovalSerializer(serializers.ModelSerializer):
     class Meta:
         model = DocApproval
         fields = [
-            'id', 'main', 'doc_name', 'doc_no', 'quantity',
+            'id', 'main', 'doc_name',  'quantity',
             'receiver_name', 'issuer_name', 'approver_name', 'issue_date',
             'file_url', 'status', 'submitted_at', 'created_at', 'updated_at'
         ]

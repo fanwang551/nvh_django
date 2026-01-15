@@ -265,12 +265,11 @@ class DocApproval(SoftDeleteModel):
     )
 
     doc_name = models.CharField(max_length=200, null=True, blank=True, verbose_name="名称")
-    doc_no = models.CharField(max_length=100, null=True, blank=True, verbose_name="编号")
     quantity = models.PositiveIntegerField(null=True, blank=True, verbose_name="数量")
 
     receiver_name = models.CharField(max_length=100, null=True, blank=True, verbose_name="接收人")
     issuer_name = models.CharField(max_length=100, null=True, blank=True, verbose_name="发放人")
-    approver_name = models.CharField(max_length=100, default="admin", verbose_name="批准人")
+    approver_name = models.CharField(max_length=100, default="秦军旭", verbose_name="批准人")
     issue_date = models.DateField(null=True, blank=True, verbose_name="发放日期")
 
     file_url = models.ImageField(
