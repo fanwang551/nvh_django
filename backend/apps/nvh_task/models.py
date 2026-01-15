@@ -127,6 +127,7 @@ class MainRecord(SoftDeleteModel):
     test_location = models.CharField(max_length=200, null=True, blank=True, verbose_name="试验地点")
 
     tester_name = models.CharField(max_length=100, verbose_name="测试人员")
+    assistants = models.CharField(max_length=100, null=True, blank=True, verbose_name="协助人员")
     contract_no = models.CharField(max_length=100, null=True, blank=True, db_index=True, verbose_name="合同编号")
     report_required = models.CharField(max_length=10, default="否", verbose_name="是否出具报告")
     remark = models.CharField(max_length=1000, null=True, blank=True, verbose_name="备注")

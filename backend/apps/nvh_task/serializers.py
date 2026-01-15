@@ -131,7 +131,7 @@ class MainRecordListSerializer(serializers.ModelSerializer):
             'id', 'model', 'vin_or_part_no', 'test_name',
             'warning_system_status', 'requester_name',
             'schedule_start', 'schedule_end', 'schedule_remark', 'test_location',
-            'tester_name', 'contract_no', 'report_required', 'remark',
+            'tester_name', 'assistants', 'contract_no', 'report_required', 'remark',
             'entry_exit', 'entry_exit_dispose_type', 'is_closed', 'closure_checked_at',
             'created_at', 'updated_at',
             'entry_exit_status', 'test_info_status', 'doc_approval_status',
@@ -189,7 +189,7 @@ class MainRecordDetailSerializer(serializers.ModelSerializer):
             'id', 'model', 'vin_or_part_no', 'test_name',
             'warning_system_status', 'requester_name',
             'schedule_start', 'schedule_end', 'schedule_remark', 'test_location',
-            'tester_name', 'contract_no', 'report_required', 'remark',
+            'tester_name', 'assistants', 'contract_no', 'report_required', 'remark',
             'entry_exit', 'is_closed', 'closure_checked_at',
             'created_at', 'updated_at',
             'test_info', 'doc_approval'
@@ -220,7 +220,7 @@ class MainRecordCreateUpdateSerializer(serializers.ModelSerializer):
             'id', 'model', 'vin_or_part_no', 'test_name',
             'warning_system_status', 'requester_name',
             'schedule_start', 'schedule_end', 'schedule_remark', 'test_location',
-            'tester_name', 'contract_no', 'report_required', 'remark',
+            'tester_name', 'assistants', 'contract_no', 'report_required', 'remark',
             'entry_exit_id'
         ]
         read_only_fields = ['id']

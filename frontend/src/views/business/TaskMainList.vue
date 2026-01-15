@@ -116,6 +116,11 @@
 
         <el-table-column prop="test_name" label="试验名称" min-width="200" show-overflow-tooltip align="center" />
         <el-table-column prop="tester_name" label="测试人员" width="110" align="center" />
+        <el-table-column prop="assistants" label="协助人员" width="110" align="center">
+          <template #default="{ row }">
+            {{ row.assistants || '--' }}
+          </template>
+        </el-table-column>
         <el-table-column prop="requester_name" label="提出人" width="110" align="center" />
 
         <el-table-column label="排期时间" width="220" align="center">
@@ -222,6 +227,21 @@
           </el-select>
           <div v-if="testerOptionsLoadError" class="form-tip">{{ testerOptionsLoadError }}</div>
         </el-form-item>
+        <el-form-item label="协助人员">
+          <el-select
+            v-model="assistantsSelection"
+            multiple
+            filterable
+            allow-create
+            default-first-option
+            :loading="testerOptionsLoading"
+            :no-data-text="testerOptionsLoading ? '加载中...' : '暂无可选人员'"
+            placeholder="请选择协助人员（可多选）"
+            style="width: 100%"
+          >
+            <el-option v-for="u in testerOptions" :key="u.id" :label="u.display_name" :value="u.full_name" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="排期开始" prop="schedule_start" required>
           <el-date-picker v-model="createForm.schedule_start" type="date" value-format="YYYY-MM-DD" style="width: 100%" />
         </el-form-item>
@@ -280,6 +300,7 @@ const createForm = ref({
   warning_system_status: '',
   requester_name: '',
   tester_name: '',
+  assistants: '',
   schedule_start: null,
   schedule_end: null,
   schedule_remark: '',
@@ -311,6 +332,7 @@ const testerOptions = ref([])
 const testerOptionsLoading = ref(false)
 const testerOptionsLoadError = ref('')
 const testerSelection = ref([])
+const assistantsSelection = ref([])
 
 // 监听 testerSelection 变化，同步更新 createForm.tester_name
 watch(testerSelection, (newVal) => {
@@ -319,6 +341,11 @@ watch(testerSelection, (newVal) => {
   if (createFormRef.value) {
     createFormRef.value.validateField('tester_name')
   }
+}, { deep: true })
+
+// 监听 assistantsSelection 变化，同步更新 createForm.assistants
+watch(assistantsSelection, (newVal) => {
+  createForm.value.assistants = joinTesterNames(newVal)
 }, { deep: true })
 
 const splitTesterNames = (value) => {
@@ -452,6 +479,7 @@ const handleCreate = () => {
   isEdit.value = false
   editingId.value = null
   testerSelection.value = []
+  assistantsSelection.value = []
   createForm.value = {
     model: '',
     vin_or_part_no: '',
@@ -459,6 +487,7 @@ const handleCreate = () => {
     warning_system_status: '',
     requester_name: '',
     tester_name: '',
+    assistants: '',
     schedule_start: null,
     schedule_end: null,
     schedule_remark: '',
@@ -479,6 +508,7 @@ const handleEdit = (row) => {
   isEdit.value = true
   editingId.value = row.id
   testerSelection.value = splitTesterNames(row.tester_name)
+  assistantsSelection.value = splitTesterNames(row.assistants)
   createForm.value = {
     model: row.model || '',
     vin_or_part_no: row.vin_or_part_no || '',
@@ -486,6 +516,7 @@ const handleEdit = (row) => {
     warning_system_status: row.warning_system_status || '',
     requester_name: row.requester_name || '',
     tester_name: row.tester_name || '',
+    assistants: row.assistants || '',
     schedule_start: row.schedule_start ? row.schedule_start.split('T')[0] : null,
     schedule_end: row.schedule_end ? row.schedule_end.split('T')[0] : null,
     schedule_remark: row.schedule_remark || '',
@@ -574,6 +605,7 @@ const resetFormAndClose = () => {
     warning_system_status: '',
     requester_name: '',
     tester_name: '',
+    assistants: '',
     schedule_start: null,
     schedule_end: null,
     schedule_remark: '',
@@ -583,6 +615,7 @@ const resetFormAndClose = () => {
     remark: ''
   }
   testerSelection.value = []
+  assistantsSelection.value = []
   originForm.value = null
   originTesterSelection.value = []
   createDialogVisible.value = false
@@ -602,7 +635,8 @@ const submitMainRecord = async () => {
   try {
     const payload = {
       ...createForm.value,
-      tester_name: joinTesterNames(testerSelection.value)
+      tester_name: joinTesterNames(testerSelection.value),
+      assistants: joinTesterNames(assistantsSelection.value)
     }
     if (isEdit.value) {
       await store.updateMainRecord(editingId.value, payload)
