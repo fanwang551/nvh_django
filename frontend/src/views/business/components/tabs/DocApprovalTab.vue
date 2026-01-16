@@ -194,6 +194,13 @@ const handleDocRequirementChange = async (value) => {
       ElMessage.success('已设置为需要技术资料')
       // 加载 doc_approval 数据（如果没有会自动创建）
       await store.loadDocApproval()
+      // 填充接收人和发放人（首次切换到"是"时，doc_approval 刚创建，需要填充默认值）
+      if (!formData.value.receiver_name && currentMain.value?.requester_name) {
+        formData.value.receiver_name = currentMain.value.requester_name
+      }
+      if (!formData.value.issuer_name && store.currentFullname) {
+        formData.value.issuer_name = store.currentFullname
+      }
     } catch (e) {
       ElMessage.error('设置失败')
       docRequirementLocal.value = false
