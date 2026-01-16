@@ -150,6 +150,12 @@
           </template>
         </el-table-column>
 
+        <el-table-column prop="remark" label="备注" width="100" align="center" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span class="remark-cell">{{ row.remark || '--' }}</span>
+          </template>
+        </el-table-column>
+
         <el-table-column label="操作" width="200" fixed="right" align="center">
           <template #default="{ row }">
             <div class="action-group">
@@ -214,7 +220,7 @@
         <el-form-item label="任务提出人" prop="requester_name" required>
           <el-input v-model="createForm.requester_name" />
         </el-form-item>
-        <el-form-item label="测试人员" prop="tester_name" required>
+        <el-form-item label="测试人员" prop="tester_name">
           <el-select
             v-model="testerSelection"
             multiple
@@ -255,7 +261,16 @@
           <el-input v-model="createForm.schedule_remark" />
         </el-form-item>
         <el-form-item label="试验地点" prop="test_location" required>
-          <el-input v-model="createForm.test_location" />
+          <el-select
+            v-model="createForm.test_location"
+            filterable
+            allow-create
+            default-first-option
+            placeholder="请选择或输入试验地点"
+            style="width: 100%"
+          >
+            <el-option v-for="loc in testLocationOptions" :key="loc" :label="loc" :value="loc" />
+          </el-select>
         </el-form-item>
         <el-form-item label="合同编号" prop="contract_no">
           <el-input v-model="createForm.contract_no" />
@@ -336,7 +351,6 @@ const createFormRules = {
   test_name: [{ required: true, message: '请输入试验名称', trigger: 'blur' }],
   warning_system_status: [{ required: true, message: '请选择预警系统状态', trigger: 'change' }],
   requester_name: [{ required: true, message: '请输入任务提出人', trigger: 'blur' }],
-  tester_name: [{ required: true, message: '请选择测试人员', trigger: 'change' }],
   schedule_start: [{ required: true, message: '请选择排期开始时间', trigger: 'change' }],
   test_location: [{ required: true, message: '请输入试验地点', trigger: 'blur' }],
   report_required: [{ required: true, message: '请选择是否出报告', trigger: 'change' }],
@@ -353,6 +367,12 @@ const testerOptionsLoading = ref(false)
 const testerOptionsLoadError = ref('')
 const testerSelection = ref([])
 const assistantsSelection = ref([])
+
+// 试验地点静态选项
+const testLocationOptions = ref([
+  '实验室1', '实验室2', '实验室3', '实验室4', '实验室5',
+  '实验室6', '实验室7', '实验室8', '实验室9', '实验室10'
+])
 
 // 监听 testerSelection 变化，同步更新 createForm.tester_name
 watch(testerSelection, (newVal) => {
@@ -952,6 +972,14 @@ onMounted(() => {
   word-break: break-all;
   line-height: 1.4;
   padding: 0 8px;
+}
+
+.remark-cell {
+  display: inline-block;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .action-group {

@@ -30,7 +30,19 @@
           <el-input v-model="formData.receiver_name" @change="markDirty" />
         </el-form-item>
         <el-form-item label="发放人" prop="issuer_name">
-          <el-input v-model="formData.issuer_name" @change="markDirty" />
+          <el-select
+            v-model="formData.issuer_name"
+            filterable
+            allow-create
+            default-first-option
+            :loading="issuerOptionsLoading"
+            :no-data-text="issuerOptionsLoading ? '加载中...' : '暂无可选人员'"
+            placeholder="请选择发放人"
+            style="width: 100%"
+            @change="markDirty"
+          >
+            <el-option v-for="u in issuerOptions" :key="u.id" :label="u.display_name" :value="u.full_name" />
+          </el-select>
         </el-form-item>
         <el-form-item label="批准人" prop="approver_name">
           <el-input v-model="formData.approver_name" @change="markDirty" />
@@ -79,8 +91,32 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { InfoFilled } from '@element-plus/icons-vue'
 import { useTaskStore } from '@/store/NVHtask'
 import { nvhTaskApi } from '@/api/nvhTask'
+import { userApi } from '@/api/user'
 
 const store = useTaskStore()
+
+// 发放人下拉选项（复用 NVH组组员 数据）
+const issuerOptions = ref([])
+const issuerOptionsLoading = ref(false)
+
+const loadIssuerOptions = async () => {
+  if (issuerOptionsLoading.value) return
+  issuerOptionsLoading.value = true
+  try {
+    const res = await userApi.listUsersByGroup('NVH组组员')
+    const items = res?.items || []
+    issuerOptions.value = items.map(u => ({
+      id: u.id,
+      username: u.username,
+      full_name: u.full_name,
+      display_name: u.full_name || u.username
+    }))
+  } catch (e) {
+    issuerOptions.value = []
+  } finally {
+    issuerOptionsLoading.value = false
+  }
+}
 
 const formRef = ref(null)
 const formData = ref({
@@ -290,6 +326,9 @@ const handleUnsubmit = async () => {
 }
 
 onMounted(async () => {
+  // 加载发放人下拉选项
+  loadIssuerOptions()
+
   // 仅在需要技术资料时加载 doc_approval 数据
   if (docRequirement.value) {
     await store.loadDocApproval()
