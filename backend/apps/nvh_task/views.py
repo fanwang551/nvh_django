@@ -859,7 +859,7 @@ def export_main_records(request):
     headers = [
         '闭环状态', '样品状态', '预警', '车型', 'VIN/零件编号', '试验名称',
         '测试人员', '协助人员', '提出人', '排期开始', '排期结束', '排期备注',
-        '地点', '报告', '合同编号'
+        '地点', '报告', '合同编号', '备注'
     ]
 
     # 设置表头样式
@@ -920,6 +920,8 @@ def export_main_records(request):
         ws.cell(row=row_idx, column=14, value=record.report_required or '')
         # 合同编号
         ws.cell(row=row_idx, column=15, value=record.contract_no or '否')
+        # 备注
+        ws.cell(row=row_idx, column=16, value=record.remark or '--')
 
         # 设置数据行样式
         for col_idx in range(1, len(headers) + 1):
@@ -928,7 +930,7 @@ def export_main_records(request):
             cell.border = thin_border
 
     # 调整列宽
-    column_widths = [10, 10, 10, 12, 20, 30, 12, 12, 12, 12, 12, 15, 15, 8, 12]
+    column_widths = [10, 10, 10, 12, 20, 30, 12, 12, 12, 12, 12, 15, 15, 8, 12, 15]
     for col_idx, width in enumerate(column_widths, 1):
         ws.column_dimensions[openpyxl.utils.get_column_letter(col_idx)].width = width
 

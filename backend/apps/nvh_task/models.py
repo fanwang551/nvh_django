@@ -123,7 +123,7 @@ class MainRecord(SoftDeleteModel):
     schedule_end = models.DateTimeField(null=True, blank=True, verbose_name="试验安排结束时间")
     schedule_remark = models.CharField(max_length=500, null=True, blank=True, verbose_name="试验安排时间备注")
     test_location = models.CharField(max_length=200, null=True, blank=True, verbose_name="试验地点")
-    tester_name = models.CharField(max_length=100, verbose_name="测试人员")
+    tester_name = models.CharField(max_length=100,null=True, blank=True, verbose_name="测试人员")
     assistants = models.CharField(max_length=100, null=True, blank=True, verbose_name="协助人员")
     contract_no = models.CharField(max_length=100, null=True, blank=True, db_index=True, verbose_name="合同编号")
     report_required = models.CharField(max_length=10, default="否", verbose_name="是否出具报告")
