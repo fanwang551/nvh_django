@@ -7,6 +7,9 @@
         <div class="subtitle">共 {{ store.list.total }} 条记录</div>
       </div>
       <div class="header-actions">
+        <el-button v-if="store.isScheduler" type="success" icon="Download" @click="handleExport" :loading="exportLoading">
+          导出Excel
+        </el-button>
         <el-button v-if="store.isScheduler" type="primary" icon="Plus" class="add-btn" @click="handleCreate">
           新增主记录
         </el-button>
@@ -276,6 +279,7 @@
       </el-form>
       <template #footer>
         <el-button @click="handleDialogCancel">取消</el-button>
+        <el-button type="info" plain @click="handleUseLast" :loading="useLastLoading">使用上次填写</el-button>
         <el-button type="primary" @click="submitMainRecord">确定</el-button>
       </template>
     </el-dialog>
@@ -285,7 +289,7 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { DocumentCopy, Plus } from '@element-plus/icons-vue' // 引入图标
+import { DocumentCopy, Plus, Download } from '@element-plus/icons-vue' // 引入图标
 import { useTaskStore } from '@/store/NVHtask'
 import { userApi } from '@/api/user'
 import TaskDetailDrawer from './components/TaskDetailDrawer.vue'
@@ -294,6 +298,12 @@ const store = useTaskStore()
 
 // 日期范围
 const dateRange = ref([])
+
+// 导出加载状态
+const exportLoading = ref(false)
+
+// 使用上次填写加载状态
+const useLastLoading = ref(false)
 
 // 新增对话框
 const createDialogVisible = ref(false)
@@ -684,6 +694,66 @@ const handleDelete = async (row) => {
     if (e !== 'cancel') {
       ElMessage.error('删除失败')
     }
+  }
+}
+
+// 导出 Excel
+const handleExport = async () => {
+  exportLoading.value = true
+  try {
+    const res = await store.exportToExcel()
+    // 处理 blob 下载
+    const blob = new Blob([res], { 
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+    })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    // 生成文件名
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+    link.download = `试验任务单_${today}.xlsx`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+    ElMessage.success('导出成功')
+  } catch (e) {
+    ElMessage.error('导出失败')
+  } finally {
+    exportLoading.value = false
+  }
+}
+
+// 使用上次填写
+const handleUseLast = async () => {
+  useLastLoading.value = true
+  try {
+    const lastData = await store.getLastMainRecord()
+    if (!lastData) {
+      ElMessage.warning('暂无可用的上次填写内容')
+      return
+    }
+    // 回填表单字段
+    createForm.value.model = lastData.model || ''
+    createForm.value.vin_or_part_no = lastData.vin_or_part_no || ''
+    createForm.value.test_name = lastData.test_name || ''
+    createForm.value.warning_system_status = lastData.warning_system_status || ''
+    createForm.value.requester_name = lastData.requester_name || ''
+    createForm.value.schedule_start = lastData.schedule_start || null
+    createForm.value.schedule_end = lastData.schedule_end || null
+    createForm.value.schedule_remark = lastData.schedule_remark || ''
+    createForm.value.test_location = lastData.test_location || ''
+    createForm.value.contract_no = lastData.contract_no || ''
+    
+    // 回填测试人员和协助人员（需要拆分为数组）
+    testerSelection.value = splitTesterNames(lastData.tester_name)
+    assistantsSelection.value = splitTesterNames(lastData.assistants)
+    
+    ElMessage.success('已填充上次填写内容')
+  } catch (e) {
+    ElMessage.error('获取上次填写内容失败')
+  } finally {
+    useLastLoading.value = false
   }
 }
 

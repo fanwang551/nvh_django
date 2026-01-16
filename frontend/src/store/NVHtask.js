@@ -534,6 +534,21 @@ export const useTaskStore = defineStore('nvhTask', {
       }
       // 返回 field 供组件滚动定位
       return item?.field
+    },
+
+    // ==================== 导出 Excel ====================
+
+    async exportToExcel() {
+      const params = this.getActiveFilters()
+      const res = await nvhTaskApi.exportMainRecords(params)
+      return res
+    },
+
+    // ==================== 获取上次填写数据 ====================
+
+    async getLastMainRecord() {
+      const res = await nvhTaskApi.getLastMainRecord()
+      return res?.data || null
     }
   }
 })

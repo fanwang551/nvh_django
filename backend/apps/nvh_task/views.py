@@ -5,14 +5,23 @@ import os
 import uuid
 import shutil
 from datetime import datetime, timedelta
+from io import BytesIO
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 from django.db.models.functions import TruncDate
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone
+from django.http import HttpResponse
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
+
+try:
+    import openpyxl
+    from openpyxl.styles import Font, Alignment, Border, Side
+    HAS_OPENPYXL = True
+except ImportError:
+    HAS_OPENPYXL = False
 
 from utils.response import Response
 from .models import (
@@ -710,3 +719,233 @@ def upload_image(request):
         },
         message='上传成功（临时）'
     )
+
+
+# ==================== 获取上次填写数据 ====================
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_last_main_record(request):
+    """
+    获取当前用户上一次成功创建的主记录数据，用于"使用上次填写"功能
+    返回可回填的字段
+    """
+    # 获取最近一条创建的主记录（按创建时间倒序）
+    last_record = MainRecord.objects.order_by('-created_at', '-id').first()
+    
+    if not last_record:
+        return Response.success(data=None, message='暂无上次填写数据')
+    
+    # 只返回可回填的字段
+    fillable_fields = {
+        'model': last_record.model or '',
+        'vin_or_part_no': last_record.vin_or_part_no or '',
+        'test_name': last_record.test_name or '',
+        'warning_system_status': last_record.warning_system_status or '',
+        'requester_name': last_record.requester_name or '',
+        'tester_name': last_record.tester_name or '',
+        'assistants': last_record.assistants or '',
+        'schedule_start': last_record.schedule_start.strftime('%Y-%m-%d') if last_record.schedule_start else None,
+        'schedule_end': last_record.schedule_end.strftime('%Y-%m-%d') if last_record.schedule_end else None,
+        'schedule_remark': last_record.schedule_remark or '',
+        'test_location': last_record.test_location or '',
+        'contract_no': last_record.contract_no or '',
+    }
+    
+    return Response.success(data=fillable_fields, message='获取上次填写数据成功')
+
+
+# ==================== 导出 Excel ====================
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def export_main_records(request):
+    """
+    导出主记录列表为 Excel 文件
+    支持与列表查询一致的筛选条件
+    """
+    if not HAS_OPENPYXL:
+        return Response.bad_request(message='服务器未安装 openpyxl 库，无法导出 Excel')
+    
+    # 复用列表查询的筛选逻辑
+    queryset = MainRecord.objects.select_related(
+        'entry_exit', 'test_info', 'doc_approval'
+    ).order_by('tester_name', '-schedule_start', '-id')
+
+    # 筛选：车型
+    model_filter = request.GET.get('model')
+    if model_filter:
+        queryset = queryset.filter(model__icontains=model_filter)
+
+    # 筛选：VIN/零件编号
+    vin = request.GET.get('vin_or_part_no')
+    if vin:
+        queryset = queryset.filter(vin_or_part_no__icontains=vin)
+
+    # 筛选：试验名称
+    test_name = request.GET.get('test_name')
+    if test_name:
+        queryset = queryset.filter(test_name__icontains=test_name)
+
+    # 筛选：加入预警系统状态
+    warning_status = request.GET.get('warning_system_status')
+    if warning_status:
+        queryset = queryset.filter(warning_system_status=warning_status)
+
+    # 筛选：合同编号是否有内容
+    has_contract_no = request.GET.get('has_contract_no')
+    if has_contract_no is not None and has_contract_no != '':
+        if has_contract_no.lower() in ['true', '1', 'yes']:
+            queryset = queryset.exclude(contract_no__isnull=True).exclude(contract_no__exact='')
+        else:
+            queryset = queryset.filter(Q(contract_no__isnull=True) | Q(contract_no__exact=''))
+
+    # 筛选：任务提出人
+    requester = request.GET.get('requester_name')
+    if requester:
+        queryset = queryset.filter(requester_name__icontains=requester)
+
+    # 筛选：测试人员
+    tester = request.GET.get('tester_name')
+    if tester:
+        queryset = queryset.filter(tester_name__icontains=tester)
+
+    # 筛选：是否闭环
+    is_closed = request.GET.get('is_closed')
+    if is_closed is not None and is_closed != '':
+        queryset = queryset.filter(is_closed=(is_closed.lower() in ['true', '1', 'yes']))
+
+    # 筛选：样品状态
+    entry_exit_dispose_type = request.GET.get('entry_exit_dispose_type')
+    if entry_exit_dispose_type is not None and entry_exit_dispose_type != '':
+        if entry_exit_dispose_type == 'null' or entry_exit_dispose_type == '--':
+            queryset = queryset.filter(
+                Q(entry_exit__isnull=True) | Q(entry_exit__dispose_type__isnull=True) | Q(entry_exit__dispose_type__exact='')
+            )
+        else:
+            queryset = queryset.filter(entry_exit__dispose_type=entry_exit_dispose_type)
+
+    # 筛选：出具报告
+    report_required = request.GET.get('report_required')
+    if report_required is not None and report_required != '':
+        queryset = queryset.filter(report_required=report_required)
+
+    # 筛选：时间范围
+    start_date = request.GET.get('schedule_start_from')
+    end_date = request.GET.get('schedule_start_to')
+    if start_date:
+        try:
+            start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+            if settings.USE_TZ:
+                start_dt = timezone.make_aware(start_dt, timezone.get_current_timezone())
+            queryset = queryset.filter(schedule_start__gte=start_dt)
+        except ValueError:
+            pass
+    if end_date:
+        try:
+            end_dt = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+            if settings.USE_TZ:
+                end_dt = timezone.make_aware(end_dt, timezone.get_current_timezone())
+            queryset = queryset.filter(schedule_start__lt=end_dt)
+        except ValueError:
+            pass
+
+    # 创建 Excel 工作簿
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = '试验任务单'
+
+    # 定义表头（与前端表格列顺序一致）
+    headers = [
+        '闭环状态', '样品状态', '预警', '车型', 'VIN/零件编号', '试验名称',
+        '测试人员', '协助人员', '提出人', '排期开始', '排期结束', '排期备注',
+        '地点', '报告', '合同编号'
+    ]
+
+    # 设置表头样式
+    header_font = Font(bold=True, color='FFFFFF')
+    header_fill = openpyxl.styles.PatternFill(start_color='409EFF', end_color='409EFF', fill_type='solid')
+    header_alignment = Alignment(horizontal='center', vertical='center')
+    thin_border = Border(
+        left=Side(style='thin'),
+        right=Side(style='thin'),
+        top=Side(style='thin'),
+        bottom=Side(style='thin')
+    )
+
+    # 写入表头
+    for col_idx, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_idx, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_alignment
+        cell.border = thin_border
+
+    # 写入数据
+    for row_idx, record in enumerate(queryset, 2):
+        # 闭环状态
+        ws.cell(row=row_idx, column=1, value='已闭环' if record.is_closed else '未闭环')
+        # 样品状态
+        dispose_type = ''
+        if record.entry_exit and not record.entry_exit.is_deleted:
+            dispose_type = record.entry_exit.dispose_type or '--'
+        else:
+            dispose_type = '--'
+        ws.cell(row=row_idx, column=2, value=dispose_type)
+        # 预警
+        ws.cell(row=row_idx, column=3, value=record.warning_system_status or '')
+        # 车型
+        ws.cell(row=row_idx, column=4, value=record.model or '')
+        # VIN/零件编号
+        ws.cell(row=row_idx, column=5, value=record.vin_or_part_no or '')
+        # 试验名称
+        ws.cell(row=row_idx, column=6, value=record.test_name or '')
+        # 测试人员
+        ws.cell(row=row_idx, column=7, value=record.tester_name or '')
+        # 协助人员
+        ws.cell(row=row_idx, column=8, value=record.assistants or '--')
+        # 提出人
+        ws.cell(row=row_idx, column=9, value=record.requester_name or '')
+        # 排期开始
+        schedule_start = record.schedule_start.strftime('%Y-%m-%d') if record.schedule_start else '--'
+        ws.cell(row=row_idx, column=10, value=schedule_start)
+        # 排期结束
+        schedule_end = record.schedule_end.strftime('%Y-%m-%d') if record.schedule_end else '--'
+        ws.cell(row=row_idx, column=11, value=schedule_end)
+        # 排期备注
+        ws.cell(row=row_idx, column=12, value=record.schedule_remark or '--')
+        # 地点
+        ws.cell(row=row_idx, column=13, value=record.test_location or '')
+        # 报告
+        ws.cell(row=row_idx, column=14, value=record.report_required or '')
+        # 合同编号
+        ws.cell(row=row_idx, column=15, value=record.contract_no or '否')
+
+        # 设置数据行样式
+        for col_idx in range(1, len(headers) + 1):
+            cell = ws.cell(row=row_idx, column=col_idx)
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+            cell.border = thin_border
+
+    # 调整列宽
+    column_widths = [10, 10, 10, 12, 20, 30, 12, 12, 12, 12, 12, 15, 15, 8, 12]
+    for col_idx, width in enumerate(column_widths, 1):
+        ws.column_dimensions[openpyxl.utils.get_column_letter(col_idx)].width = width
+
+    # 生成文件名
+    today = datetime.now().strftime('%Y%m%d')
+    filename = f'试验任务单_{today}.xlsx'
+
+    # 写入响应
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    response = HttpResponse(
+        output.read(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    # 使用 RFC 5987 编码处理中文文件名
+    response['Content-Disposition'] = f"attachment; filename*=UTF-8''{filename}"
+    
+    return response

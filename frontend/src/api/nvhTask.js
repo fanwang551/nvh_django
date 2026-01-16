@@ -47,6 +47,29 @@ export const nvhTaskApi = {
     return request.delete(`/nvh-task/main-records/${id}/`)
   },
 
+  /**
+   * 获取上次填写的主记录数据
+   */
+  getLastMainRecord() {
+    return request.get('/nvh-task/main-records/last/')
+  },
+
+   /**
+    * 导出主记录列表为 Excel（不带 token）
+    * @param {Object} params 筛选参数（与列表查询一致）
+    * @returns {Promise<Blob>}
+    */
+   async exportMainRecords(params = {}) {
+     // 使用原生 axios 避免响应拦截器干扰 blob 数据
+     const axios = (await import('axios')).default
+     const response = await axios.get('/api/nvh-task/main-records/export/', {
+       params,
+       responseType: 'blob'
+     })
+     return response.data
+   },
+
+
   // ==================== EntryExit ====================
 
   /**
