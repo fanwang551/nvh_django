@@ -16,17 +16,30 @@ from .models import (
 def refresh_main_closed(main: MainRecord) -> MainRecord:
     """
     刷新单个 MainRecord 的闭环状态
-    闭环条件：
-    - entry_exit 存在且 status == SUBMITTED
-    - test_info 存在且 status == SUBMITTED
-    - doc_approval 存在且 status == SUBMITTED
+    
+    新闭环规则（按场景）：
+    1) NORMAL（正常任务）：
+       - doc_requirement=0: EE_OK && TI_OK
+       - doc_requirement=1: EE_OK && TI_OK && DA_OK
+    2) CANCEL_WITH_SAMPLE（取消且有样品）：
+       - 仅需 EE_OK
+    3) CANCEL_NO_SAMPLE（取消且无样品）：
+       - 直接闭环 true
+    
+    表单 OK 口径：记录存在 && is_deleted=false && status=SUBMITTED
     """
+    # 获取任务场景和技术资料要求
+    task_scenario = main.task_scenario or "NORMAL"
+    doc_requirement = main.doc_requirement
+    
+    # 判断 EntryExit 是否 OK
     entry_exit_ok = (
         main.entry_exit is not None
         and not main.entry_exit.is_deleted
         and main.entry_exit.status == STATUS_SUBMITTED
     )
 
+    # 判断 TestInfo 是否 OK
     test_info_ok = False
     try:
         test_info = main.test_info
@@ -35,6 +48,7 @@ def refresh_main_closed(main: MainRecord) -> MainRecord:
     except TestInfo.DoesNotExist:
         pass
 
+    # 判断 DocApproval 是否 OK
     doc_approval_ok = False
     try:
         doc_approval = main.doc_approval
@@ -43,7 +57,23 @@ def refresh_main_closed(main: MainRecord) -> MainRecord:
     except DocApproval.DoesNotExist:
         pass
 
-    is_closed = entry_exit_ok and test_info_ok and doc_approval_ok
+    # 按场景计算闭环状态
+    is_closed = False
+    
+    if task_scenario == "CANCEL_NO_SAMPLE":
+        # 取消且无样品：直接闭环
+        is_closed = True
+    elif task_scenario == "CANCEL_WITH_SAMPLE":
+        # 取消且有样品：仅需 EntryExit
+        is_closed = entry_exit_ok
+    else:
+        # NORMAL 或其他场景：按 doc_requirement 判断
+        if doc_requirement:
+            # 要求技术资料：三表都需要
+            is_closed = entry_exit_ok and test_info_ok and doc_approval_ok
+        else:
+            # 不要求技术资料：只需 EntryExit + TestInfo
+            is_closed = entry_exit_ok and test_info_ok
 
     main.is_closed = is_closed
     main.closure_checked_at = timezone.now()

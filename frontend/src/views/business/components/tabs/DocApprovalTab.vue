@@ -2,6 +2,18 @@
   <div class="doc-approval-tab" v-loading="store.docApproval.loading">
     <div class="section-title">技术资料发放批准单</div>
 
+    <!-- 是否需要填写技术资料 -->
+    <div class="doc-requirement-section">
+      <el-form-item label="是否需要填写技术资料">
+        <el-switch
+          v-model="docRequirement"
+          :disabled="!store.isScheduler"
+          @change="handleDocRequirementChange"
+        />
+        <span class="requirement-hint">{{ docRequirement ? '必填（影响闭环）' : '可选（不影响闭环）' }}</span>
+      </el-form-item>
+    </div>
+
     <el-form ref="formRef" :model="formData" :rules="formRules" label-width="120px" :disabled="isSubmitted && !store.isScheduler">
       <el-form-item label="名称" prop="doc_name">
         <el-input v-model="formData.doc_name" @change="markDirty" />
@@ -40,7 +52,8 @@
             <el-button size="small" :loading="uploading">{{ formData.file_url ? '更换文件' : '上传文件' }}</el-button>
           </el-upload>
           <el-button v-if="formData.file_url" size="small" type="danger" plain @click="handleDeleteFile">删除</el-button>
-          <span v-if="!formData.file_url" class="upload-hint">* 提交前必须上传文件</span>
+          <span v-if="!formData.file_url && docRequirement" class="upload-hint">* 提交前必须上传文件</span>
+          <span v-if="!formData.file_url && !docRequirement" class="upload-hint optional">可选（不影响闭环）</span>
           <span v-if="pendingUpload" class="upload-hint pending">文件已选择，请点击保存</span>
         </div>
       </el-form-item>
@@ -88,10 +101,35 @@ const formRules = {
 const uploading = ref(false)
 const saving = ref(false)
 const pendingUpload = ref(false)  // 标记是否有待保存的上传文件
+const docRequirement = ref(false)  // 是否需要填写技术资料
 
 const currentMain = computed(() => store.drawer.currentMain)
 const docApprovalData = computed(() => store.docApproval.data)
 const isSubmitted = computed(() => docApprovalData.value?.status === 'SUBMITTED')
+
+// 监听 currentMain 变化，同步 doc_requirement
+watch(currentMain, (main) => {
+  if (main) {
+    docRequirement.value = main.doc_requirement || false
+    formData.value.receiver_name = main.requester_name || ''
+    formData.value.issuer_name = store.currentFullname || ''
+  }
+}, { immediate: true })
+
+// 处理 doc_requirement 变化
+const handleDocRequirementChange = async (value) => {
+  const mainId = store.drawer.currentMainId
+  if (!mainId) return
+  
+  try {
+    await store.updateMainRecord(mainId, { doc_requirement: value })
+    ElMessage.success(value ? '已设置为必填项' : '已设置为可选项')
+  } catch (e) {
+    ElMessage.error('设置失败')
+    // 恢复原值
+    docRequirement.value = !value
+  }
+}
 
 // 计算预览URL
 const previewUrl = computed(() => {
@@ -166,14 +204,6 @@ watch(docApprovalData, (val) => {
   if (val) {
     formData.value = { ...val }
     pendingUpload.value = false  // 从服务器加载的数据，没有待保存的上传
-  }
-}, { immediate: true })
-
-// 初始化默认值
-watch(currentMain, (main) => {
-  if (main) {
-    formData.value.receiver_name = main.requester_name || ''
-    formData.value.issuer_name = store.currentFullname || ''
   }
 }, { immediate: true })
 
@@ -255,6 +285,19 @@ onMounted(async () => {
   color: #303133;
 }
 
+.doc-requirement-section {
+  margin-bottom: 20px;
+  padding: 12px;
+  background: #f5f7fa;
+  border-radius: 6px;
+}
+
+.requirement-hint {
+  margin-left: 12px;
+  font-size: 13px;
+  color: #606266;
+}
+
 .upload-area {
   display: flex;
   align-items: center;
@@ -264,6 +307,10 @@ onMounted(async () => {
 .upload-hint {
   font-size: 12px;
   color: #e6a23c;
+}
+
+.upload-hint.optional {
+  color: #909399;
 }
 
 .upload-hint.pending {

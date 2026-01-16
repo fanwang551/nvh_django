@@ -263,6 +263,13 @@
             <el-option label="否" value="否" />
           </el-select>
         </el-form-item>
+        <el-form-item label="任务状态" prop="task_scenario" required>
+          <el-select v-model="createForm.task_scenario" style="width: 100%">
+            <el-option label="正常" value="NORMAL" />
+            <el-option label="取消有样品" value="CANCEL_WITH_SAMPLE" />
+            <el-option label="取消无样品" value="CANCEL_NO_SAMPLE" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="备注">
           <el-input v-model="createForm.remark" type="textarea" :rows="2" />
         </el-form-item>
@@ -307,7 +314,9 @@ const createForm = ref({
   test_location: '',
   contract_no: '',
   report_required: '否',
-  remark: ''
+  remark: '',
+  task_scenario: 'NORMAL',
+  doc_requirement: false
 })
 
 // 表单校验规则
@@ -320,7 +329,8 @@ const createFormRules = {
   tester_name: [{ required: true, message: '请选择测试人员', trigger: 'change' }],
   schedule_start: [{ required: true, message: '请选择排期开始时间', trigger: 'change' }],
   test_location: [{ required: true, message: '请输入试验地点', trigger: 'blur' }],
-  report_required: [{ required: true, message: '请选择是否出报告', trigger: 'change' }]
+  report_required: [{ required: true, message: '请选择是否出报告', trigger: 'change' }],
+  task_scenario: [{ required: true, message: '请选择任务状态', trigger: 'change' }]
 }
 
 // 表单初始快照（用于 dirty 检测）
@@ -494,7 +504,9 @@ const handleCreate = () => {
     test_location: '',
     contract_no: '',
     report_required: '否',
-    remark: ''
+    remark: '',
+    task_scenario: 'NORMAL',
+    doc_requirement: false
   }
   // 保存初始快照
   originForm.value = JSON.parse(JSON.stringify(createForm.value))
@@ -523,7 +535,9 @@ const handleEdit = (row) => {
     test_location: row.test_location || '',
     contract_no: row.contract_no || '',
     report_required: row.report_required || '否',
-    remark: row.remark || ''
+    remark: row.remark || '',
+    task_scenario: row.task_scenario || 'NORMAL',
+    doc_requirement: row.doc_requirement || false
   }
   // 保存初始快照
   originForm.value = JSON.parse(JSON.stringify(createForm.value))
@@ -612,7 +626,9 @@ const resetFormAndClose = () => {
     test_location: '',
     contract_no: '',
     report_required: '否',
-    remark: ''
+    remark: '',
+    task_scenario: 'NORMAL',
+    doc_requirement: false
   }
   testerSelection.value = []
   assistantsSelection.value = []

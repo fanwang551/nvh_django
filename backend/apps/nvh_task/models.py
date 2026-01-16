@@ -117,15 +117,12 @@ class MainRecord(SoftDeleteModel):
     model = models.CharField(max_length=100, verbose_name="车型")
     vin_or_part_no = models.CharField(max_length=100, db_index=True, verbose_name="VIN码/零件编号")
     test_name = models.CharField(max_length=200, verbose_name="试验名称")
-
     warning_system_status = models.CharField(max_length=20, verbose_name="加入预警系统状态")
-
     requester_name = models.CharField(max_length=100, verbose_name="任务提出人")
     schedule_start = models.DateTimeField(db_index=True, verbose_name="试验安排开始时间")
     schedule_end = models.DateTimeField(null=True, blank=True, verbose_name="试验安排结束时间")
     schedule_remark = models.CharField(max_length=500, null=True, blank=True, verbose_name="试验安排时间备注")
     test_location = models.CharField(max_length=200, null=True, blank=True, verbose_name="试验地点")
-
     tester_name = models.CharField(max_length=100, verbose_name="测试人员")
     assistants = models.CharField(max_length=100, null=True, blank=True, verbose_name="协助人员")
     contract_no = models.CharField(max_length=100, null=True, blank=True, db_index=True, verbose_name="合同编号")
@@ -139,6 +136,15 @@ class MainRecord(SoftDeleteModel):
         related_name="main_records",
         verbose_name="关联进出登记",
     )
+
+    # 任务场景
+    task_scenario = models.CharField(
+        max_length=50,
+        default="NORMAL",
+        verbose_name="任务场景"
+    )
+    # 是否要求技术资料
+    doc_requirement = models.BooleanField(default=False, verbose_name="是否要求技术资料")
 
     is_closed = models.BooleanField(default=False, db_index=True, verbose_name="是否闭环")
     closure_checked_at = models.DateTimeField(null=True, blank=True, verbose_name="闭环判断更新时间")

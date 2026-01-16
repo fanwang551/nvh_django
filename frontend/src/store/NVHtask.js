@@ -238,7 +238,12 @@ export const useTaskStore = defineStore('nvhTask', {
     // ==================== 主记录 CRUD ====================
 
     async createMainRecord(data) {
-      const res = await nvhTaskApi.createMainRecord(data)
+      const payload = {
+        ...data,
+        task_scenario: data.task_scenario || 'NORMAL',
+        doc_requirement: data.doc_requirement !== undefined ? data.doc_requirement : false
+      }
+      const res = await nvhTaskApi.createMainRecord(payload)
       await this.loadList()
       return res
     },
@@ -246,6 +251,10 @@ export const useTaskStore = defineStore('nvhTask', {
     async updateMainRecord(id, data) {
       const res = await nvhTaskApi.updateMainRecord(id, data)
       await this.loadList()
+      // 如果更新了当前抽屉中的主记录，刷新抽屉数据
+      if (this.drawer.currentMainId === id) {
+        await this.refreshMainRecord()
+      }
       return res
     },
 

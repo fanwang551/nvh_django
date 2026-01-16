@@ -135,7 +135,8 @@ class MainRecordListSerializer(serializers.ModelSerializer):
             'entry_exit', 'entry_exit_dispose_type', 'is_closed', 'closure_checked_at',
             'created_at', 'updated_at',
             'entry_exit_status', 'test_info_status', 'doc_approval_status',
-            'include_teardown_record', 'include_process_record'
+            'include_teardown_record', 'include_process_record',
+            'task_scenario', 'doc_requirement'
         ]
         read_only_fields = ['id', 'is_closed', 'closure_checked_at', 'created_at', 'updated_at']
 
@@ -192,7 +193,8 @@ class MainRecordDetailSerializer(serializers.ModelSerializer):
             'tester_name', 'assistants', 'contract_no', 'report_required', 'remark',
             'entry_exit', 'is_closed', 'closure_checked_at',
             'created_at', 'updated_at',
-            'test_info', 'doc_approval'
+            'test_info', 'doc_approval',
+            'task_scenario', 'doc_requirement'
         ]
         read_only_fields = ['id', 'is_closed', 'closure_checked_at', 'created_at', 'updated_at']
 
@@ -221,7 +223,7 @@ class MainRecordCreateUpdateSerializer(serializers.ModelSerializer):
             'warning_system_status', 'requester_name',
             'schedule_start', 'schedule_end', 'schedule_remark', 'test_location',
             'tester_name', 'assistants', 'contract_no', 'report_required', 'remark',
-            'entry_exit_id'
+            'entry_exit_id', 'task_scenario', 'doc_requirement'
         ]
         read_only_fields = ['id']
 

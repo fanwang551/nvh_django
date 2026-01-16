@@ -242,6 +242,8 @@ def main_record_list(request):
     serializer = MainRecordCreateUpdateSerializer(data=request.data)
     if serializer.is_valid():
         instance = serializer.save()
+        # 刷新一次记录，保证'取消无样品'情况闭环
+        services.refresh_main_closed(instance)
         output = MainRecordDetailSerializer(instance).data
         return Response.success(data=output, message='创建任务成功', status_code=201)
     # 区分校验错误：返回 validation_error 标识，前端据此显示"请填写完整信息"
@@ -265,14 +267,21 @@ def main_record_detail(request, pk):
 
     if request.method == 'PATCH':
         old_entry_exit_id = instance.entry_exit_id
+        old_task_scenario = instance.task_scenario
+        old_doc_requirement = instance.doc_requirement
+        
         serializer = MainRecordCreateUpdateSerializer(instance, data=request.data, partial=True)
         if serializer.is_valid():
             instance = serializer.save()
-            # 检查 entry_exit_id 是否变化，触发闭环刷新
+            # 检查影响闭环的字段是否变化，触发闭环刷新
             if 'entry_exit_id' in request.data:
                 new_entry_exit_id = instance.entry_exit_id
                 if old_entry_exit_id != new_entry_exit_id:
                     services.refresh_main_closed(instance)
+            # 任务场景或技术资料要求变化时也需要刷新闭环
+            if ('task_scenario' in request.data and old_task_scenario != instance.task_scenario) or \
+               ('doc_requirement' in request.data and old_doc_requirement != instance.doc_requirement):
+                services.refresh_main_closed(instance)
             output = MainRecordDetailSerializer(instance).data
             return Response.success(data=output, message='更新任务成功')
         return Response.bad_request(message='更新任务失败', data=serializer.errors)
