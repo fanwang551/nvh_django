@@ -2,75 +2,81 @@
   <div class="doc-approval-tab" v-loading="store.docApproval.loading">
     <div class="section-title">技术资料发放批准单</div>
 
-    <!-- 是否需要填写技术资料 -->
-    <div class="doc-requirement-section">
-      <el-form-item label="是否需要填写技术资料">
-        <el-switch
-          v-model="docRequirement"
-          :disabled="!store.isScheduler"
-          @change="handleDocRequirementChange"
-        />
-        <span class="requirement-hint">{{ docRequirement ? '必填（影响闭环）' : '可选（不影响闭环）' }}</span>
-      </el-form-item>
+    <!-- 是否需要填写技术资料 - 顶部单选 -->
+    <div class="doc-requirement-radio">
+      <span class="radio-label">是否需要填写技术资料：</span>
+      <el-radio-group v-model="docRequirementLocal" @change="handleDocRequirementChange">
+        <el-radio :value="true">是</el-radio>
+        <el-radio :value="false">否</el-radio>
+      </el-radio-group>
     </div>
 
-    <el-form ref="formRef" :model="formData" :rules="formRules" label-width="120px" :disabled="isSubmitted && !store.isScheduler">
-      <el-form-item label="名称" prop="doc_name">
-        <el-input v-model="formData.doc_name" @change="markDirty" />
-      </el-form-item>
-      <el-form-item label="数量" prop="quantity">
-        <el-input-number v-model="formData.quantity" :min="0" style="width: 100%" @change="markDirty" />
-      </el-form-item>
-      <el-form-item label="接收人" prop="receiver_name">
-        <el-input v-model="formData.receiver_name" @change="markDirty" />
-      </el-form-item>
-      <el-form-item label="发放人" prop="issuer_name">
-        <el-input v-model="formData.issuer_name" @change="markDirty" />
-      </el-form-item>
-      <el-form-item label="批准人" prop="approver_name">
-        <el-input v-model="formData.approver_name" @change="markDirty" />
-      </el-form-item>
-      <el-form-item label="发放日期" prop="issue_date">
-        <el-date-picker v-model="formData.issue_date" type="date" value-format="YYYY-MM-DD" style="width: 100%" @change="markDirty" />
-      </el-form-item>
-      <el-form-item label="文件(图片)" prop="file_url">
-        <div class="upload-area">
-          <el-image
-            v-if="previewUrl"
-            :src="previewUrl"
-            fit="cover"
-            style="width: 120px; height: 90px; border-radius: 6px"
-            :preview-src-list="[previewUrl]"
-          />
-          <el-upload
-            action="/api/nvh-task/upload/"
-            :show-file-list="false"
-            :before-upload="beforeUpload"
-            :http-request="uploadFile"
-            :disabled="uploading"
-          >
-            <el-button size="small" :loading="uploading">{{ formData.file_url ? '更换文件' : '上传文件' }}</el-button>
-          </el-upload>
-          <el-button v-if="formData.file_url" size="small" type="danger" plain @click="handleDeleteFile">删除</el-button>
-          <span v-if="!formData.file_url && docRequirement" class="upload-hint">* 提交前必须上传文件</span>
-          <span v-if="!formData.file_url && !docRequirement" class="upload-hint optional">可选（不影响闭环）</span>
-          <span v-if="pendingUpload" class="upload-hint pending">文件已选择，请点击保存</span>
-        </div>
-      </el-form-item>
-    </el-form>
-
-    <!-- 操作按钮 -->
-    <div class="form-actions">
-      <el-button @click="handleSave" :disabled="isSubmitted && !store.isScheduler" :loading="saving">保存草稿</el-button>
-      <el-button v-if="!isSubmitted" type="primary" @click="handleSubmit">提交</el-button>
-      <el-button v-else type="warning" @click="handleUnsubmit">撤回提交</el-button>
+    <!-- 不需要技术资料时的提示 -->
+    <div v-if="!docRequirement" class="no-requirement-hint">
+      <el-icon><InfoFilled /></el-icon>
+      <span>当前不需要技术资料</span>
     </div>
+
+    <!-- 表单区域：仅在需要技术资料时显示 -->
+    <template v-if="docRequirement">
+      <el-form ref="formRef" :model="formData" :rules="formRules" label-width="120px" :disabled="isSubmitted && !store.isScheduler">
+        <el-form-item label="名称" prop="doc_name">
+          <el-input v-model="formData.doc_name" @change="markDirty" />
+        </el-form-item>
+        <el-form-item label="数量" prop="quantity">
+          <el-input-number v-model="formData.quantity" :min="0" style="width: 100%" @change="markDirty" />
+        </el-form-item>
+        <el-form-item label="接收人" prop="receiver_name">
+          <el-input v-model="formData.receiver_name" @change="markDirty" />
+        </el-form-item>
+        <el-form-item label="发放人" prop="issuer_name">
+          <el-input v-model="formData.issuer_name" @change="markDirty" />
+        </el-form-item>
+        <el-form-item label="批准人" prop="approver_name">
+          <el-input v-model="formData.approver_name" @change="markDirty" />
+        </el-form-item>
+        <el-form-item label="发放日期" prop="issue_date">
+          <el-date-picker v-model="formData.issue_date" type="date" value-format="YYYY-MM-DD" style="width: 100%" @change="markDirty" />
+        </el-form-item>
+        <el-form-item label="文件(图片)" prop="file_url">
+          <div class="upload-area">
+            <el-image
+              v-if="previewUrl"
+              :src="previewUrl"
+              fit="cover"
+              style="width: 120px; height: 90px; border-radius: 6px"
+              :preview-src-list="[previewUrl]"
+            />
+            <el-upload
+              action="/api/nvh-task/upload/"
+              :show-file-list="false"
+              :before-upload="beforeUpload"
+              :http-request="uploadFile"
+              :disabled="uploading"
+            >
+              <el-button size="small" :loading="uploading">{{ formData.file_url ? '更换文件' : '上传文件' }}</el-button>
+            </el-upload>
+            <el-button v-if="formData.file_url" size="small" type="danger" plain @click="handleDeleteFile">删除</el-button>
+            <span v-if="!formData.file_url" class="upload-hint">* 提交前必须上传文件</span>
+            <span v-if="pendingUpload" class="upload-hint pending">文件已选择，请点击保存</span>
+          </div>
+        </el-form-item>
+      </el-form>
+
+      <!-- 操作按钮 -->
+      <div class="form-actions">
+        <el-button @click="handleSave" :disabled="isSubmitted && !store.isScheduler" :loading="saving">保存草稿</el-button>
+        <el-button v-if="!isSubmitted" type="primary" @click="handleSubmit">提交</el-button>
+        <el-button v-else type="warning" @click="handleUnsubmit">撤回提交</el-button>
+      </div>
+    </template>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { InfoFilled } from '@element-plus/icons-vue'
 import { useTaskStore } from '@/store/NVHtask'
 import { nvhTaskApi } from '@/api/nvhTask'
 
@@ -101,16 +107,21 @@ const formRules = {
 const uploading = ref(false)
 const saving = ref(false)
 const pendingUpload = ref(false)  // 标记是否有待保存的上传文件
-const docRequirement = ref(false)  // 是否需要填写技术资料
+
+// doc_requirement 本地状态（用于单选控件绑定）
+const docRequirementLocal = ref(false)
 
 const currentMain = computed(() => store.drawer.currentMain)
 const docApprovalData = computed(() => store.docApproval.data)
 const isSubmitted = computed(() => docApprovalData.value?.status === 'SUBMITTED')
 
+// 实际的 doc_requirement 值（从 main 读取）
+const docRequirement = computed(() => currentMain.value?.doc_requirement || false)
+
 // 监听 currentMain 变化，同步 doc_requirement
 watch(currentMain, (main) => {
   if (main) {
-    docRequirement.value = main.doc_requirement || false
+    docRequirementLocal.value = main.doc_requirement || false
     formData.value.receiver_name = main.requester_name || ''
     formData.value.issuer_name = store.currentFullname || ''
   }
@@ -121,13 +132,36 @@ const handleDocRequirementChange = async (value) => {
   const mainId = store.drawer.currentMainId
   if (!mainId) return
   
-  try {
-    await store.updateMainRecord(mainId, { doc_requirement: value })
-    ElMessage.success(value ? '已设置为必填项' : '已设置为可选项')
-  } catch (e) {
-    ElMessage.error('设置失败')
-    // 恢复原值
-    docRequirement.value = !value
+  // 从"是"切换到"否"时，弹出确认弹窗
+  if (!value) {
+    try {
+      await ElMessageBox.confirm(
+        '本任务不需要技术资料，确认后无需提交',
+        '确认',
+        {
+          confirmButtonText: '确认',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
+      )
+      // 用户点击确认：仅更新 main.doc_requirement=false
+      await store.updateMainRecord(mainId, { doc_requirement: false })
+      ElMessage.success('已设置为不需要技术资料')
+    } catch {
+      // 用户点击取消：恢复选择为"是"
+      docRequirementLocal.value = true
+    }
+  } else {
+    // 从"否"切换到"是"：直接更新 main.doc_requirement=true
+    try {
+      await store.updateMainRecord(mainId, { doc_requirement: true })
+      ElMessage.success('已设置为需要技术资料')
+      // 加载 doc_approval 数据（如果没有会自动创建）
+      await store.loadDocApproval()
+    } catch (e) {
+      ElMessage.error('设置失败')
+      docRequirementLocal.value = false
+    }
   }
 }
 
@@ -139,14 +173,6 @@ const previewUrl = computed(() => {
   if (url.startsWith('/media/')) return url
   return `/media/${url}`
 })
-
-const getImageUrl = (url) => {
-  if (!url) return ''
-  if (url.startsWith('http')) return url
-  if (url.startsWith('/media/')) return url
-  if (url.startsWith('nvh_task/')) return `/media/${url}`
-  return `/media/${url}`
-}
 
 const markDirty = () => {
   store.docApproval.dirty = true
@@ -264,7 +290,10 @@ const handleUnsubmit = async () => {
 }
 
 onMounted(async () => {
-  await store.loadDocApproval()
+  // 仅在需要技术资料时加载 doc_approval 数据
+  if (docRequirement.value) {
+    await store.loadDocApproval()
+  }
 
   // 设置默认发放日期为今天
   if (!formData.value.issue_date) {
@@ -285,17 +314,30 @@ onMounted(async () => {
   color: #303133;
 }
 
-.doc-requirement-section {
+.doc-requirement-radio {
   margin-bottom: 20px;
-  padding: 12px;
+  padding: 12px 16px;
   background: #f5f7fa;
   border-radius: 6px;
+  display: flex;
+  align-items: center;
 }
 
-.requirement-hint {
-  margin-left: 12px;
-  font-size: 13px;
+.radio-label {
+  font-size: 14px;
   color: #606266;
+  margin-right: 16px;
+}
+
+.no-requirement-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 24px;
+  background: #f4f4f5;
+  border-radius: 6px;
+  color: #909399;
+  font-size: 14px;
 }
 
 .upload-area {
@@ -307,10 +349,6 @@ onMounted(async () => {
 .upload-hint {
   font-size: 12px;
   color: #e6a23c;
-}
-
-.upload-hint.optional {
-  color: #909399;
 }
 
 .upload-hint.pending {
