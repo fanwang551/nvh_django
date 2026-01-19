@@ -147,7 +147,7 @@ def main_record_list(request):
         # 排序：按测试人员聚合，组内按排期开始时间倒序，同时间按id倒序
         queryset = MainRecord.objects.select_related(
             'entry_exit', 'test_info', 'doc_approval'
-        ).order_by('tester_name', '-schedule_start', '-id')
+        ).order_by('-schedule_start', 'tester_name', 'assistants', '-id')
 
         # 筛选：车型
         model_filter = request.GET.get('model')
