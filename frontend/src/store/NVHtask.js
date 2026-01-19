@@ -31,7 +31,18 @@ export const useTaskStore = defineStore('nvhTask', {
       schedule_start_to: '',
       entry_exit_dispose_type: '',
       has_contract_no: '',
-      report_required: ''
+      report_required: '',
+      week_closure_filter: '' // 本周闭环筛选：'closed' | 'unclosed' | ''
+    },
+
+    // ==================== 统计数据 ====================
+    statistics: {
+      total_tasks: 0,
+      month_tasks: 0,
+      week_tasks: 0,
+      week_closed: 0,
+      week_unclosed: 0,
+      loading: false
     },
 
     // ==================== 抽屉相关 ====================
@@ -198,6 +209,9 @@ export const useTaskStore = defineStore('nvhTask', {
         this.list.total = data.total || 0
         this.list.page = data.page || 1
         this.list.pageSize = data.page_size || 20
+        
+        // 加载列表后刷新统计数据
+        this.loadStatistics()
       } finally {
         this.list.loading = false
       }
@@ -206,6 +220,9 @@ export const useTaskStore = defineStore('nvhTask', {
     getActiveFilters() {
       const result = {}
       Object.entries(this.filters).forEach(([key, value]) => {
+        // 排除 week_closure_filter，这是前端内部使用的标识
+        if (key === 'week_closure_filter') return
+        
         if (value !== '' && value !== null && value !== undefined) {
           result[key] = value
         }
@@ -549,6 +566,25 @@ export const useTaskStore = defineStore('nvhTask', {
     async getLastMainRecord() {
       const res = await nvhTaskApi.getLastMainRecord()
       return res?.data || null
+    },
+
+    // ==================== 统计数据 ====================
+
+    async loadStatistics() {
+      this.statistics.loading = true
+      try {
+        const res = await nvhTaskApi.getTaskStatistics()
+        const data = res?.data || {}
+        this.statistics.total_tasks = data.total_tasks || 0
+        this.statistics.month_tasks = data.month_tasks || 0
+        this.statistics.week_tasks = data.week_tasks || 0
+        this.statistics.week_closed = data.week_closed || 0
+        this.statistics.week_unclosed = data.week_unclosed || 0
+      } catch (e) {
+        console.error('加载统计数据失败:', e)
+      } finally {
+        this.statistics.loading = false
+      }
     }
   }
 })

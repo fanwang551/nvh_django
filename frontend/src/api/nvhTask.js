@@ -54,6 +54,13 @@ export const nvhTaskApi = {
     return request.get('/nvh-task/main-records/last/')
   },
 
+  /**
+   * 获取任务统计数据
+   */
+  getTaskStatistics() {
+    return request.get('/nvh-task/main-records/statistics/')
+  },
+
    /**
     * 导出主记录列表为 Excel（不带 token）
     * @param {Object} params 筛选参数（与列表查询一致）

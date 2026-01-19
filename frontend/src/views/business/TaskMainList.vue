@@ -74,6 +74,9 @@
       </div>
     </div>
 
+    <!-- 数据统计区域 -->
+    <StatisticsBar />
+
     <!-- 表格卡片 -->
     <div class="table-card">
       <el-table
@@ -308,6 +311,7 @@ import { DocumentCopy, Plus, Download } from '@element-plus/icons-vue' // 引入
 import { useTaskStore } from '@/store/NVHtask'
 import { userApi } from '@/api/user'
 import TaskDetailDrawer from './components/TaskDetailDrawer.vue'
+import StatisticsBar from './components/StatisticsBar.vue'
 
 const store = useTaskStore()
 
@@ -780,6 +784,7 @@ const handleUseLast = async () => {
 onMounted(() => {
   store.initUserInfo()
   store.loadList()
+  store.loadStatistics() // 加载统计数据
   loadTesterOptions()
 })
 </script>

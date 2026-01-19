@@ -7,6 +7,7 @@ urlpatterns = [
     path('main-records/<int:pk>/', views.main_record_detail, name='nvh-task-main-detail'),
     path('main-records/last/', views.get_last_main_record, name='nvh-task-main-last'),
     path('main-records/export/', views.export_main_records, name='nvh-task-main-export'),
+    path('main-records/statistics/', views.get_task_statistics, name='nvh-task-statistics'),
 
     # TestInfo (通过 main_id 获取/更新)
     path('main-records/<int:main_id>/test-info/', views.test_info_by_main, name='nvh-task-test-info'),

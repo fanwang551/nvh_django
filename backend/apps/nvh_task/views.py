@@ -759,6 +759,68 @@ def get_last_main_record(request):
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
+def get_task_statistics(request):
+    """
+    获取任务统计数据
+    返回：总任务数、本月任务数、本周任务数、本周已闭环数、本周未闭环数
+    """
+    now = timezone.now()
+    
+    # 获取本周的开始和结束时间（周一到周日）
+    week_start = now - timedelta(days=now.weekday())  # 本周一
+    week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
+    week_end = week_start + timedelta(days=7)  # 下周一
+    
+    # 获取本月的开始和结束时间
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    if now.month == 12:
+        month_end = month_start.replace(year=now.year + 1, month=1)
+    else:
+        month_end = month_start.replace(month=now.month + 1)
+    
+    # 总任务数
+    total_tasks = MainRecord.objects.count()
+    
+    # 本月任务数（排期开始时间在本月内）
+    month_tasks = MainRecord.objects.filter(
+        schedule_start__gte=month_start,
+        schedule_start__lt=month_end
+    ).count()
+    
+    # 本周任务数（排期开始时间在本周内）
+    week_tasks = MainRecord.objects.filter(
+        schedule_start__gte=week_start,
+        schedule_start__lt=week_end
+    ).count()
+    
+    # 本周已闭环任务数
+    week_closed = MainRecord.objects.filter(
+        schedule_start__gte=week_start,
+        schedule_start__lt=week_end,
+        is_closed=True
+    ).count()
+    
+    # 本周未闭环任务数
+    week_unclosed = MainRecord.objects.filter(
+        schedule_start__gte=week_start,
+        schedule_start__lt=week_end,
+        is_closed=False
+    ).count()
+    
+    return Response.success(
+        data={
+            'total_tasks': total_tasks,
+            'month_tasks': month_tasks,
+            'week_tasks': week_tasks,
+            'week_closed': week_closed,
+            'week_unclosed': week_unclosed
+        },
+        message='获取统计数据成功'
+    )
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
 def export_main_records(request):
     """
     导出主记录列表为 Excel 文件
