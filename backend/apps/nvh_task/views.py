@@ -764,8 +764,8 @@ def get_task_statistics(request):
     获取任务统计数据
     返回：总任务数、本月任务数、本周任务数、本周已闭环数、本周未闭环数
     """
-    now = timezone.now()
-    
+    now = timezone.localtime(timezone.now())
+
     # 获取本周的开始和结束时间（周一到周日）
     week_start = now - timedelta(days=now.weekday())  # 本周一
     week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
