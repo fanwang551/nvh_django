@@ -163,7 +163,10 @@ class SubstancesTestDetailSerializer(serializers.ModelSerializer):
         ]
 
     def get_match_degree_formatted(self, obj):
-        return f"{obj.match_degree:.2f}%" if obj.match_degree is not None else None
+        if obj.match_degree is not None and obj.match_degree != '':
+            # 如果 match_degree 已经包含 %，直接返回；否则添加 %
+            return obj.match_degree if '%' in obj.match_degree else f"{obj.match_degree}%"
+        return None
 
     def get_retention_time_formatted(self, obj):
         return f"{obj.retention_time:.4f}" if obj.retention_time is not None else None

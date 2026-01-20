@@ -98,7 +98,7 @@ class SubstancesTestDetail(models.Model):
     # 检测数据
     concentration = models.DecimalField(max_digits=12, decimal_places=3, verbose_name='浓度(μg/m³)')
     retention_time = models.DecimalField(max_digits=8, decimal_places=4, null=True, blank=True, verbose_name='保留时间')
-    match_degree = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name='匹配度(%)')
+    match_degree = models.CharField(max_length=50, null=True, blank=True, verbose_name='匹配度(%)')
     concentration_ratio = models.DecimalField(max_digits=8, decimal_places=3, null=True, blank=True, verbose_name='浓度占比(%)')
 
     # 自动计算字段

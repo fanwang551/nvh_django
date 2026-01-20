@@ -854,7 +854,7 @@ def traceability_ranking(request):
                 'substance_name_en': getattr(sub, 'substance_name_en', None),
                 'substance_info': SubstanceSerializer(sub).data if sub else None,
                 'retention_time': _fmt3(in_vehicle_detail.retention_time),
-                'match_degree': _fmt3(in_vehicle_detail.match_degree),
+                'match_degree': in_vehicle_detail.match_degree,
                 'concentration_ratio': _fmt3(in_vehicle_detail.concentration_ratio),
                 'concentration': _fmt3(in_vehicle_detail.concentration),
                 'odor_top5': odor_top5,
