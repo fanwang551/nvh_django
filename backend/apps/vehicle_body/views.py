@@ -547,9 +547,12 @@ def contribution_top25(request):
         samples_qs = samples_qs.filter(id__in=sample_ids_with_details)
 
         # 唯一零件数量判断
-        unique_part_names = list(
-            samples_qs.values_list('part_name', flat=True).distinct()
-        )
+        # unique_part_names = list(
+        #     samples_qs.values_list('part_name', flat=True).distinct()
+        # )
+        # 使用 set() 确保去重
+        all_part_names = samples_qs.values_list('part_name', flat=True)
+        unique_part_names = list(set(all_part_names))
         unique_count = len(unique_part_names)
         if unique_count < 35:
             unique_part_names.sort()
