@@ -223,7 +223,18 @@ def _apply_filters(qs, filters):
 
     test_date_range = filters.get('test_date_range') or []
     if isinstance(test_date_range, (list, tuple)) and len(test_date_range) == 2:
-        qs = qs.filter(test_date__range=test_date_range)
+        # 处理前端传来的 ISO 8601 格式日期字符串，提取日期部分
+        from datetime import datetime
+        start_date = test_date_range[0]
+        end_date = test_date_range[1]
+        
+        # 如果是字符串格式，尝试解析并转换为日期
+        if isinstance(start_date, str):
+            start_date = datetime.fromisoformat(start_date.replace('Z', '+00:00')).date()
+        if isinstance(end_date, str):
+            end_date = datetime.fromisoformat(end_date.replace('Z', '+00:00')).date()
+            
+        qs = qs.filter(test_date__range=[start_date, end_date])
 
     return qs
 
