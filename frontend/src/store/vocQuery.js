@@ -12,7 +12,7 @@ export const useVocQueryStore = defineStore('vocQuery', {
       development_stages: [],
       test_date_range: null,
       test_order_no: '',
-      sample_no: '',
+      sample_no: [],  // 改为数组以支持多选
       page: 1,
       page_size: 10
     },
@@ -22,6 +22,7 @@ export const useVocQueryStore = defineStore('vocQuery', {
     part_names: [],
     status_options: [],
     development_stage_options: [],
+    sample_no_options: [],  // 样品编号选项（联动筛选）
 
     // 业务数据
     all_voc_data: [],
@@ -70,6 +71,7 @@ export const useVocQueryStore = defineStore('vocQuery', {
     part_names_loading: false,
     status_options_loading: false,
     development_stage_loading: false,
+    sample_no_options_loading: false,  // 样品编号选项加载状态
     query_loading: false,
     chart_data_loading: false
   }),
@@ -216,6 +218,21 @@ export const useVocQueryStore = defineStore('vocQuery', {
       }
     },
 
+    // 获取样品编号选项（根据项目名称联动筛选）
+    async fetchSampleNoOptions(projectNames = []) {
+      try {
+        this.sample_no_options_loading = true
+        const response = await vocApi.getSampleNoOptions(projectNames)
+        this.sample_no_options = response.data || []
+      } catch (error) {
+        this.error = error.message
+        console.error('获取样品编号选项失败:', error)
+        this.sample_no_options = []
+      } finally {
+        this.sample_no_options_loading = false
+      }
+    },
+
     // 加载所有VOC数据
     async loadAllVocData() {
       try {
@@ -297,11 +314,20 @@ export const useVocQueryStore = defineStore('vocQuery', {
         )
       }
 
+      // 样品编号筛选：支持多选（数组）或手动输入（字符串）
       if (this.searchCriteria.sample_no) {
-        const searchValue = this.searchCriteria.sample_no.toLowerCase()
-        filtered = filtered.filter(item =>
-          item.sample_info?.sample_no?.toLowerCase().includes(searchValue)
-        )
+        if (Array.isArray(this.searchCriteria.sample_no) && this.searchCriteria.sample_no.length > 0) {
+          // 多选模式：数组匹配
+          filtered = filtered.filter(item =>
+            this.searchCriteria.sample_no.includes(item.sample_info?.sample_no)
+          )
+        } else if (typeof this.searchCriteria.sample_no === 'string' && this.searchCriteria.sample_no.trim()) {
+          // 手动输入模式：字符串包含匹配
+          const searchValue = this.searchCriteria.sample_no.toLowerCase()
+          filtered = filtered.filter(item =>
+            item.sample_info?.sample_no?.toLowerCase().includes(searchValue)
+          )
+        }
       }
 
       this.filtered_voc_data = filtered
@@ -374,7 +400,7 @@ export const useVocQueryStore = defineStore('vocQuery', {
         development_stages: [],
         test_date_range: null,
         test_order_no: '',
-        sample_no: '',
+        sample_no: [],  // 改为数组以支持多选
         page: 1,
         page_size: 10
       }

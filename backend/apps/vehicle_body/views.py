@@ -186,6 +186,42 @@ def project_name_options(request):
         return Response.error(message=f'获取项目名称选项失败: {str(e)}')
 
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def sample_no_options(request):
+    """根据项目名称获取样品编号选项（支持联动筛选）
+    参数：project_names（可选，逗号分隔的项目名称列表）
+    返回结构：[{ value: 样品编号, label: 样品编号 }]
+    """
+    try:
+        # 获取项目名称参数（支持多个项目）
+        project_names_param = request.GET.get('project_names', '').strip()
+        
+        queryset = SampleInfo.objects.exclude(sample_no__isnull=True).exclude(sample_no='')
+        
+        # 如果指定了项目名称，则按项目筛选
+        if project_names_param:
+            project_names_list = [name.strip() for name in project_names_param.split(',') if name.strip()]
+            if project_names_list:
+                queryset = queryset.filter(project_name__in=project_names_list)
+        
+        # 获取去重的样品编号列表
+        sample_nos = queryset.values_list('sample_no', flat=True).distinct()
+        unique_sample_nos = sorted(set(sample_nos))
+        
+        options = [
+            {
+                'value': sample_no,
+                'label': sample_no,
+            }
+            for sample_no in unique_sample_nos
+        ]
+        
+        return Response.success(data=options, message='获取样品编号选项成功')
+    except Exception as e:
+        return Response.error(message=f'获取样品编号选项失败: {str(e)}')
+
+
 def _apply_filters(qs, filters):
     project_names = filters.get('project_names', []) or []
     if project_names:

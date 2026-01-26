@@ -142,7 +142,30 @@
             <!-- 样品编号 -->
             <el-col :span="6">
               <el-form-item label="样品编号">
+                <!-- 联动筛选模式：项目名称已选择时显示下拉框（多选） -->
+                <el-select
+                  v-if="store.searchCriteria.project_name"
+                  v-model="store.searchCriteria.sample_no"
+                  placeholder="请选择样品编号"
+                  multiple
+                  collapse-tags
+                  collapse-tags-tooltip
+                  clearable
+                  filterable
+                  :loading="store.sample_no_options_loading"
+                  style="width: 100%"
+                  @change="handleFilterChange"
+                >
+                  <el-option
+                    v-for="option in store.sample_no_options"
+                    :key="option.value"
+                    :label="option.label"
+                    :value="option.value"
+                  />
+                </el-select>
+                <!-- 手动输入模式：项目名称未选择时显示输入框 -->
                 <el-input
+                  v-else
                   v-model="store.searchCriteria.sample_no"
                   placeholder="请输入样品编号"
                   clearable
@@ -416,7 +439,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useSubstancesQueryStore } from '@/store/substancesQuery'
 import { substancesApi } from '@/api/substances'
 import { ElMessage } from 'element-plus'
@@ -545,6 +568,27 @@ onMounted(async () => {
     ElMessage.error('页面初始化失败')
   }
 })
+
+// 监听项目名称变化，联动加载样品编号选项
+watch(
+  () => store.searchCriteria.project_name,
+  async (newProjectName) => {
+    // 当项目名称变化时，清空已选的样品编号（多选模式使用空数组）
+    store.searchCriteria.sample_no = []
+    
+    // 如果有选中的项目，则加载对应的样品编号选项
+    if (newProjectName) {
+      try {
+        await store.fetchSampleNoOptions([newProjectName])
+      } catch (error) {
+        console.error('加载样品编号选项失败:', error)
+      }
+    } else {
+      // 如果没有选中项目，清空样品编号选项
+      store.sample_no_options = []
+    }
+  }
+)
 
 // 数值格式化：浓度保留三位小数
 const formatConcentration = (val) => {

@@ -5,6 +5,7 @@ urlpatterns = [
     path('iaq-dashboard/', views.iaq_dashboard, name='vehicle_body_iaq_dashboard'),
     path('data/', views.data_list, name='vehicle_body_data_list'),
     path('options/vehicle-models/', views.project_name_options, name='vehicle_body_project_name_options'),
+    path('options/sample-nos/', views.sample_no_options, name='vehicle_body_sample_no_options'),  # 样品编号选项接口
     path('row-chart-data/', views.row_chart_data, name='vehicle_body_row_chart_data'),
     path('odor-row-chart-data/', views.odor_row_chart_data, name='vehicle_body_odor_row_chart_data'),
     path('filtered-voc-chart-data/', views.filtered_voc_chart_data, name='vehicle_body_filtered_voc_chart_data'),

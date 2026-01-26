@@ -52,6 +52,19 @@ export const vocApi = {
   },
 
   /**
+   * 获取样品编号选项列表（支持按项目名称联动筛选）
+   * @param {Array} projectNames - 项目名称数组（可选）
+   * @returns {Promise} 样品编号选项列表
+   */
+  getSampleNoOptions(projectNames = []) {
+    const params = {}
+    if (projectNames && projectNames.length > 0) {
+      params.project_names = projectNames.join(',')
+    }
+    return request.get('/vehicle-body/options/sample-nos/', params)
+  },
+
+  /**
    * 获取VOC图表数据
    * @param {Object} params - 查询参数
    * @param {string} params.main_group - 主分组（可选，默认part_name）

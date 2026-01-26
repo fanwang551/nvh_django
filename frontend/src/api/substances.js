@@ -64,6 +64,19 @@ export const substancesApi = {
     return request.get('/voc/options/development-stages/')
   },
 
+  /**
+   * 获取样品编号选项列表（支持按项目名称联动筛选）
+   * @param {Array} projectNames - 项目名称数组（可选）
+   * @returns {Promise} 样品编号选项列表
+   */
+  getSampleNoOptions(projectNames = []) {
+    const params = {}
+    if (projectNames && projectNames.length > 0) {
+      params.project_names = projectNames.join(',')
+    }
+    return request.get('/vehicle-body/options/sample-nos/', params)
+  },
+
   // ---- 污染物分项溯源（vehicle_body 版本） ----
   /**
    * 整车样品下拉选项
