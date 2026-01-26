@@ -21,6 +21,7 @@ urlpatterns = [
 
     # EntryExit
     path('entry-exits/', views.entry_exit_list, name='nvh-task-entry-exit-list'),
+    path('entry-exits/all/', views.entry_exit_all_list, name='nvh-task-entry-exit-all-list'),
     path('entry-exits/<int:pk>/', views.entry_exit_detail, name='nvh-task-entry-exit-detail'),
     path('entry-exits/<int:pk>/submit/', views.entry_exit_submit, name='nvh-task-entry-exit-submit'),
     path('entry-exits/<int:pk>/unsubmit/', views.entry_exit_unsubmit, name='nvh-task-entry-exit-unsubmit'),

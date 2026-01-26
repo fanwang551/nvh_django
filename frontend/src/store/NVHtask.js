@@ -79,6 +79,15 @@ export const useTaskStore = defineStore('nvhTask', {
       loading: false
     },
 
+    // ==================== 进出登记记录管理 ====================
+    entryExitRecords: {
+      items: [],
+      total: 0,
+      page: 1,
+      pageSize: 10,
+      loading: false
+    },
+
     // ==================== 过程记录表名选项 ====================
     processOptions: [],
 
@@ -401,6 +410,37 @@ export const useTaskStore = defineStore('nvhTask', {
       await this.refreshMainRecord()
       await this.loadList()
       return res
+    },
+
+    // ==================== 进出登记记录管理 ====================
+
+    async loadEntryExitRecords(page = 1) {
+      this.entryExitRecords.loading = true
+      this.entryExitRecords.page = page
+      try {
+        const res = await nvhTaskApi.listAllEntryExits({
+          page: this.entryExitRecords.page,
+          page_size: this.entryExitRecords.pageSize
+        })
+        const data = res?.data || {}
+        this.entryExitRecords.items = data.items || []
+        this.entryExitRecords.total = data.total || 0
+      } finally {
+        this.entryExitRecords.loading = false
+      }
+    },
+
+    async deleteEntryExitRecord(id) {
+      await nvhTaskApi.deleteEntryExit(id)
+      // 刷新记录列表
+      await this.loadEntryExitRecords(this.entryExitRecords.page)
+      // 如果当前抽屉中的进出登记被删除，刷新抽屉数据
+      if (this.entryExit.data?.id === id) {
+        await this.refreshMainRecord()
+        await this.loadEntryExit()
+      }
+      // 刷新主列表
+      await this.loadList()
     },
 
     // ==================== TestInfo 操作 ====================

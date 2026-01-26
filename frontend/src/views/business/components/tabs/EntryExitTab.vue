@@ -2,7 +2,13 @@
   <div class="entry-exit-tab" v-loading="store.entryExit.loading">
     <!-- 未绑定状态：选择绑定方式 -->
     <div v-if="!hasBound" class="bind-section">
-      <div class="bind-title">绑定进出登记</div>
+      <div class="bind-header">
+        <div class="bind-title">绑定进出登记</div>
+        <el-button v-if="store.isScheduler" type="primary" link @click="showRecordManagement">
+          <el-icon><Setting /></el-icon>
+          记录管理
+        </el-button>
+      </div>
       <el-radio-group v-model="bindMode" class="bind-mode">
         <el-radio label="new">新建进出登记</el-radio>
         <el-radio label="select">选择已有进出登记</el-radio>
@@ -100,12 +106,81 @@
         <el-button type="danger" plain @click="handleUnbind">解绑</el-button>
       </div>
     </div>
+
+    <!-- 记录管理对话框 -->
+    <el-dialog
+      v-model="recordDialogVisible"
+      title="进出登记记录管理"
+      width="1100px"
+      :close-on-click-modal="false"
+    >
+      <el-table
+        :data="store.entryExitRecords.items"
+        v-loading="store.entryExitRecords.loading"
+        stripe
+        border
+        max-height="500"
+      >
+        <el-table-column prop="id" label="ID" width="70" align="center" />
+        <el-table-column prop="model" label="型号" width="140" />
+        <el-table-column prop="vin_or_part_no" label="VIN/零件号" width="180" />
+        <el-table-column prop="receiver_name" label="接收人" width="110" />
+        <el-table-column prop="enter_time" label="进入时间" width="110">
+          <template #default="{ row }">
+            {{ formatDate(row.enter_time) }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="dispose_type" label="处置类型" width="110" align="center">
+          <template #default="{ row }">
+            {{ row.dispose_type || '--' }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="status" label="状态" width="100" align="center">
+          <template #default="{ row }">
+            <el-tag :type="row.status === 'SUBMITTED' ? 'success' : 'info'" size="small">
+              {{ row.status === 'SUBMITTED' ? '已提交' : '草稿' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="active_mainrecord_count" label="引用数" width="90" align="center">
+          <template #default="{ row }">
+            <el-tag size="small" :type="row.active_mainrecord_count > 1 ? 'warning' : 'info'">
+              {{ row.active_mainrecord_count }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="100" align="center" fixed="right">
+          <template #default="{ row }">
+            <el-button
+              type="danger"
+              link
+              size="small"
+              @click="handleDeleteRecord(row)"
+              :disabled="row.active_mainrecord_count > 1"
+            >
+              删除
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <div class="pagination-wrapper">
+        <el-pagination
+          v-model:current-page="store.entryExitRecords.page"
+          :page-size="store.entryExitRecords.pageSize"
+          :total="store.entryExitRecords.total"
+          layout="total, prev, pager, next"
+          @current-change="handlePageChange"
+        />
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Setting } from '@element-plus/icons-vue'
 import { useTaskStore } from '@/store/NVHtask'
 
 const store = useTaskStore()
@@ -113,6 +188,7 @@ const store = useTaskStore()
 const formRef = ref(null)
 const bindMode = ref('new')
 const selectedEntryExitId = ref(null)
+const recordDialogVisible = ref(false)
 
 const newForm = ref({
   receiver_name: '',
@@ -262,6 +338,44 @@ const handleUnsubmit = async () => {
   }
 }
 
+// 显示记录管理对话框
+const showRecordManagement = async () => {
+  recordDialogVisible.value = true
+  await store.loadEntryExitRecords(1)
+}
+
+// 删除记录
+const handleDeleteRecord = async (row) => {
+  if (row.active_mainrecord_count > 1) {
+    ElMessage.warning('该进出登记被多条任务引用，不能删除')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `确定删除该进出登记记录吗？（ID: ${row.id}）`,
+      '删除确认',
+      {
+        type: 'warning',
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消'
+      }
+    )
+
+    await store.deleteEntryExitRecord(row.id)
+    ElMessage.success('删除成功')
+  } catch (e) {
+    if (e !== 'cancel') {
+      ElMessage.error(e?.message || '删除失败')
+    }
+  }
+}
+
+// 分页切换
+const handlePageChange = (page) => {
+  store.loadEntryExitRecords(page)
+}
+
 onMounted(async () => {
   // 初始化默认值
   const main = store.drawer.currentMain
@@ -291,10 +405,16 @@ onMounted(async () => {
   border-radius: 8px;
 }
 
+.bind-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
 .bind-title {
   font-size: 16px;
   font-weight: 600;
-  margin-bottom: 16px;
 }
 
 .bind-mode {
@@ -315,5 +435,11 @@ onMounted(async () => {
   margin-top: 20px;
   padding-top: 16px;
   border-top: 1px solid #ebeef5;
+}
+
+.pagination-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
 }
 </style>

@@ -342,6 +342,50 @@ def entry_exit_list(request):
     return Response.bad_request(message='创建进出登记失败', data=serializer.errors)
 
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def entry_exit_all_list(request):
+    """获取所有进出登记记录（用于记录管理，包含关联的主记录信息）"""
+    queryset = EntryExit.objects.prefetch_related('main_records').order_by('-enter_time', '-id')
+
+    # 筛选：接收人
+    receiver = request.GET.get('receiver_name')
+    if receiver:
+        queryset = queryset.filter(receiver_name__icontains=receiver)
+
+    # 筛选：处置类型
+    dispose_type = request.GET.get('dispose_type')
+    if dispose_type:
+        queryset = queryset.filter(dispose_type=dispose_type)
+
+    page, page_size = get_pagination_params(request)
+    items, total = paginate_queryset(queryset, page, page_size)
+
+    # 构建返回数据，包含关联的主记录信息
+    result_items = []
+    for entry_exit in items:
+        # 获取第一个关联的主记录（用于显示型号和VIN）
+        main_record = entry_exit.main_records.first()
+        
+        item_data = EntryExitSerializer(entry_exit).data
+        item_data['model'] = main_record.model if main_record else ''
+        item_data['vin_or_part_no'] = main_record.vin_or_part_no if main_record else ''
+        item_data['active_mainrecord_count'] = entry_exit.active_mainrecord_count()
+        
+        result_items.append(item_data)
+
+    return Response.success(
+        data={
+            'items': result_items,
+            'total': total,
+            'page': page,
+            'page_size': page_size,
+        },
+        message='获取进出登记记录列表成功'
+    )
+
+
+
 @api_view(['GET', 'PATCH', 'DELETE'])
 @permission_classes([AllowAny])
 def entry_exit_detail(request, pk):

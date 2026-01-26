@@ -136,6 +136,14 @@ export const nvhTaskApi = {
     return request.post(`/nvh-task/entry-exits/${id}/unsubmit/`)
   },
 
+  /**
+   * 获取所有进出登记记录（用于记录管理）
+   * @param {Object} params 分页参数
+   */
+  listAllEntryExits(params = {}) {
+    return request.get('/nvh-task/entry-exits/all/', params)
+  },
+
   // ==================== TestInfo ====================
 
   /**
