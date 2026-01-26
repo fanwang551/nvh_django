@@ -111,58 +111,62 @@
     <el-dialog
       v-model="recordDialogVisible"
       title="进出登记记录管理"
-      width="1100px"
+      width="fit-content"
       :close-on-click-modal="false"
+      class="record-dialog"
     >
-      <el-table
-        :data="store.entryExitRecords.items"
-        v-loading="store.entryExitRecords.loading"
-        stripe
-        border
-        max-height="500"
-      >
-        <el-table-column prop="id" label="ID" width="70" align="center" />
-        <el-table-column prop="model" label="型号" width="140" />
-        <el-table-column prop="vin_or_part_no" label="VIN/零件号" width="180" />
-        <el-table-column prop="receiver_name" label="接收人" width="110" />
-        <el-table-column prop="enter_time" label="进入时间" width="110">
-          <template #default="{ row }">
-            {{ formatDate(row.enter_time) }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="dispose_type" label="处置类型" width="110" align="center">
-          <template #default="{ row }">
-            {{ row.dispose_type || '--' }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="status" label="状态" width="100" align="center">
-          <template #default="{ row }">
-            <el-tag :type="row.status === 'SUBMITTED' ? 'success' : 'info'" size="small">
-              {{ row.status === 'SUBMITTED' ? '已提交' : '草稿' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="active_mainrecord_count" label="引用数" width="90" align="center">
-          <template #default="{ row }">
-            <el-tag size="small" :type="row.active_mainrecord_count > 1 ? 'warning' : 'info'">
-              {{ row.active_mainrecord_count }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="100" align="center" fixed="right">
-          <template #default="{ row }">
-            <el-button
-              type="danger"
-              link
-              size="small"
-              @click="handleDeleteRecord(row)"
-              :disabled="row.active_mainrecord_count > 1"
-            >
-              删除
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <div class="table-container">
+        <el-table
+          :data="store.entryExitRecords.items"
+          v-loading="store.entryExitRecords.loading"
+          stripe
+          border
+          max-height="500"
+          class="record-table"
+        >
+          <el-table-column prop="id" label="ID" width="70" align="center" />
+          <el-table-column prop="model" label="型号" width="140" />
+          <el-table-column prop="vin_or_part_no" label="VIN/零件号" width="180" />
+          <el-table-column prop="receiver_name" label="接收人" width="110" />
+          <el-table-column prop="enter_time" label="进入时间" width="110">
+            <template #default="{ row }">
+              {{ formatDate(row.enter_time) }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="dispose_type" label="处置类型" width="110" align="center">
+            <template #default="{ row }">
+              {{ row.dispose_type || '--' }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="status" label="状态" width="100" align="center">
+            <template #default="{ row }">
+              <el-tag :type="row.status === 'SUBMITTED' ? 'success' : 'info'" size="small">
+                {{ row.status === 'SUBMITTED' ? '已提交' : '草稿' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="active_mainrecord_count" label="引用数" width="90" align="center">
+            <template #default="{ row }">
+              <el-tag size="small" :type="row.active_mainrecord_count > 1 ? 'warning' : 'info'">
+                {{ row.active_mainrecord_count }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="100" align="center" fixed="right">
+            <template #default="{ row }">
+              <el-button
+                type="danger"
+                link
+                size="small"
+                @click="handleDeleteRecord(row)"
+                :disabled="row.active_mainrecord_count > 1"
+              >
+                删除
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
 
       <div class="pagination-wrapper">
         <el-pagination
@@ -440,6 +444,37 @@ onMounted(async () => {
 .pagination-wrapper {
   display: flex;
   justify-content: center;
-  margin-top: 20px;
+  margin-top: 16px;
+}
+
+/* 记录管理弹窗样式 */
+.table-container {
+  width: 100%;
+}
+
+.record-table {
+  width: 100%;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+/* 表格圆角样式 */
+:deep(.record-table) {
+  border-radius: 6px;
+}
+
+:deep(.record-table .el-table__header-wrapper) {
+  border-radius: 6px 6px 0 0;
+}
+
+:deep(.record-table .el-table__body-wrapper) {
+  border-radius: 0 0 6px 6px;
+}
+</style>
+
+<style>
+/* 弹窗全局样式 - 需要不使用 scoped */
+.record-dialog .el-dialog__body {
+  padding: 16px 20px;
 }
 </style>
