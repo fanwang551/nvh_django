@@ -35,4 +35,7 @@ urlpatterns = [
 
     # 图片上传
     path('upload/', views.upload_image, name='nvh-task-upload'),
+
+    # CommonRequester (常用委托人)
+    path('common-requesters/', views.common_requester_list, name='nvh-task-common-requester-list'),
 ]

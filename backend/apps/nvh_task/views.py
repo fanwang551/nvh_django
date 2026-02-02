@@ -26,12 +26,12 @@ except ImportError:
 from utils.response import Response
 from .models import (
     MainRecord, EntryExit, TestInfo, DocApproval,
-    TestProcessAttachment, TestProcessList, STATUS_DRAFT
+    TestProcessAttachment, TestProcessList, STATUS_DRAFT, CommonRequester
 )
 from .serializers import (
     MainRecordListSerializer, MainRecordDetailSerializer, MainRecordCreateUpdateSerializer,
     EntryExitSerializer, TestInfoSerializer, DocApprovalSerializer,
-    TestProcessAttachmentSerializer, TestProcessListSerializer
+    TestProcessAttachmentSerializer, TestProcessListSerializer, CommonRequesterSerializer
 )
 from . import services
 
@@ -1057,3 +1057,15 @@ def export_main_records(request):
     response['Content-Disposition'] = f"attachment; filename*=UTF-8''{filename}"
     
     return response
+
+
+
+# ==================== CommonRequester 视图 ====================
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def common_requester_list(request):
+    """常用委托人列表（只读，返回全部数据）"""
+    queryset = CommonRequester.objects.order_by( 'id')
+    serializer = CommonRequesterSerializer(queryset, many=True)
+    return Response.success(data=serializer.data, message='获取常用委托人列表成功')

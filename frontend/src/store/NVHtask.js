@@ -91,6 +91,9 @@ export const useTaskStore = defineStore('nvhTask', {
     // ==================== 过程记录表名选项 ====================
     processOptions: [],
 
+    // ==================== 常用委托人 ====================
+    commonRequesters: [],
+
     // ==================== 用户信息 ====================
     currentUsername: '',
     currentFullname: '',
@@ -606,6 +609,18 @@ export const useTaskStore = defineStore('nvhTask', {
     async getLastMainRecord() {
       const res = await nvhTaskApi.getLastMainRecord()
       return res?.data || null
+    },
+
+    // ==================== 常用委托人 ====================
+
+    async fetchCommonRequesters() {
+      try {
+        const res = await nvhTaskApi.listCommonRequesters()
+        this.commonRequesters = res?.data || []
+      } catch (e) {
+        console.error('加载常用委托人失败:', e)
+        this.commonRequesters = []
+      }
     },
 
     // ==================== 统计数据 ====================

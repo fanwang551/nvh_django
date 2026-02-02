@@ -22,7 +22,22 @@
       <div class="section-title">试验信息</div>
       <el-form ref="formRef" :model="formData" :rules="formRules" label-width="160px" :disabled="isSubmitted && !store.isScheduler">
         <el-form-item label="联系方式" prop="contact_phone">
-          <el-input v-model="formData.contact_phone" @change="markDirty" />
+          <el-select
+            v-model="formData.contact_phone"
+            filterable
+            allow-create
+            default-first-option
+            placeholder="请选择或输入联系方式"
+            style="width: 100%"
+            @change="markDirty"
+          >
+            <el-option
+              v-for="phone in phoneOptions"
+              :key="phone"
+              :label="phone"
+              :value="phone"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="样品名称" prop="sample_type">
           <el-select v-model="formData.sample_type" placeholder="选择样品类型" clearable style="width: 100%" @change="markDirty">
@@ -41,7 +56,22 @@
           </el-select>
         </el-form-item>
         <el-form-item label="送件部门" prop="delivery_dept">
-          <el-input v-model="formData.delivery_dept" @change="markDirty" />
+          <el-select
+            v-model="formData.delivery_dept"
+            filterable
+            allow-create
+            default-first-option
+            placeholder="请选择或输入送件部门"
+            style="width: 100%"
+            @change="markDirty"
+          >
+            <el-option
+              v-for="dept in departmentOptions"
+              :key="dept"
+              :label="dept"
+              :value="dept"
+            />
+          </el-select>
         </el-form-item>
 
         <!-- 拆装记录 -->
@@ -172,6 +202,24 @@ const currentMain = computed(() => store.drawer.currentMain)
 const testInfoData = computed(() => store.testInfo.data)
 const isSubmitted = computed(() => testInfoData.value?.status === 'SUBMITTED')
 
+// 联系方式选项：匹配当前 requester_name 的 phone
+const phoneOptions = computed(() => {
+  const requesterName = currentMain.value?.requester_name
+  if (!requesterName) return []
+  
+  return store.commonRequesters
+    .filter(r => r.name === requesterName && r.phone)
+    .map(r => r.phone)
+})
+
+// 送件部门选项：所有 department 去重
+const departmentOptions = computed(() => {
+  const depts = store.commonRequesters
+    .map(r => r.department)
+    .filter(Boolean)
+  return [...new Set(depts)]
+})
+
 const TEMP_PREFIX = 'nvh_task/_temp/'
 const isTeardownTemp = computed(() => (formData.value.teardown_attachment_url || '').startsWith(TEMP_PREFIX))
 
@@ -299,12 +347,23 @@ const loadAttachments = async () => {
 
 watch(testInfoData, (val) => {
   if (val) {
+    // 如果 delivery_dept 为空，自动填充委托人对应的部门
+    let autoDept = val.delivery_dept ?? ''
+    if (!autoDept && currentMain.value?.requester_name) {
+      const matchedRequester = store.commonRequesters.find(
+        r => r.name === currentMain.value.requester_name
+      )
+      if (matchedRequester?.department) {
+        autoDept = matchedRequester.department
+      }
+    }
+
     formData.value = {
       ...formData.value,
       contact_phone: val.contact_phone ?? '',
       sample_type: val.sample_type ?? '',
       rd_stage: val.rd_stage ?? '',
-      delivery_dept: val.delivery_dept ?? '',
+      delivery_dept: autoDept,
       include_teardown_record: val.include_teardown_record ?? '否',
       include_process_record: val.include_process_record ?? '否',
       teardown_attachment_url: val.teardown_attachment_url || ''
@@ -421,6 +480,7 @@ const handleUnsubmit = async () => {
 onMounted(async () => {
   await store.loadTestInfo()
   await store.loadProcessOptions()
+  await store.fetchCommonRequesters() // 加载常用委托人
 })
 </script>
 

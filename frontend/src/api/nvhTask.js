@@ -280,6 +280,15 @@ export const nvhTaskApi = {
     return request.post('/nvh-task/upload/', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     })
+  },
+
+  // ==================== CommonRequester ====================
+
+  /**
+   * 获取常用委托人列表（全部数据）
+   */
+  listCommonRequesters() {
+    return request.get('/nvh-task/common-requesters/')
   }
 }
 

@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import (
     MainRecord, EntryExit, TestInfo, DocApproval,
-    TestProcessAttachment, TestProcessList
+    TestProcessAttachment, TestProcessList, CommonRequester
 )
 
 
@@ -250,3 +250,12 @@ class MainRecordCreateUpdateSerializer(serializers.ModelSerializer):
             # 显式传入了 entry_exit_id（包括 null）
             instance.entry_exit_id = entry_exit_id
         return super().update(instance, validated_data)
+
+
+class CommonRequesterSerializer(serializers.ModelSerializer):
+    """常用委托人序列化器"""
+
+    class Meta:
+        model = CommonRequester
+        fields = ['id', 'name', 'phone', 'department']
+        read_only_fields = ['id']

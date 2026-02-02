@@ -296,3 +296,18 @@ class DocApproval(SoftDeleteModel):
 
     def __str__(self):
         return f"DocApproval(main_id={self.main_id})"
+
+
+class CommonRequester(SoftDeleteModel):
+    """常用委托人"""
+
+    name = models.CharField(max_length=100, verbose_name="姓名")
+    phone = models.CharField(max_length=100, null=True, blank=True, verbose_name="联系电话")
+    department = models.CharField(max_length=100, null=True, blank=True, verbose_name="部门")
+
+    class Meta:
+        verbose_name = "常用委托人"
+        verbose_name_plural = "常用委托人"
+
+    def __str__(self):
+        return f"{self.name} - {self.department or '无部门'}"

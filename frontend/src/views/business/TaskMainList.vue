@@ -221,7 +221,21 @@
           </el-select>
         </el-form-item>
         <el-form-item label="任务提出人" prop="requester_name" required>
-          <el-input v-model="createForm.requester_name" />
+          <el-select
+            v-model="createForm.requester_name"
+            filterable
+            allow-create
+            default-first-option
+            placeholder="请选择或输入任务提出人"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="requester in store.commonRequesters"
+              :key="requester.id"
+              :label="requester.name"
+              :value="requester.name"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="测试人员" prop="tester_name">
           <el-select
@@ -785,6 +799,7 @@ onMounted(() => {
   store.initUserInfo()
   store.loadList()
   store.loadStatistics() // 加载统计数据
+  store.fetchCommonRequesters() // 加载常用委托人
   loadTesterOptions()
 })
 </script>
